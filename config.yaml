@@ -11,6 +11,21 @@ gff: ""
 fasta_outRNA: ""
 
 
+########## Optional ##########
+# Does UTR covering has to be calculated ('yes' or 'no'). You need the corresponding length files if set to 'yes'
+UTR: "no"
+
+# The length options will be ignore if UTR is set on 'yes'
+# File with CDS lengths
+CDSlength: ""
+
+# File with 5' UTR lengths
+5primelength: ""
+
+# File with 3' UTR lengths
+3primelength: ""
+##############################
+
 # Are the sequencing adapters already removed in fastq files ? 'yes' or 'no'
 already_trimmed: ""
 

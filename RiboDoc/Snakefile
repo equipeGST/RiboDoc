@@ -1,6 +1,6 @@
 configfile: "/data/config.yaml"
 # Docker 19.03.12
-# Conda 4.10.1
+# Conda 4.9.2
 # snakemake 6.1.1
 
 # Imports
@@ -26,6 +26,9 @@ else:
     trim = ""
 
 
+counts = "htseqcount"
+
+
 frag_length_S = "." + LENGTHS[0]
 frag_length_L = "." + LENGTHS[0] + "-" + LENGTHS[len(LENGTHS)-1]
 
@@ -35,8 +38,8 @@ rule all:
         # Call of make_fastqc rule
         expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
 
-        # Call of htseqcount_transcript rule
-        expand(local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount.txt", sample=SAMPLES),
+        # Call of htseqcount_transcript_utr or htseqcount_transcript rule (depends on UTR="True"|"False" in config file)
+        expand(local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA." + counts + ".txt", sample=SAMPLES),
 
         # Call for qualitative analysis
         local_path + "RESULTS/riboWaltz/best_offset.txt" if config['qualitative_analysis']=="riboWaltz" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
@@ -50,7 +53,11 @@ rule all:
 # When the jobs are all done
 onsuccess:
     # List of interesting logs to make the report
-    logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2"]
+    logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2","rpkmMoyen"]
+    if config['UTR'] == "no":
+        logs_names = logs_names[:-1]
+    # else:
+    #     shell("Rscript " + ribodoc_tools + "CDSvsUTR_coverage_graph.R ;")
 
     # File for the statistical report
     data_report = open(local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report.txt","w")
@@ -85,6 +92,10 @@ onsuccess:
         shell("rm -f " + local_path + "RESULTS/BAM/" + sample + frag_length_L + ".uniq.sam ;")
 
     data_report.close()
+
+
+    if config['UTR'] == "yes":
+        shell("Rscript " + ribodoc_tools + "CDSvsUTR_coverage_graph.R " + config['project_name'] + " ;")
 
     # Copies config file to keep trace of parameters used
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/ ;")
@@ -259,6 +270,63 @@ rule htseqcount_transcript:
         "echo Genes\\\t{wildcards.sample} > {output};"
         "htseq-count -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr 'Name' -m intersection-strict {input.bam} {input.gff} 2> {log.htseqcount} | head -n -5 >> {output} ;"
 
+# Counts reads on each 5prime, 3prime or CDS part of each transcript
+rule htseqcount_transcript_utr:
+    input:
+        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
+        bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai",
+        gff = local_path + "database/" + config['gff'],
+        CDS = local_path + "database/" + config['CDSlength'],
+        five_prime = local_path + "database/" + config['5primelength'],
+        three_prime = local_path + "database/" + config['3primelength']
+    output:
+        counts_CDS = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount" + config['gff_element_cds'] + ".txt",
+        counts_threeprime = local_path + "RESULTS/htseqcount_" + config['gff_element_three_prime_utr'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcountUTR.txt",
+        counts_fiveprime = local_path + "RESULTS/htseqcount_" + config['gff_element_five_prime_utr'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcountUTR.txt"
+    log:
+        view = local_path + "logs/htseqcount_transcript_utr/{sample}.view.log",
+        htseqcount_CDS = local_path + "logs/htseqcount_transcript_utr/{sample}.htseqcount_" + config['gff_element_cds'] + ".log",
+        join_CDS = local_path + "logs/htseqcount_transcript_utr/{sample}.join_CDS.log",
+        awk_CDS = local_path + "logs/htseqcount_transcript_utr/{sample}.awk_CDS.log",
+        htseqcount_3prime = local_path + "logs/htseqcount_transcript_utr/{sample}.htseqcount_3prime.log",
+        join_3prime = local_path + "logs/htseqcount_transcript_utr/{sample}.join_3prime.log",
+        awk_3prime = local_path + "logs/htseqcount_transcript_utr/{sample}.awk_3prime.log",
+        htseqcount_5prime = local_path + "logs/htseqcount_transcript_utr/{sample}.htseqcount_5prime.log",
+        join_5prime = local_path + "logs/htseqcount_transcript_utr/{sample}.join_5prime.log",
+        awk_5prime = local_path + "logs/htseqcount_transcript_utr/{sample}.awk_5prime.log",
+        rpkm = local_path + "logs/htseqcount_transcript_utr/{sample}.rpkm.log",
+        rpkm_out = local_path + "logsTmp/{sample}_rpkmMoyen.log"
+    params:
+        sample_names="{sample}"
+    shell:
+        # htseq 0.13.5
+        "set +o pipefail ;"
+        "totalReads=`samtools view -c {input.bam} 2> {log.view}` ;"
+
+        "echo Genes\\\t{wildcards.sample} > {output.counts_CDS} ;"
+        "htseq-count -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr 'Name' -m intersection-strict {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt ;"
+        "mean_RPKM_CDS=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\t' {input.CDS} " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt 2> {log.join_CDS} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_CDS}` ;"
+        "cat " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt >> {output.counts_CDS} ;"
+
+        "echo Genes\\\t{wildcards.sample} > {output.counts_threeprime} ;"
+        "htseq-count -f bam -t '" + config['gff_element_three_prime_utr'] + "' -i '" + config['gff_attribut'] + "' -m intersection-strict {input.bam} {input.gff} 2> {log.htseqcount_3prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt ;"
+        "mean_RPKM_3prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\t' {input.three_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_3prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_3prime}` ;"
+        "cat " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_threeprime} ;"
+
+        "echo Genes\\\t{wildcards.sample} > {output.counts_fiveprime} ;"
+        "htseq-count -f bam -t '" + config['gff_element_five_prime_utr'] + "' -i '" + config['gff_attribut'] + "' -m intersection-strict {input.bam} {input.gff} 2> {log.htseqcount_5prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt ;"
+        "mean_RPKM_5prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\t' {input.five_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_5prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_5prime}` ;"
+        "cat " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_fiveprime} ;"
+
+        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt ;"
+        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt ;"
+        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt ;"
+
+        "echo 'Mean RPKM' 1>> {log.rpkm_out} 2> {log.rpkm} ;"
+        "echo '" + config['gff_element_cds'] + " : '$mean_RPKM_CDS 1>> {log.rpkm_out} 2>> {log.rpkm} ;"
+        "echo '5prime : '$mean_RPKM_5prime 1>> {log.rpkm_out} 2>> {log.rpkm} ;"
+        "echo '3prime : '$mean_RPKM_3prime 1>> {log.rpkm_out} 2>> {log.rpkm} ;"
+
 # Quality controls :
 # Divisions of SAM file according to read length and turns it into BAM
 rule quality_controls_bamDivision:
@@ -368,8 +436,8 @@ rule graphs_periodicity:
 # Creates the row names (genes/transcript names) of the count matrix
 rule count_matrix_initialization:
     input:
-        ready = expand(rules.htseqcount_transcript.output, sample=SAMPLES),
-        counts = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA.htseqcount.txt"
+        ready = expand(rules.htseqcount_transcript_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount_transcript.output, sample=SAMPLES),
+        counts = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA." + counts + ".txt"
     output:
         local_path + "RESULTS/DESeq2/gene_list.txt"
     log:
@@ -393,7 +461,7 @@ rule count_matrix_creation:
     run:
         shell("cat {input} > {output} ;")
         for sample in SAMPLES:
-            shell("join --nocheck-order --header -t $'\t' " + local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + sample + frag_length_L + ".no-outRNA.htseqcount.txt {output} > {params.tmp_file} 2>> {log} ;")
+            shell("join --nocheck-order --header -t $'\t' " + local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + sample + frag_length_L + ".no-outRNA." + counts + ".txt {output} > {params.tmp_file} 2>> {log} ;")
             shell("cat {params.tmp_file} > {output} ;")
         shell("rm -f " + local_path + "RESULTS/DESeq2/gene_list.txt {params.tmp_file} ;")
 
