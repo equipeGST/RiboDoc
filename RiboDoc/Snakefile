@@ -1,0 +1,646 @@
+configfile: "/data/config.yaml"
+# Docker 19.03.12
+# Conda 4.10.1
+# snakemake 6.1.1
+
+# Imports
+from optparse import OptionParser
+
+
+# Sets paths
+local_path = "/data/"
+ribodoc_tools = "/RiboDoc/RiboDoc/tools/"
+
+
+#Wildcards definition
+SAMPLES, = glob_wildcards(local_path + "fastq/{sample}.fastq.gz")
+BOWTIE2 = ["1","2","3","4","rev.1","rev.2"]
+HISAT2 = ["1","2","3","4","5","6","7","8"]
+LENGTHS = list(map(str,range(int(config['readsLength_min']),int(config['readsLength_max'])+1)))
+
+
+# Change cutadapt options, depending on data given
+if config['already_trimmed'] == "no":
+    trim = "-a " + config['adapt_sequence'] + " --trimmed-only "
+else:
+    trim = ""
+
+# Change names for snakemake workflow, depending on data given
+if config['UTR'] == "yes":
+    counts = "htseqcount" + config['gff_element_cds']
+else:
+    counts = "htseqcount"
+
+
+frag_length_S = "." + LENGTHS[0]
+frag_length_L = "." + LENGTHS[0] + "-" + LENGTHS[len(LENGTHS)-1]
+
+
+rule all:
+    input:
+        # Call of make_fastqc rule
+        expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+
+        # Call of htseqcount_transcript_utr or htseqcount_transcript rule (depends on UTR="True"|"False" in config file)
+        expand(local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA." + counts + ".txt", sample=SAMPLES),
+
+        # Call for qualitative analysis
+        local_path + "RESULTS/riboWaltz/best_offset.txt" if config['qualitative_analysis']=="riboWaltz" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_bf'] + "+" + config['window_af'] + ".jpeg", sample=SAMPLES, taille=LENGTHS) if config['qualitative_analysis']=="RiboDoc" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg", sample=SAMPLES) if config['qualitative_analysis']=="RiboDoc" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+
+        # Call for count matrix creation for DESeq2 dans final report
+        local_path + "RESULTS/DESeq2/" + config['project_name'] + ".Final_report.html"
+
+
+# When the jobs are all done
+onsuccess:
+    # List of interesting logs to make the report
+    logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2","rpkmMoyen"]
+    if config['UTR'] == "no":
+        logs_names = logs_names[:-1]
+    # else:
+    #     shell("Rscript " + ribodoc_tools + "CDSvsUTR_coverage_graph.R ;")
+
+    # File for the statistical report
+    data_report = open(local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report.txt","w")
+
+    for sample in SAMPLES:
+        # Data treatment report creation
+        data_report.write("##################\n## NEXT SAMPLE ##\n##################\n\n" + sample + "\n")
+
+        for log in logs_names:
+            data_report.write("\n" + ("#" * (len(log)+6)) + "\n## " + log + " ##\n" + ("#" * (len(log)+6)) + "\n")
+            logs_files = open(local_path + "logsTmp/" + sample + "_" + log + ".log","r")
+
+            # Keep only lines of interest from cutadapt report
+            i=-1
+            if log=="adapt_trimming":
+                if int(config['threads']) > 1:
+                    lines_to_read = range(22)
+                else:
+                    lines_to_read = range(20)
+                for position, line in enumerate(logs_files):
+                    if position in lines_to_read:
+                        data_report.write(line)
+                    else:
+                        break
+            else:
+                for line in logs_files:
+                    data_report.write(line)
+
+            logs_files.close()
+        data_report.write("\n\n\n")
+
+        shell("rm -f " + local_path + "RESULTS/BAM/" + sample + frag_length_L + ".uniq.sam ;")
+
+    data_report.close()
+
+
+    if config['UTR'] == "yes":
+        shell("Rscript " + ribodoc_tools + "CDSvsUTR_coverage_graph.R " + config['project_name'] + " ;")
+
+    # Copies config file to keep trace of parameters used
+    shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/ ;")
+    # Removes useless directories
+    shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/*.bed " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout ;")
+    shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "database/*t2 " + local_path + "database/*.fai " + local_path + "*tempoR.Rout ;")
+    shell("chmod ogu+rwx -R " + local_path + "* ;")
+
+
+# Creates transcriptome gff file from reference gff
+rule transcriptome_construction_gff:
+    input:
+        gff = local_path + "database/" + config['gff']
+    output:
+        transcriptome_gff = local_path + "database/exons_" + config['gff']
+    log:
+        samtools_index = local_path + "logs/transcriptome_construction_gff/samtools_index.log",
+        gffread_gff = local_path + "logs/transcriptome_construction_gff/gffread.log"
+    shell:
+        # samtools 1.12
+        # gffread 0.12.1
+        "gffread -o {output.transcriptome_gff} {input.gff} 2> {log.gffread_gff} ;"
+        "sed -i 's/transcript://g' {output.transcriptome_gff} ;"
+        "sed -i 's/description[^\;]*\;//' {output.transcriptome_gff} ;"
+        # "sed -i 's/\t[A-Z]*[_]*gene_segment\t/\ttranscript\t/' {output.transcriptome_gff} ;"
+
+# Builds the index of bowtie2 mapping on sequences for reads remove
+rule bowtie2_build_outRNA:
+    input:
+        local_path + "database/" + config['fasta_outRNA']
+    output:
+        expand(local_path + "database/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2)
+    params:
+        outNames = local_path + "database/outRNA_bowtie2"
+    log:
+        local_path + "logs/bowtie2_build_outRNA/bowtie2_build_outRNA.log"
+    shell:
+        # bowtie2 2.4.2
+        "bowtie2-build --threads " + config['threads'] + " {input} {params.outNames} &> {log} ;"
+
+# Builds the index of bowtie2 mapping for all RNA
+rule bowtie2_build:
+    input:
+        local_path + "database/" + config['fasta']
+    output:
+        expand(local_path + "database/index_bowtie2.{extb}.bt2",extb=BOWTIE2)
+    params:
+        outNames = local_path + "database/index_bowtie2"
+    log:
+        local_path + "logs/bowtie2_build/bowtie2_build.log"
+    shell:
+        # bowtie2 2.4.2
+        "bowtie2-build --threads " + config['threads'] + " {input} {params.outNames} &> {log} ;"
+
+# Builds the index of hisat2 mapping for all RNA
+rule hisat2_build:
+    input:
+        local_path + "database/" + config['fasta']
+    output:
+        expand(local_path + "database/index_hisat2.{exth}.ht2",exth=HISAT2)
+    params:
+        outNames = local_path + "database/index_hisat2"
+    log:
+        local_path + "logs/hisat2_build/hisat2_build.log"
+    shell:
+        # hisat2 2.2.1
+        "hisat2-build --threads " + config['threads'] + " {input} {params.outNames} &> {log} ;"
+
+# Quality control of data : build of the fastqc
+rule make_fastqc:
+    input:
+        local_path + "fastq/{sample}.fastq.gz"
+    output:
+        local_path + "RESULTS/fastqc/{sample}_fastqc.zip",
+        local_path + "RESULTS/fastqc/{sample}_fastqc.html"
+    params:
+       outdir = local_path + "RESULTS/fastqc/"
+    log:
+        local_path + "logs/make_fastqc/{sample}.log"
+    shell:
+        # fastqc 0.11.9
+        "fastqc {input} --outdir {params.outdir} 2> {log} ;"
+
+# Removes/cuts potential adapters on the reads
+rule adapt_trimming:
+    input:
+        local_path + "fastq/{sample}.fastq.gz"
+    output:
+        local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
+    log:
+        cutadapt = local_path + "logs/adapt_trimming/{sample}.log",
+        cutadapt_out = local_path + "logsTmp/{sample}_adapt_trimming.log"
+    params:
+        sample_names = "{sample}"
+    shell:
+        # cutadapt 3.4
+        "cutadapt " + trim + "-e 0.125 -j " + config['threads'] + " --max-n=1 -m " + config['readsLength_min'] + " -M " + config['readsLength_max'] + " -o {output} {input} 1>> {log.cutadapt_out} 2> {log.cutadapt} ;"
+
+# Mapping of non-coding RNA
+rule bowtie2_run_outRNA:
+    input:
+        expand(local_path + "database/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2),
+        fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
+    output:
+        local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
+    log:
+        bt2 = local_path + "logsTmp/{sample}_bowtie2_run_outRNA.log"
+    params:
+        sample_names = "{sample}"
+    shell:
+        # bowtie2 2.4.2
+        "bowtie2 -x " + local_path + "database/outRNA_bowtie2 --threads " + config['threads'] + " -U {input.fastq} --un-gz {output} > /dev/null 2>> {log.bt2} ;"
+        "rm -f {input.fastq} ;"
+
+# Mapping of all RNA by bowtie2 and hisat2
+rule run_mapping:
+    input:
+        expand(local_path + "database/index_hisat2.{exth}.ht2",exth=HISAT2),
+        expand(local_path + "database/index_bowtie2.{extb}.bt2",extb=BOWTIE2),
+        fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
+    output:
+        fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.fastq.gz",
+        sam_hisat2 = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".hisat2.sam",
+        sam_bowtie2 = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bowtie2.sam"
+    log:
+        hisat2_out = local_path + "logsTmp/{sample}_run_mapping_hisat2.log",
+        bowtie2_out = local_path + "logsTmp/{sample}_run_mapping_bowtie2.log"
+    params:
+        sample_names="{sample}"
+    shell:
+        # bowtie2 2.4.2
+        # hisat2 2.2.1
+        "hisat2 -x " + local_path + "database/index_hisat2 --threads " + config['threads'] + " -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
+        "bowtie2 -x " + local_path + "database/index_bowtie2 --threads " + config['threads'] + " -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out};"
+
+# Creates bam and sam files
+rule samtools_filter:
+    input:
+        sam_hisat2 = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".hisat2.sam",
+        sam_bowtie2 = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bowtie2.sam",
+        fasta = local_path + "database/" + config['fasta']
+    output:
+        samuniq = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".uniq.sam",
+        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
+        bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai"
+    log:
+        grep_header_hisat2 = local_path + "logs/samtools_filter/{sample}.grep_hisat2.log",
+        grep_header_bowtie2 = local_path + "logs/samtools_filter/{sample}.grep_bowtie2.log",
+        join_headers = local_path + "logs/samtools_filter/{sample}.join_headers.log",
+        grep_core_hisat2 =  local_path + "logs/samtools_filter/{sample}.grep_core_hisat2.log",
+        XM_filter_hisat2 = local_path + "logs/samtools_filter/{sample}.XM_filter_hisat2.log",
+        ZS_filter_hisat2 = local_path + "logs/samtools_filter/{sample}.ZS_filter_hisat2.log",
+        grep_core_bowtie2 =  local_path + "logs/samtools_filter/{sample}.grep_core_bowtie2.log",
+        XM_filter_bowtie2 = local_path + "logs/samtools_filter/{sample}.XM_filter_bowtie2.log",
+        XS_filter_bowtie2 = local_path + "logs/samtools_filter/{sample}.XS_filter_bowtie2.log",
+        view_sam = local_path + "logs/samtools_filter/{sample}.view_sam.log",
+        view_bam = local_path + "logs/samtools_filter/{sample}.view_bam.log",
+        sort_bam = local_path + "logs/samtools_filter/{sample}.sort_bam.log",
+        index_bam = local_path + "logs/samtools_filter/{sample}.index_bam.log",
+        rm = local_path + "logs/samtools_filter/{sample}.rm.log"
+    params:
+        sam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".sam"
+    shell:
+        # samtools 1.12
+        "set +o pipefail ;"
+        "grep '^@' {input.sam_hisat2} 1> {params.sam} 2> {log.grep_header_hisat2} ;"
+        "grep '^@' {input.sam_hisat2} 2> {log.grep_header_bowtie2} | join -v 1 - {params.sam} 1>> {params.sam} 2> {log.join_headers} ;"
+        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:2|XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} | grep -v 'ZS:i:' 1>> {params.sam} 2> {log.ZS_filter_hisat2} ;"
+        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | egrep -i 'XM:i:2|XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} | grep -v 'XS:i:' 1>> {params.sam} 2> {log.XS_filter_bowtie2} ;"
+        "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h {params.sam} 1> {output.samuniq}  2> {log.view_sam} ;"
+        "samtools view -@ " + config['threads'] + " -b {output.samuniq}  2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam}  2> {log.sort_bam} ;"
+        "samtools index {output.bam} 2> {log.index_bam} ;"
+        "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm};"
+
+# Counts reads on each transcript
+rule htseqcount_transcript:
+    input:
+        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
+        bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai",
+        gff = local_path + "database/exons_" + config['gff']
+    output:
+        local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount.txt"
+    log:
+        htseqcount = local_path + "logs/htseqcount_transcript/{sample}.htseqcount.log"
+    shell:
+        # htseq 0.13.5
+        "set +o pipefail ;"
+        "echo Genes\\\t{wildcards.sample} > {output};"
+        "htseq-count -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr 'Name' -m intersection-strict {input.bam} {input.gff} 2> {log.htseqcount} | head -n -5 >> {output} ;"
+
+# Counts reads on each 5prime, 3prime or CDS part of each transcript
+rule htseqcount_transcript_utr:
+    input:
+        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
+        bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai",
+        gff = local_path + "database/exons_" + config['gff'],
+        CDS = local_path + "database/" + config['CDSlength'],
+        five_prime = local_path + "database/" + config['5primelength'],
+        three_prime = local_path + "database/" + config['3primelength']
+    output:
+        counts_CDS = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount" + config['gff_element_cds'] + ".txt",
+        counts_threeprime = local_path + "RESULTS/htseqcount_" + config['gff_element_three_prime_utr'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcountUTR.txt",
+        counts_fiveprime = local_path + "RESULTS/htseqcount_" + config['gff_element_five_prime_utr'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcountUTR.txt"
+    log:
+        view = local_path + "logs/htseqcount_transcript_utr/{sample}.view.log",
+        htseqcount_CDS = local_path + "logs/htseqcount_transcript_utr/{sample}.htseqcount_" + config['gff_element_cds'] + ".log",
+        join_CDS = local_path + "logs/htseqcount_transcript_utr/{sample}.join_CDS.log",
+        awk_CDS = local_path + "logs/htseqcount_transcript_utr/{sample}.awk_CDS.log",
+        htseqcount_3prime = local_path + "logs/htseqcount_transcript_utr/{sample}.htseqcount_3prime.log",
+        join_3prime = local_path + "logs/htseqcount_transcript_utr/{sample}.join_3prime.log",
+        awk_3prime = local_path + "logs/htseqcount_transcript_utr/{sample}.awk_3prime.log",
+        htseqcount_5prime = local_path + "logs/htseqcount_transcript_utr/{sample}.htseqcount_5prime.log",
+        join_5prime = local_path + "logs/htseqcount_transcript_utr/{sample}.join_5prime.log",
+        awk_5prime = local_path + "logs/htseqcount_transcript_utr/{sample}.awk_5prime.log",
+        rpkm = local_path + "logs/htseqcount_transcript_utr/{sample}.rpkm.log",
+        rpkm_out = local_path + "logsTmp/{sample}_rpkmMoyen.log"
+    params:
+        sample_names="{sample}"
+    shell:
+        # htseq 0.13.5
+        "set +o pipefail ;"
+        "totalReads=`samtools view -c {input.bam} 2> {log.view}` ;"
+
+        "echo Genes\\\t{wildcards.sample} > {output.counts_CDS} ;"
+        "htseq-count -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr 'Name' -m intersection-strict {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt ;"
+        "mean_RPKM_CDS=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\t' {input.CDS} " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt 2> {log.join_CDS} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_CDS}` ;"
+        "cat " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt >> {output.counts_CDS} ;"
+
+        "echo Genes\\\t{wildcards.sample} > {output.counts_threeprime} ;"
+        "htseq-count -f bam -t '" + config['gff_element_three_prime_utr'] + "' -i '" + config['gff_attribut'] + "' -m intersection-strict {input.bam} {input.gff} 2> {log.htseqcount_3prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt ;"
+        "mean_RPKM_3prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\t' {input.three_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_3prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_3prime}` ;"
+        "cat " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_threeprime} ;"
+
+        "echo Genes\\\t{wildcards.sample} > {output.counts_fiveprime} ;"
+        "htseq-count -f bam -t '" + config['gff_element_five_prime_utr'] + "' -i '" + config['gff_attribut'] + "' -m intersection-strict {input.bam} {input.gff} 2> {log.htseqcount_5prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt ;"
+        "mean_RPKM_5prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\t' {input.five_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_5prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_5prime}` ;"
+        "cat " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_fiveprime} ;"
+
+        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt ;"
+        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt ;"
+        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt ;"
+
+        "echo 'Mean RPKM' 1>> {log.rpkm_out} 2> {log.rpkm} ;"
+        "echo '" + config['gff_element_cds'] + " : '$mean_RPKM_CDS 1>> {log.rpkm_out} 2>> {log.rpkm} ;"
+        "echo '5prime : '$mean_RPKM_5prime 1>> {log.rpkm_out} 2>> {log.rpkm} ;"
+        "echo '3prime : '$mean_RPKM_3prime 1>> {log.rpkm_out} 2>> {log.rpkm} ;"
+
+# Quality controls :
+# Divisions of SAM file according to read length and turns it into BAM
+rule quality_controls_bamDivision:
+    input:
+        sam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".uniq.sam",
+        gff = local_path + "database/exons_" + config['gff']
+    output:
+        bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
+        bai = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam.bai"
+    params:
+        sample_names = "{sample}",
+        read_length = "{taille}"
+    log:
+        local_path + "logs/quality_controls_bamDivision/{sample}.{taille}.BamDivision.log"
+    shell:
+        # samtools 1.12
+        # gawk 5.1.0
+        "bash " + ribodoc_tools + "BamDivision.sh -N {params.sample_names} -l {params.read_length} -S {input.sam} -T " + config['threads'] + " -o " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log} ;"
+
+# Creates bed files from fasta files
+rule quality_controls_bedcount:
+    input:
+        bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
+        bai = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam.bai",
+        fasta = local_path + "database/" + config['fasta']
+    output:
+        sequenceBedCount = local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/{sample}.{taille}.count.sequence.bed",
+        readsLengthRepartitionBed = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed",
+        bed = local_path + "RESULTS/qualitativeAnalysis/bedCount/{sample}.{taille}.count.bed",
+    params:
+        sample_names = "{sample}",
+        read_length = "{taille}"
+    log:
+        local_path + "logs/quality_controls_bedcount/{sample}.{taille}.readsLengthRepartition.log"
+    shell:
+        # bedtools 2.30.0
+        "bash " + ribodoc_tools + "readsLengthRepartition.sh -N {params.sample_names} -l {params.read_length} -F {input.fasta} -D " + local_path + "RESULTS/qualitativeAnalysis/bamDivision/ -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log} ;"
+
+# Outputs the number of reads on each reads length
+rule quality_controls_readsLengthRepartition:
+    input:
+        expand(rules.quality_controls_bedcount.output.readsLengthRepartitionBed, sample=SAMPLES, taille=LENGTHS)
+    output:
+        local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.readsLengthRepartition.txt"
+    params:
+        path = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/",
+        sample_names = "{sample}"
+    log:
+        wc = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.wc.log",
+        sed1 = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.sed1.log",
+        awk = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.awk.log",
+        sed2 = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.sed2.log",
+        head = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.head.log"
+    shell:
+        "set +o pipefail ;"
+        "wc -l {params.path}{params.sample_names}* 2> {log.wc} | sed 's/\./ /g' 2> {log.sed1} | awk -F ' ' '{{print $(NF-1),$1}}' 2> {log.awk} | sed 's/ /\t/g' 2> {log.sed2} | head -n -1 2> {log.head}  > {output} ;"
+
+# Looks how many reads start on each base to find if there is a periodicity signal
+rule quality_controls_periodicity:
+    input:
+        bed = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed",
+        gff = local_path + "database/exons_" + config['gff']
+    output:
+        start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_bf'] + "+" + config['window_af'] + ".txt",
+        stop = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_element_cds'] + ".-" + config['window_af'] + "+" + config['window_bf'] + ".txt"
+    params:
+        sample_names = "{sample}",
+        read_length = "{taille}"
+    log:
+        start = local_path + "logs/quality_controls_periodicity/{sample}.{taille}.log",
+        stop = local_path + "logs/quality_controls_periodicity/{sample}.{taille}.log"
+    shell:
+        # gawk 5.1.0
+        "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'start' -t '" + config['gff_element_cds'] + "' -m " + config['window_bf'] + " -M " + config['window_af'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.start} ;"
+        "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'stop' -t '" + config['gff_element_cds'] + "' -m " + config['window_af'] + " -M " + config['window_bf'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.stop} ;"
+
+# Creates graphs of reads length repartition
+rule graphs_length:
+    input:
+        length = rules.quality_controls_readsLengthRepartition.output
+    output:
+        length = local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg"
+    params:
+        sample_name = "{sample}"
+    log:
+        bash = local_path + "logs/graphs_length/{sample}.generationGraph_length.log"
+    shell:
+        # r-base 4.0.3
+        "bash " + ribodoc_tools + "generationGraph_length.sh -N {params.sample_name} 2> {log.bash} ;"
+
+# Creates periodicity graphs
+rule graphs_periodicity:
+    input:
+        perio = rules.quality_controls_periodicity.output
+    output:
+        perioStart = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_bf'] + "+" + config['window_af'] + ".jpeg",
+        perioStop = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_element_cds'] + ".-" + config['window_af'] + "+" + config['window_bf'] + ".jpeg"
+    params:
+        sample_name = "{sample}",
+        read_length = "{taille}"
+    log:
+        bash = local_path + "logs/graphs_periodicity/{sample}.{taille}.generationGraph_perio.log"
+    shell:
+        # r-base 4.0.3
+        "bash " + ribodoc_tools + "generationGraph_perio.sh -N {params.sample_name} -l {params.read_length} -t '" + config['gff_element_cds'] + "' -m " + config['window_bf'] + " -M " + config['window_af'] + " 2> {log.bash} ;"
+
+# Creates the row names (genes/transcript names) of the count matrix
+rule count_matrix_initialization:
+    input:
+        ready = expand(rules.htseqcount_transcript_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount_transcript.output, sample=SAMPLES),
+        counts = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA." + counts + ".txt"
+    output:
+        local_path + "RESULTS/DESeq2/gene_list.txt"
+    log:
+        header = "logs/count_matrix_initialization/head.log",
+        core = local_path + "logs/count_matrix_initialization/cut_sort.log"
+    shell:
+        "set +o pipefail ;"
+        "head -1 {input.counts} | cut -f1 >> {output} 2> {log.header} ;"
+        "tail +2 {input.counts} | cut -f1 | sort >> {output} 2> {log.core} ;"
+
+# Adds the read counts of each sample to the matrix
+rule count_matrix_creation:
+    input:
+        local_path + "RESULTS/DESeq2/gene_list.txt"
+    output:
+        local_path + "RESULTS/DESeq2/count_matrix.txt"
+    log:
+        local_path + "logs/count_matrix_creation/count_matrix.log"
+    params:
+        tmp_file = local_path + "RESULTS/DESeq2/tmp.txt"
+    run:
+        shell("cat {input} > {output} ;")
+        for sample in SAMPLES:
+            shell("join --nocheck-order --header -t $'\t' " + local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + sample + frag_length_L + ".no-outRNA." + counts + ".txt {output} > {params.tmp_file} 2>> {log} ;")
+            shell("cat {params.tmp_file} > {output} ;")
+        shell("rm -f " + local_path + "RESULTS/DESeq2/gene_list.txt {params.tmp_file} ;")
+
+# Performs differential analysis
+rule DESeq2_analysis:
+    input:
+        counts_matrix = local_path + "RESULTS/DESeq2/count_matrix.txt"
+    output:
+        complete = local_path + "RESULTS/DESeq2/complete.txt",
+        up = local_path + "RESULTS/DESeq2/up.txt",
+        down = local_path + "RESULTS/DESeq2/down.txt",
+        report = local_path + "RESULTS/DESeq2/" + config['project_name'] + ".Final_report.html"
+    log:
+        control = local_path + "logs/DESeq2_analysis/header_control.log",
+        deseq2 = local_path + "logs/DESeq2_analysis/DESeq2_analysis.log"
+    params:
+        reportPath = local_path + "RESULTS/DESeq2/",
+        reportName = config['project_name'] + ".Final_report"
+    shell:
+        # r-base 4.0.3
+        # bioconductor-deseq2 1.30.1
+        # r-rmarkdown 2.7
+        # r-factominer 2.4
+        # r-stringr 1.4.0
+        "set +o pipefail ;"
+        "[ `head -2 {input} | cut -f1 | uniq | wc -l` == 1 ] && sed -i -e '2d' {input} ;"
+        "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}')\" 2> {log.deseq2} ;"
+
+
+
+
+
+
+# Creates gtf and transcripts fasta files from reference gff and fasta files
+rule transcriptome_construction_gtf:
+    input:
+        fasta = local_path + "database/" + config['fasta'],
+        gff = local_path + "database/" + config['gff']
+    output:
+        fasta = local_path + "database/exons_IDonly_" + config['fasta'],
+        transcriptome_gtf = local_path + "database/exons_" + config['fasta'] + ".gtf"
+        # transcriptome_gff = local_path + "database/exons_" + config['gff']
+    log:
+        samtools_index = local_path + "logs/transcriptome_construction_gtf/samtools_index.log",
+        gffread_gtf = local_path + "logs/transcriptome_construction_gtf/gffread.log"
+    shell:
+        # samtools 1.12
+        # gffread 0.12.1
+        "samtools faidx {input.fasta} 2> {log.samtools_index} ;"
+        "gffread -w {output.fasta} -T -o {output.transcriptome_gtf} -g {input.fasta} {input.gff} 2> {log.gffread_gtf} ;"
+        "sed -i 's/transcript://g' {output.fasta} ;"
+        "sed -i 's/transcript://g' {output.transcriptome_gtf} ;"
+        "sed -i 's/description[^\;]*\;//' {output.transcriptome_gtf} ;"
+        "sed -i 's/\t[A-Z]*[_]*gene_segment\t/\ttranscript\t/' {output.transcriptome_gtf} ;"
+
+# Builds the index of bowtie2 mapping for all RNA
+rule bowtie2_build_transcriptome:
+    input:
+        local_path + "database/exons_IDonly_" + config['fasta']
+    output:
+        expand(local_path + "database/transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2)
+    params:
+        index_names = local_path + "database/transcriptome_index_bowtie2"
+    log:
+        local_path + "logs/bowtie2_build_transcriptome/bowtie2_build.log"
+    shell:
+        # bowtie2 2.4.2
+        "bowtie2-build --threads " + config['threads'] + " {input} {params.index_names} &> {log} ;"
+
+# Builds the index of hisat2 mapping for all RNA
+rule hisat2_build_transcriptome:
+    input:
+        local_path + "database/exons_IDonly_" + config['fasta']
+    output:
+        expand(local_path + "database/transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2)
+    params:
+        index_names = local_path + "database/transcriptome_index_hisat2"
+    log:
+        local_path + "logs/hisat2_build_transcriptome/hisat2_build.log"
+    shell:
+        # hisat2 2.2.1
+        "hisat2-build --threads " + config['threads'] + " {input} {params.index_names} &> {log} ;"
+
+# Performs qualitative analysis with riboWaltz
+rule run_mapping_transcriptome:
+    input:
+        expand(local_path + "database/transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2),
+        expand(local_path + "database/transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2),
+        fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
+    output:
+        fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.fastq.gz",
+        sam_hisat2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".hisat2.sam",
+        sam_bowtie2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bowtie2.sam"
+    log:
+        hisat2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_hisat2.log",
+        bowtie2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_bowtie2.log"
+    params:
+        index_names_hisat2 = local_path + "database/transcriptome_index_hisat2",
+        index_names_bowtie2 = local_path + "database/transcriptome_index_bowtie2",
+        sample_names="{sample}"
+    shell:
+        # bowtie2 2.4.2
+        # hisat2 2.2.1
+        "hisat2 -x {params.index_names_hisat2} --threads " + config['threads'] + " -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
+        "bowtie2 -x {params.index_names_bowtie2} --threads " + config['threads'] + " -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out};"
+
+# Creates bam and sam files
+rule samtools_filter_transcriptome:
+    input:
+        sam_hisat2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".hisat2.sam",
+        sam_bowtie2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bowtie2.sam",
+        fasta = local_path + "database/" + config['fasta']
+    output:
+        samuniq = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".uniq.sam",
+        bam = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bam"
+    log:
+        grep_header_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.grep_hisat2.log",
+        grep_header_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.grep_bowtie2.log",
+        join_headers = local_path + "logs/samtools_filter_transcriptome/{sample}.join_headers.log",
+        grep_core_hisat2 =  local_path + "logs/samtools_filter_transcriptome/{sample}.grep_core_hisat2.log",
+        XM_filter_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_hisat2.log",
+        ZS_filter_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.ZS_filter_hisat2.log",
+        grep_core_bowtie2 =  local_path + "logs/samtools_filter_transcriptome/{sample}.grep_core_bowtie2.log",
+        XM_filter_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_bowtie2.log",
+        XS_filter_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XS_filter_bowtie2.log",
+        view_sam = local_path + "logs/samtools_filter_transcriptome/{sample}.view_sam.log",
+        view_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.view_bam.log",
+        sort_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.sort_bam.log",
+        index_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.index_bam.log",
+        rm = local_path + "logs/samtools_filter_transcriptome/{sample}.rm.log"
+    params:
+        sam = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".sam",
+        sample = "{sample}"
+    shell:
+        # samtools 1.12
+        "set +o pipefail ;"
+        "grep '^@' {input.sam_hisat2} 1> {params.sam} 2> {log.grep_header_hisat2} ;"
+        "grep '^@' {input.sam_bowtie2} 2> {log.grep_header_bowtie2} | join -v 1 - {params.sam} 1>> {params.sam} 2> {log.join_headers} ;"
+        "grep --invert-match '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:2|XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} | grep -v 'ZS:i:' 1>> {params.sam} 2> {log.ZS_filter_hisat2} ;"
+        "grep --invert-match '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | egrep -i 'XM:i:2|XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} | grep -v 'XS:i:' 1>> {params.sam} 2> {log.XS_filter_bowtie2} ;"
+        "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h {params.sam} 1> {output.samuniq}  2> {log.view_sam} ;"
+        "samtools view -@ " + config['threads'] + " -b {output.samuniq}  2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam}  2> {log.sort_bam} ;"
+        "samtools index {output.bam} 2> {log.index_bam} ;"
+        "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm} ;"
+
+# Performs qualitative analysis with riboWaltz
+rule riboWaltz:
+    input:
+        transcriptome_gtf = local_path + "database/exons_" + config['fasta'] + ".gtf",
+        transcriptome_bam = expand(rules.samtools_filter_transcriptome.output, sample=SAMPLES)
+    output:
+        bestoffset = local_path + "RESULTS/riboWaltz/best_offset.txt"
+    log:
+        periodicity = "logs/riboWaltz/riboWaltz.log"
+    shell:
+        # r-base 4.0.3
+        # bioconductor-biostrings 2.58.0
+        # bioconductor-genomicalignments 1.26.0
+        # bioconductor-genomicfeatures 1.42.2
+        # bioconductor-genomeinfodbdata 1.2.4
+        # bioconductor-genomicranges 1.42.0
+        # bioconductor-iranges 2.24.1
+        "Rscript " + ribodoc_tools + "periodicity_riboWaltz.R 2> {log}"

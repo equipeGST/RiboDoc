@@ -1,0 +1,370 @@
+---
+title: "Differential analysis report"
+author: "GST team"
+date: "`r format (Sys.time(), '%B %d, %Y')`"
+output: "html_document"
+---
+
+```{r Sys, echo=FALSE}
+#Sys.getenv("RSTUDIO_PANDOC")
+Sys.setenv(RSTUDIO_PANDOC="/root/miniconda3/envs/all_RiboDoc/bin/pandoc")
+```
+
+```{r mkdir, echo = FALSE, include = FALSE}
+dir.create("/data/RESULTS/DESeq2/Images/")
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(include = TRUE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(fig.path = "/data/RESULTS/DESeq2/Images/", dev=c('png','tiff'))
+```
+
+
+```{r rm Global environment, include=FALSE}
+rm(list=ls())
+```
+
+```{r packages, echo = FALSE}
+library(DESeq2)
+library(stringr)
+library(FactoMineR)
+```
+
+
+```{r Arguments, include=FALSE}
+params <- scan(file = "/data/config.yaml",
+                   what = "character",
+                   sep = ":"
+                   )
+
+refCond <- gsub(" ", "", params[which(params=="reference_condition")+1], fixed = TRUE)
+Var_log2FC <- as.numeric(gsub(" ", "", params[which(params=="logFC")+1], fixed = TRUE))
+Var_padj <- as.numeric(gsub(" ", "", params[which(params=="p-val")+1], fixed = TRUE))
+```
+\
+##### *`r paste0("Reference condition : ", refCond)`*
+\
+
+```{r data , echo=FALSE}
+pathway = "/data/RESULTS/DESeq2/count_matrix.txt"
+expData = read.table(pathway, header = T, row.names = 1, check.names = FALSE)
+```
+
+
+The present analysis report is part of RiboDoc tool, developed by the GST team, Université Paris-Saclay, CEA, CNRS, Institute for Integrative Biology of the Cell (I2BC), 91198, Gif-sur-Yvette, France.
+
+**OVERVIEW** :  
+This report presents the quantitative analysis realized thanks to R software and bioconductor packages including DESeq2, stringr and FactomineR.
+First of all the raw data are summarized, then the analysis of the variations between and within biological conditions is carried out. After data normalization, the main results of the differential analysis is presented. 
+
+**RAW DATA** :  
+First of all, the count matrix obtained with RiboDoc tool is loaded in R. It contains one column per sample and one row per feature.
+\
+`r nrow(expData)` features are compared in this study.
+
+\
+
+
+```{r Determination of the number of samples , include=FALSE }
+expData_Sorted <- expData[,sort(colnames(expData))]
+Names_Col <- colnames(expData_Sorted)
+Cond <- str_replace(Names_Col,regex("[.]{0,1}[[:digit:]]{1,}$"),"")
+nb_col_condA <- table(factor(Cond))[[1]]
+nb_col_condB <- table(factor(Cond))[[2]]
+sample <- Cond[nb_col_condA+1]
+
+if (Cond[1] != refCond) {
+  Ord <- c( (1:nb_col_condB)+nb_col_condA , (1:nb_col_condA) )
+  expData_Sorted <- expData_Sorted[, Ord]
+  
+  nb_col_condA <- nb_col_condA + nb_col_condB
+  nb_col_condB <- nb_col_condA - nb_col_condB
+  nb_col_condA <- nb_col_condA - nb_col_condB
+  Names_Col <- colnames(expData_Sorted) 
+  sample <- Cond[1]
+}
+```
+
+*Table 1 : Header of the count matrix*
+```{r  results = 'asis', echo = FALSE}
+knitr::kable(head(expData_Sorted[,]))
+```
+##### *`r paste0("Samples : ",nb_col_condB," ",Cond[1]," vs ",nb_col_condA," ",Cond[nb_col_condB+1])`*
+ \
+ \
+Figure 1 shows the library sizes. That is the total number of reads count in each sample. Size must be as similar as possible within conditions.  
+\
+*Figure 1 : Number of raw reads counts per sample. One color by biological condition.*
+```{r Library sizes, fig.height = 3, fig.width = 4, echo=FALSE, dev=c('png','tiff')}
+barplot(colSums(expData_Sorted/1000000), ylab = "Total read number (million)",
+        main = "Library sizes", col = c(rep("yellow", nb_col_condA), rep("blue", nb_col_condB)),
+        names = colnames(expData_Sorted),
+        cex.names = 0.6,
+        las = 2
+        )
+```
+\
+\
+**VARIATION BETWEEN AND WITHIN BIOLOGICAL CONDITIONS** :  
+Quantitative analysis is realized in order to highlight the variability between two (or more) biological conditions. To assess this variability, replicats have to be as close as possible. To check this, a pairwise scatter plot (figure 2), a Pearson correlation (figure 2) and a PCA (figure 3) are produced. The first one shows the number of counts for each gene between two samples. Here these plots are associated with Pearson correlation coefficients, which measure the statistical relationship between two samples. The value must be as close as possible to 1 between replicates and move towards 0 between biological conditions. In the same way, the PCA allows us to visualize variability. The first component (figure 3, x-axe) is expected to clearly separate samples between the different biological conditions and bring together replicats.  
+\
+*Figure 2 : Pairwise scatter plot for variation analysis*
+```{r pairwiseScatter, echo = FALSE ,dev=c('png', 'tiff') }
+panel.cor <- function(x, y){
+   r <- round(cor(10^x, 10^y), digits=4 )
+    txt <- paste0("R = ", r)
+   text(2, 2, txt, cex = 1)
+}
+
+upper.panel<-function(x, y){
+ points((x),(y), pch = ".", cex =1, col = rgb(0, 0, 0, 0.15))
+}
+
+pairs(log10(expData_Sorted), 
+      lower.panel= panel.cor,
+      upper.panel = upper.panel
+      )
+```
+\
+*Figure 3 : PCA for variation analysis*  
+```{r PCA,  echo=FALSE  }
+par(mfrow = c(2,1))
+res.pca <- PCA(t(expData_Sorted) , ncp = 3, graph = FALSE)
+
+plot(res.pca, choix ="ind", autoLab = "yes", axes = c(1,2),width=3, height=3)  
+
+plot(res.pca, choix ="ind", autoLab = "yes", axes = c(1,3))
+par(mfrow = c(1,1))
+```
+\
+\
+**DATA NORMALIZATION** :  
+A DESeqDataSet (DDS) object is created from raw data in terms of conditions. 
+Thanks to the “counts” function from DESeq2, we normalize data through the DDS object. It is necessary to erase technical biases and make read counts comparable between samples.  
+The DESeq2 normalization uses the median of ratios method. For each feature, a pseudo-reference sample is created (ref=sqrt(featureCount_sampleA*featureCount_sampleB)). Then the ratio of each sample to the reference is calculated (ratio=sample/ref). The normalization factor (or size factor) for each sample corresponds to the median value of all ratios for a given sample (normalization_factor_bySample=median(all_feature_ratio)). One sample raw counts are then divided by its size factor to determine the normalized counts. The median of ratios method is based on the hypothesis that not all features are differentially expressed. So, median is not influenced by outliers which correspond to differentially expressed genes without biological conditions distinction.  
+To check that normalization went well, we realized two graphs. The first one (figure 4) shows the library size as figure 1 but after normalization. All samples must have the same size. Boxplots are also generated (figure 5) to show how counts distributions changed between before and after normalization. We expect that normalized counts are nearly the same between all samples unlike raw data.  
+
+
+*Figure 4 : Number of normalized reads counts per sample.*  
+
+
+```{r, echo=FALSE}
+conds = factor(c(rep("CondA", nb_col_condA), rep("CondB", nb_col_condB)))
+colData = data.frame(condition = conds)
+ddsObjet = DESeqDataSetFromMatrix(countData = expData_Sorted,
+                                  colData   = colData, formula(~ condition))
+ddsObjet = estimateSizeFactors(ddsObjet)
+Size_Factors <- sizeFactors(ddsObjet)
+# Normalised data
+normCountData = counts(ddsObjet, normalized = TRUE)
+```
+\
+
+
+```{r Library Sizes Norm, fig.height = 3, fig.width =4, echo=FALSE}
+barplot(colSums(normCountData/1000000), ylab = "Total read number (million)",
+        main = "Library sizes (after normalization)",
+        col = c(rep("yellow", nb_col_condA), rep("blue", nb_col_condB)),
+        names = colnames(expData_Sorted),
+        las = 2,
+        cex.names = 0.6)
+```
+\
+*Figure 5 : Boxplots of reads distribution. Raw (left) vs normalized (right).*
+```{r Boxplot, echo=FALSE}
+row_sub_1 = apply(expData_Sorted, 1, function(row) all(row != 0 ))
+row_sub_2 = apply(normCountData, 1, function(row) all(row != 0 ))
+par(mfrow = c(1,2))
+
+boxplot((expData_Sorted[row_sub_1,]),
+        main = "Library sizes",
+        log = "y",
+        col = c(rep("yellow", nb_col_condA), rep("blue", nb_col_condB)),
+        names = colnames(expData_Sorted),
+        cex.names = 0.6,
+        las =2
+        ,ylim = c(1,max(expData_Sorted[,]) )
+        )
+boxplot((normCountData[row_sub_2,]), ylab = "Total read number",
+        main = "Library sizes (after normalization)",
+        log = "y",
+        col = c(rep("yellow", nb_col_condA), rep("blue", nb_col_condB)),
+        names = colnames(expData_Sorted),
+        cex.names = 0.6,
+        las =2,
+        yaxt = "n",
+        ylim = c(1,max(expData_Sorted[,]) )
+        )
+```
+
+
+```{r pagination graph cancellation, include = FALSE}
+par(mfrow = c(1,1))
+```
+\
+
+
+**DIFFERENTIAL ANALYSIS** :  
+The DESeq2 function can be run now on the DDS object. First, the estimateSizeFactors sub-function calculates the relative library depth of each sample. Then, estimateDispersions sub-function estimates the dispersion of counts for each feature. Finally nbinomWaldTest sub-function calculates the significance of coefficients in a Negative Binomial GLM using the size and dispersion outputs.
+Results are presented in seven graphs. Figure 6 represented the dispersion estimate with the mean of normalized counts by the estimated dispersion. Dots can have three colors : i) black which shows the dispersion estimates by feature. ii) red for representing the fitted dispersion value estimated by model (i.e. the mean-variance relationship function) iii) Blue exhibits the final estimates retained for the statistical test. Outliers are shown with a black dot with a blue circle.  
+\
+*Figure 6 : Dispersion estimates*
+```{r , echo=FALSE, include = FALSE}
+ddsEstim = DESeq(ddsObjet)
+resDESeq = results(ddsEstim, contrast = c("condition", "CondB", "CondA"))
+
+mcols(resDESeq, use.names = TRUE)
+dds = estimateDispersions(ddsObjet)
+```
+
+
+```{r Dispersion, fig.height = 5, fig.width = 5, echo=FALSE}
+plotDispEsts(dds)
+```
+
+  
+*Figure 7 : shows the distribution of logFC frequency. The highest frequency is expected on 0. In fact, the large majority of features must not be differentially expressed.*
+```{r ,  echo=FALSE, include = FALSE}
+# Control mean
+CT_Mean<- data.frame(apply(normCountData[,1:(nb_col_condA)],1,mean))
+
+# Tested condition mean
+Mut_Mean<- data.frame(apply(normCountData[,(nb_col_condA+1):dim(normCountData)[2]],1,mean))
+```
+
+```{r logFC frequency, fig.height = 3, fig.width =4, echo=FALSE}
+hist(resDESeq$log2FoldChange,
+     nclass = 200,
+     xlab = "logFC values",
+     main ="Frequency / LogFC" )
+abline(v = 2, col = "red")
+abline(v = -2, col = "red")
+```
+\
+Figures 8 and 9 represent the raw and adjusted p-values distribution respectively. The peak around 0 corresponds to the differentially expressed genes. Graphs are expected to be a uniform distribution between 0 to 1.  
+
+*Figure 8 : Distribution of raw p-values*
+
+```{r pValue, fig.height = 4, fig.width =4, echo=FALSE}
+hist(resDESeq[,"pvalue"], nclass = 100, xlab = "p-values",
+     main = "Histogram of p-values (DESeq2)")
+```
+  
+*Figure 9 : Distribution of adjusted p-values*  
+
+```{r adjusted pValue, fig.height = 4, fig.width =4, echo=FALSE}
+hist(resDESeq[,"padj"], nclass = 100, xlab = "padj",
+     main = "Histogram adjusted p-values")
+```
+\
+Figure 10 is the MA-plot which shows the mean of normalized counts for each feature by the log ratio of differential expression. Differentially expressed features are represented by red dots. Triangles correspond to features with a too high/low log2FC to be shown on graph.    
+   
+*Figure 10 : MA-plot*   
+```{r MA-plot, fig.height = 4, fig.width =4, echo=FALSE}
+plotMA(resDESeq, alpha = Var_padj, ylab = "log2 FC", colSig = rgb(1,0,0,0.5))
+```
+
+
+Figures 11 and 12 are the volcano-plot and its zoom respectively. They represent each feature by its log2FC and its adjusted p-value. Differentially expressed features are still red dots and triangles correspond to outliers features.   
+*Figure 11 : Volcano-plot*
+
+```{r volcano plot global, fig.height = 4, fig.width =4, echo=FALSE}
+myColors <- ifelse((resDESeq$padj < Var_padj & resDESeq$log2FoldChange > Var_log2FC), rgb(1, 0, 0, 0.25) ,
+                   ifelse((resDESeq$padj < Var_padj & resDESeq$log2FoldChange < -Var_log2FC), rgb(1, 0, 0, 0.25) ,
+                          rgb(0, 0, 0, 0.25) ) )
+
+plot(resDESeq[, "log2FoldChange"], -log10(resDESeq[, "padj"]),
+     pch = 20, cex = 1,
+     col=myColors,
+     xlab = "log2 FC", ylab = "-log10(padj)",
+     main = paste0("Volcano plot - ",Cond[nb_col_condB+1]," vs ",Cond[1])
+     )
+```
+  
+*Figure 12 : Zoom of the previous volcano-plot*  
+
+```{r ZOOM volcano plot , fig.height = 4, fig.width =4, echo=FALSE}
+limite <- Var_padj/(10^(-log10(Var_padj)*2))
+
+
+myColors <- ifelse((resDESeq$padj < Var_padj & resDESeq$log2FoldChange > Var_log2FC), rgb(1, 0, 0, 0.25) ,
+                  ifelse((resDESeq$padj < Var_padj & resDESeq$log2FoldChange < -Var_log2FC), rgb(1, 0, 0, 0.25) ,
+                          rgb(0, 0, 0, 0.25) ) )
+
+Valeurs_Limite_Y <- ifelse((resDESeq$padj < limite), limite ,
+              resDESeq$padj) 
+
+Forme_Pixel_Y <- ifelse((resDESeq$padj < limite), 17 ,
+                                 20) 
+
+
+plot(resDESeq[, "log2FoldChange"], -log10(Valeurs_Limite_Y),
+    pch = Forme_Pixel_Y,
+    col=myColors,
+    xlab = "log2 FC", ylab = "-log10(padj)",
+    ylim = c(0,-log10(limite)),
+    main = paste0("Volcano plot Zoom - ",Cond[nb_col_condB+1]," vs ",Cond[1])
+    )
+```
+\
+
+```{r Creation Tables finales, include = FALSE}
+Bruts_Norm <- cbind(expData_Sorted, normCountData )
+
+Table_Complete <- data.frame(cbind(row.names(Bruts_Norm) , Bruts_Norm, CT_Mean,Mut_Mean , resDESeq) )
+
+
+colnames(Table_Complete) =  c("genes" ,
+                               Names_Col,
+                               paste("norm", Names_Col, sep = "_"),
+                               paste0(refCond,"_Mean"),
+                               paste0(sample, "_Mean"),
+                               colnames(resDESeq))
+
+
+
+
+inducedGenes = Table_Complete[which((Table_Complete[, "log2FoldChange"] > Var_log2FC) & (Table_Complete[, "padj"] < Var_padj)),]
+dim(inducedGenes)
+
+repressedGenes = Table_Complete[which((Table_Complete[, "log2FoldChange"] < -Var_log2FC) & (Table_Complete[, "padj"] < Var_padj)),]
+dim(repressedGenes)
+
+# Sort tables by padj
+inducedGenes <- inducedGenes[(order(inducedGenes[,"padj"])),]
+repressedGenes <- repressedGenes[(order(repressedGenes[,"padj"])),]
+```
+
+
+```{r, echo = FALSE}
+write.table(Table_Complete,
+            file = paste0("/data/RESULTS/DESeq2/complete.txt"),
+            quote = F, sep = "\t", row.names = F)
+
+
+write.table(inducedGenes,
+            file = paste0("/data/RESULTS/DESeq2/up.txt"),
+            quote = F, sep = "\t", row.names = F)
+
+write.table(repressedGenes,
+            file = paste0("/data/RESULTS/DESeq2/down.txt"),
+            quote = F, sep = "\t", row.names = F)
+```
+\
+**OUTPUT FILES** :  
+All the output files can be found in the directory “RESULTS/DESeq2/”   
+`r paste0("RESULTS/DESeq2/complete.txt")`  
+`r paste0("RESULTS/DESeq2/up.txt")  `  
+`r paste0("RESULTS/DESeq2/down.txt")  `   
+\
+*Explanation of each column* :  
+
+* Genes: unique feature identifier  
+* sampleName: raw counts per sample  
+* norm.sampleName: rounded normalized counts per sample  
+* Mean.sampleName: mean over all samples  
+* baseMean: base mean over all samples  
+* log2FoldChange: log^2^(FC) reflects the differential expression between Test and Ref
+* pvalue: raw p-value from the statistical test  
+* padj: adjusted p-value on which the cut-off α is applied  

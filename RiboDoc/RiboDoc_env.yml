@@ -1,0 +1,5 @@
+name: RiboDow_env
+channels:
+  - conda-forge
+  - defaults
+prefix: /home/hugo.arbes/miniconda3/envs/RiboDow_env
