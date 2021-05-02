@@ -1,0 +1,74 @@
+# Name for the experiment
+project_name: ""
+
+# Name of the genome or transcriptome fasta file to align on
+fasta: ""
+
+# Name of the gff file with genome or transcriptome annotations
+gff: ""
+
+# Fasta file with not interesting sequences
+fasta_outRNA: ""
+
+
+########## Optional ##########
+# Does UTR covering has to be calculated ('yes' or 'no'). You need the corresponding length files if set to 'yes'
+UTR: "no"
+
+# The length options will be ignore if UTR is set on 'yes'
+# File with CDS lengths
+CDSlength: ""
+
+# File with 5' UTR lengths
+5primelength: ""
+
+# File with 3' UTR lengths
+3primelength: ""
+##############################
+
+# Are the sequencing adapters already removed in fastq files ? 'yes' or 'no'
+already_trimmed: ""
+
+# Adapter sequence
+adapt_sequence: ""
+
+# Minimum read length kept for ribosome profiling
+readsLength_min: "25"
+
+# Maximum read length kept for ribosome profiling
+readsLength_max: "35"
+
+
+# Elements to select during counting
+gff_element_cds: "CDS"
+
+# Elements for UTRs have to be specified only if you put 'yes' for the 'UTR' option
+gff_element_three_prime_utr: "three_prime_UTR"
+gff_element_five_prime_utr: "five_prime_UTR"
+
+# Attribut to regroup reads during counting
+gff_attribut: "ID"
+
+
+# Name of the reference condition (same as file name)
+reference_condition: ""
+
+# Thresholds to adjust for differential expression analysis
+p-val: "0.01"
+logFC: "0"
+
+
+# Choose between "riboWaltz", "RiboDoc" or "none"
+# riboWaltz requires a lot of ressources
+# RiboDoc needs a specific gff format
+qualitative_analysis: "riboWaltz"
+
+# Number of bases to look before the start and after the stop for periodicity (relative positions)
+window_bf: "50"
+
+# Number of bases to look after the start and before the stop for periodicity (relative positions)
+window_af: "100"
+
+
+# Number of threads to be used
+threads: "2"
