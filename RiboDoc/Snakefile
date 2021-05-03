@@ -589,7 +589,6 @@ rule samtools_filter_transcriptome:
         grep_core_bowtie2 =  local_path + "logs/samtools_filter_transcriptome/{sample}.grep_core_bowtie2.log",
         XM_filter_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_bowtie2.log",
         XS_filter_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XS_filter_bowtie2.log",
-        view_sam = local_path + "logs/samtools_filter_transcriptome/{sample}.view_sam.log",
         view_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.view_bam.log",
         sort_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.sort_bam.log",
         index_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.index_bam.log",
@@ -604,8 +603,7 @@ rule samtools_filter_transcriptome:
         "grep '^@' {input.sam_bowtie2} 2> {log.grep_header_bowtie2} | join -v 1 - {params.sam} 1>> {params.sam} 2> {log.join_headers} ;"
         "grep --invert-match '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} | grep -v 'ZS:i:' 1>> {params.sam} 2> {log.ZS_filter_hisat2} ;"
         "grep --invert-match '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} | grep -v 'XS:i:' 1>> {params.sam} 2> {log.XS_filter_bowtie2} ;"
-        "samtools view -@ " + config['threads'] + " -h {params.sam} 1> {output.samuniq}  2> {log.view_sam} ;"
-        "samtools view -@ " + config['threads'] + " -b {output.samuniq}  2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam}  2> {log.sort_bam} ;"
+        "samtools view -@ " + config['threads'] + " -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam}  2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
         "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm} ;"
 
