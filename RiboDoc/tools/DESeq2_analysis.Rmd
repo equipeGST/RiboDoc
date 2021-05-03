@@ -107,12 +107,12 @@ barplot(colSums(expData_Sorted/1000000), ylab = "Total read number (million)",
 \
 \
 **VARIATION BETWEEN AND WITHIN BIOLOGICAL CONDITIONS** :  
-Quantitative analysis is realized in order to highlight the variability between two (or more) biological conditions. To assess this variability, replicats have to be as close as possible. To check this, a pairwise scatter plot (figure 2), a Pearson correlation (figure 2) and a PCA (figure 3) are produced. The first one shows the number of counts for each gene between two samples. Here these plots are associated with Pearson correlation coefficients, which measure the statistical relationship between two samples. The value must be as close as possible to 1 between replicates and move towards 0 between biological conditions. In the same way, the PCA allows us to visualize variability. The first component (figure 3, x-axe) is expected to clearly separate samples between the different biological conditions and bring together replicats.  
+Quantitative analysis is realized in order to highlight the variability between two (or more) biological conditions. To assess this variability, replicats have to be as close as possible. To check this, a pairwise scatter plot (figure 2), a Spearman correlation (figure 2) and a PCA (figure 3) are produced. The first one shows the number of counts for each gene between two samples. Here these plots are associated with Spearman correlation coefficients, which measure the statistical relationship between two samples. The value must be as close as possible to 1 between replicates and move towards 0 between biological conditions. In the same way, the PCA allows us to visualize variability. The first component (figure 3, x-axe) is expected to clearly separate samples between the different biological conditions and bring together replicats.  
 \
 *Figure 2 : Pairwise scatter plot for variation analysis*
 ```{r pairwiseScatter, echo = FALSE ,dev=c('png', 'tiff') }
 panel.cor <- function(x, y){
-   r <- round(cor(10^x, 10^y), digits=4 )
+   r <- round(cor(10^x, 10^y, method="spearman"), digits=4 )
     txt <- paste0("R = ", r)
    text(2, 2, txt, cex = 1)
 }
