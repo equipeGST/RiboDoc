@@ -43,12 +43,12 @@ p-val: "0.01"
 logFC: "0"
 
 
-# Choose between "riboWaltz", "RiboDoc" or "none"
+# Choose between "ribowaltz", "trip" or "none"
 # riboWaltz requires a lot of ressources
 # RiboDoc needs a specific gff format
-qualitative_analysis: "riboWaltz"
+qualitative_analysis: "ribowaltz"
 
-########## Optional and only for qualitative_analysis: "RiboDoc" ##########
+########## Optional and only for qualitative_analysis: "trip" ##########
 # Does UTR covering has to be calculated ('yes' or 'no'). You need the corresponding length files if set to 'yes'
 UTR: "no"
 

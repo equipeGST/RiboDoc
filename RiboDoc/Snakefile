@@ -25,8 +25,11 @@ if config['already_trimmed'] == "no":
 else:
     trim = ""
 
-
-counts = "htseqcount"
+# Change names for snakemake workflow, depending on data given
+if config['UTR'] == "yes":
+    counts = "htseqcount" + config['gff_element_cds']
+else:
+    counts = "htseqcount"
 
 
 frag_length_S = "." + LENGTHS[0]
@@ -42,9 +45,9 @@ rule all:
         expand(local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA." + counts + ".txt", sample=SAMPLES),
 
         # Call for qualitative analysis
-        local_path + "RESULTS/riboWaltz/best_offset.txt" if config['qualitative_analysis']=="riboWaltz" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
-        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_bf'] + "+" + config['window_af'] + ".jpeg", sample=SAMPLES, taille=LENGTHS) if config['qualitative_analysis']=="RiboDoc" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
-        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg", sample=SAMPLES) if config['qualitative_analysis']=="RiboDoc" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+        local_path + "RESULTS/riboWaltz/best_offset.txt" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_bf'] + "+" + config['window_af'] + ".jpeg", sample=SAMPLES, taille=LENGTHS) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg", sample=SAMPLES) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
 
         # Call for count matrix creation for DESeq2 dans final report
         local_path + "RESULTS/DESeq2/" + config['project_name'] + ".Final_report.html"
@@ -247,8 +250,8 @@ rule samtools_filter:
         "set +o pipefail ;"
         "grep '^@' {input.sam_hisat2} 1> {params.sam} 2> {log.grep_header_hisat2} ;"
         "grep '^@' {input.sam_hisat2} 2> {log.grep_header_bowtie2} | join -v 1 - {params.sam} 1>> {params.sam} 2> {log.join_headers} ;"
-        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:2|XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} | grep -v 'ZS:i:' 1>> {params.sam} 2> {log.ZS_filter_hisat2} ;"
-        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | egrep -i 'XM:i:2|XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} | grep -v 'XS:i:' 1>> {params.sam} 2> {log.XS_filter_bowtie2} ;"
+        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} | grep -v 'ZS:i:' 1>> {params.sam} 2> {log.ZS_filter_hisat2} ;"
+        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} | grep -v 'XS:i:' 1>> {params.sam} 2> {log.XS_filter_bowtie2} ;"
         "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h {params.sam} 1> {output.samuniq}  2> {log.view_sam} ;"
         "samtools view -@ " + config['threads'] + " -b {output.samuniq}  2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam}  2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
@@ -575,8 +578,7 @@ rule samtools_filter_transcriptome:
         sam_bowtie2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bowtie2.sam",
         fasta = local_path + "database/" + config['fasta']
     output:
-        samuniq = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".uniq.sam",
-        bam = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bam"
+        bam = local_path + "RESULTS/BAM_transcriptome/exons_{sample}" + frag_length_L + ".bam"
     log:
         grep_header_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.grep_hisat2.log",
         grep_header_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.grep_bowtie2.log",
@@ -600,9 +602,9 @@ rule samtools_filter_transcriptome:
         "set +o pipefail ;"
         "grep '^@' {input.sam_hisat2} 1> {params.sam} 2> {log.grep_header_hisat2} ;"
         "grep '^@' {input.sam_bowtie2} 2> {log.grep_header_bowtie2} | join -v 1 - {params.sam} 1>> {params.sam} 2> {log.join_headers} ;"
-        "grep --invert-match '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:2|XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} | grep -v 'ZS:i:' 1>> {params.sam} 2> {log.ZS_filter_hisat2} ;"
-        "grep --invert-match '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | egrep -i 'XM:i:2|XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} | grep -v 'XS:i:' 1>> {params.sam} 2> {log.XS_filter_bowtie2} ;"
-        "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h {params.sam} 1> {output.samuniq}  2> {log.view_sam} ;"
+        "grep --invert-match '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} | grep -v 'ZS:i:' 1>> {params.sam} 2> {log.ZS_filter_hisat2} ;"
+        "grep --invert-match '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} | grep -v 'XS:i:' 1>> {params.sam} 2> {log.XS_filter_bowtie2} ;"
+        "samtools view -@ " + config['threads'] + " -h {params.sam} 1> {output.samuniq}  2> {log.view_sam} ;"
         "samtools view -@ " + config['threads'] + " -b {output.samuniq}  2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam}  2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
         "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm} ;"
