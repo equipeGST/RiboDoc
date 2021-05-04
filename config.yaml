@@ -27,10 +27,6 @@ readsLength_max: "35"
 # Elements to select during counting
 gff_element_cds: "CDS"
 
-# Elements for UTRs have to be specified only if you put 'yes' for the 'UTR' option
-gff_element_three_prime_utr: "three_prime_UTR"
-gff_element_five_prime_utr: "five_prime_UTR"
-
 # Attribut to regroup reads during counting
 gff_attribut: "ID"
 
@@ -61,6 +57,10 @@ CDSlength: ""
 
 # File with 3' UTR lengths
 3primelength: ""
+
+# Elements for UTRs have to be specified only if you put 'yes' for the 'UTR' option
+gff_element_three_prime_utr: "three_prime_UTR"
+gff_element_five_prime_utr: "five_prime_UTR"
 ###########################################################################
 
 # Number of bases to look before the start and after the stop for periodicity (relative positions)
