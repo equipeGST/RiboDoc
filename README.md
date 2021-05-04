@@ -53,10 +53,10 @@ For example, for an entire human genome, you can look for [Human genome](https:/
 - A GFF format annotation file corresponding to the reference genome dropped.  
 For example, for the human genome annotations, you can look for [Human genome](https://www.ensembl.org/Homo_sapiens/Info/Index) and download the *Homo_sapiens.GRCh38.103.gff3.gz* file in the genome annotation list of gff files, unzip it and place it in the *database* subfolder of your project directory.  
 - out-RNA fasta file: This file must gather together RNA sequences you want to remove from the analysis. As a rule, these are at least rRNA. You can also add mitochondrial RNA, non-chromosomal dna or any other fasta sequence of your choice. You can find the fasta files associated to non-chromosomal dna in the [Ensembl](https://www.ensembl.org/index.html) database in the genome assembly list of fasta files. If you want to remove some specific sequences, you just have to create a file with, for each sequence, one line starting with a ">" where you can add a name for your sequence followed by one line containing the sequence to remove. It gives you this format :  
->&emsp; > Sequence_X  
->&emsp; GCTGACACGCTGTCCTCTGGCGACCTGTCGTCGGAGAGGTTGGGCCTCCGGATGCGCGCGGGGCTCTGGC  
+>&emsp; > Sequence_X
+>&emsp; GCTGACACGCTGTCCTCTGGCGACCTGTCGTCGGAGAGGTTGGGCCTCCGGATGCGCGCGGGGCTCTGGC
 >&emsp; CTCACGGTGACCGGCTAGCCGGCCGCGCTCCTGCCTTGAGCCGCCTGCCGCGGCCCGCGGGCCTGCTGTT  
->&emsp; > Sequence_Y  
+>&emsp; > Sequence_Y
 >&emsp; CTCTCGCGCGTCCGAGCGTCCCGACTCCCGGTGCCGGCCCGGGTCCGGGTCTCTGACCCACCCGGGGGCG  
 
 If you look for specific sequences, you can find them on the [NCBI website](https://www.ncbi.nlm.nih.gov/). For example, you can find the rRNA fasta file sequences [here](https://www.ncbi.nlm.nih.gov/nuccore/U13369.1?report=fasta).  
@@ -83,7 +83,7 @@ You must download it [here](https://raw.githubusercontent.com/equipeGST/RiboDoc/
 It must be carefully completed and be present in the project directory everytime you want to run RiboDoc.  
 
 >Caution  
->&emsp;&emsp;&emsp;Spaces and quotation marks **must not be changed**! Your information must be entered in quotes and should not have spaces     
+>&emsp;&emsp;&emsp;Spaces and quotation marks **must not be changed** ! Your information must be entered in quotes and should not have spaces     
 
 #### Project name  
 First and easy step, the project name ! You can use the same as your folder.  
@@ -96,11 +96,13 @@ You must enter the full name (**with extensions**) without the path of files add
 #### Pipeline option selection  
 During the RiboDoc process, data is trimmed and selected depending on their length.   
 *already_trimmed*: If your data contains already trimmed reads, you can set this option on “yes”.   
-*adapt_sequence*: If they are not trimmed, you must specify the sequence adapters in quotes on the line here.  
+*adapt_sequence*: If they are not trimmed, you must specify the sequence adapters in quotes on the line here.
+
 You also have to define the range for read length selection. Default values select reads from 25 to 35 bases long.  
 *readsLength_min*: minimum read length.   
 *readsLength_max*: maximum read length.   
-You can also parameter alignments: 
+
+You can also parameter alignments:
 *gff_element_cds*: feature corresponding to CDS in the annotation file. 'CDS' is the default value (can sometimes be ORF).     
 *gff_attribut*: attribut to regroup reads during counting. 'ID' is the default value.     
 #### Statistical settings  
@@ -115,17 +117,19 @@ During the quality analysis, the periodicity is observed on bases around start a
 >The periodicity must be calculated using a metagene profile. It provides the amount of footprints relative to all annotated start and stop codons in a selected window.   
 
 2 pipelines dedicated to quality controls are available in RiboDoc. The first one uses the [riboWaltz tool](https://github.com/LabTranslationalArchitectomics/riboWaltz) which can need high RAM resources depending on your data. The second pipeline is a series of scripts called TRiP which use a specific gff file format as annotation file. For more details on this format, please check the RiboDoc article.
-*qualitative_analysis*: Choose between the 2 qualitative analysis pipeline. Default value is "ribowaltz".
-##############################################################  
-##### Optional and only for qualitative_analysis: "trip" #####  
-##############################################################  
+*qualitative_analysis*: Choose between the 2 qualitative analysis pipeline. Default value is "ribowaltz".  
+##############################################################
+##### Optional and only for qualitative_analysis: "trip" #####
+##############################################################
 #### UTR covering option  
 *UTR*: This option has to be turned on if you want to compare UTRs coverage against CDS. However, to be realized, this option requires a file with the name of each gene and the length of the associated annotation (one file by annotation: CDS, 3’-UTR and 5’-UTR).  
+
 The full name (**with extensions**) without the path of each file has to be report in the configfile.  
 *CDSlength*: complete name of file with CDS length.  
 *5primelength*: complete name of file with 5’-UTR length  
 *3primelength*: complete name of file with 3’-UTR length  
-# Elements for UTRs have to be specified only if you put 'yes' for the 'UTR' option  
+
+Elements for UTRs have to be specified only if you put 'yes' for the 'UTR' option  
 *gff_element_three_prime_utr*: feature corresponding to 3'UTR in the annotation file. Default value is "three_prime_UTR"  
 *gff_element_five_prime_utr*: feature corresponding to 5'UTR in the annotation file. Default value is "five_prime_UTR"  
 ##############################################################  
@@ -134,7 +138,7 @@ The window selected by default is -50/+100 nts and -100/+50 nts around start and
 *window_af*: define your window after star and before stop  
 #### Number of threads  
 Thanks to the use of Snakemake, RiboDoc can analyse multiple samples at the same time. We define that ¼ of available CPUs are necessarily requisitioned for these multiple parallele tasks.  
-As some tools used in the analysis pipeline have a multithreaded option (like cutadapt, hisat2, bowtie2 or htseq-count), you can choose the number of threads you allow. For example, if you put 3 in the *threads* option on a computer with 4 CPUs : 4/4=1 will be used by default but 1\*3=3 CPUs will be available for the analysis. Please put a number between "1" and "3" as putting a bigger number would mean 100% or more of your computer resources are available for the analysis : **This must be avoided !**   
+As some tools used in the analysis pipeline have a multithreaded option (like cutadapt, hisat2, bowtie2 or htseq-count), you can choose the number of threads you allow.    
 *threads*: threads factor you allow. Default value is "2" to enable 50% of your CPUs to be used in the analysis.    
 
 >Caution:  
@@ -188,7 +192,8 @@ Managed by snakemake, the pipeline will finish all jobs unrelated to the rule/jo
 >&emsp;> docker container ls   
 
 Which provides you the container's ID (*e.g.* 9989909f047d), then :   
->&emsp;> docker stop ID   
+>&emsp;> docker stop ID  
+Where "ID" is the id obtained with the previous command
 
 If you have issues with the use of Docker, you must refer to their [website](https://docs.docker.com/).     
 If the error happens during the use of RiboDoc, the rule (job) which failed is indicated in your terminal. You can then find the error output in the *logs* folder. Each rule have a precise name and a folder related to it with files corresponding to the different steps of this rule. If you can not solve the problem by exploring those files, you can contact us through the ["issues"](https://github.com/equipeGST/RiboDoc/issues) part of our github.
@@ -224,7 +229,7 @@ Initial folders and files are still present and highligth in bold in the tree ar
 │&emsp;&emsp;│&emsp;&emsp;├── up.txt  
 │&emsp;&emsp;│&emsp;&emsp;├── down.txt  
 │&emsp;&emsp;│&emsp;&emsp;├── Images/  
-│&emsp;&emsp;│&emsp;&emsp;│&emsp;&emsp;├── *quantiative_analysis_graphs*
+│&emsp;&emsp;│&emsp;&emsp;│&emsp;&emsp;├── *all_quantitative_analysis_graphs*  
 │&emsp;&emsp;├── fastqc/  
 │&emsp;&emsp;│&emsp;&emsp;├── *one_html_by_sample.html*  
 │&emsp;&emsp;│&emsp;&emsp;└── *one_zip_by_sample.zip*  
@@ -236,18 +241,18 @@ Initial folders and files are still present and highligth in bold in the tree ar
 │&emsp;&emsp;│&emsp;&emsp;├── *TRiP's qualitative analysis results*  
 ├── dag_all.svg    
 └── dag_last_run.svg    
-- *logs* folder groups together all the error output messages from tools used in RiboDoc analysis pipeline. Thus, in the event of an error, it allows you to identify the problematic step to give us feedback.   
-- *RESULTS* folder contains 5 subfolders:   
-&emsp;&emsp;i) *BAM*: it contains a BAM file for each sample (allows visualization on tools such as IGV).  
-&emsp;&emsp;ii) *DESeq2*: it contains the differential analysis html report (*PROJECT_NAME.Final_report.txt*), the count_matrix, the tables and the images related to the DESeq2 analysis.   
-&emsp;&emsp;iii) *fastqc*: it contains raw data quality controls.   
-&emsp;&emsp;iv) *htseqcount_CDS*: it contains htseq output for CDS counts.    
-&emsp;&emsp;vii) *qualitativeAnalysis* or *riboWatlz*: it contains all files related to qualitative test like periodicity and reads length repartition   
+- The *logs/* folder groups together all the error output messages from tools used in RiboDoc analysis pipeline. Thus, in the event of an error, it allows you to identify the problematic step to give us feedback.   
+- *RESULTS/* folder contains 5 subfolders:   
+&emsp;&emsp;i) *BAM/*: it contains a BAM file for each sample (allows visualization on tools such as IGV).  
+&emsp;&emsp;ii) *DESeq2/*: it contains the differential analysis html report (*PROJECT_NAME.Final_report.txt*), the count_matrix, the tables and the images related to the DESeq2 analysis.   
+&emsp;&emsp;iii) *fastqc/*: it contains raw data quality controls.   
+&emsp;&emsp;iv) *htseqcount_CDS/*: it contains htseq output for CDS counts.    
+&emsp;&emsp;vii) *qualitativeAnalysis/* or *riboWatlz/*: it contains all files related to qualitative test like periodicity and reads length repartition   
 It contains also two files:  
 &emsp;&emsp;i) *PROJECT_NAME.Analysis_report.html* gathers standard output of each analysis pipeline tool. It allows to know numbers of reads at each step a)raw reads b)reads after trimming and length selection c)after out RNA depletion d)after double alignment on the reference genome.  
 &emsp;&emsp;iii) *config.yaml* to have a parameters backup.     
 
-- *the dag files* which represents all the analysis pipeline steps with your samples.  
+- The *dag files* which represents the analysis steps with your samples.  
 
 >Last big tip:  
 In case that a sample is too variable against other replicats or if new samples sequencing are added to your study, you can delete/move or add them in the *fastq* subfolder, delete/move/rename the subfolder *RESULTS/DESeq2*. Run again RiboDoc on the same *project_name* folder and it only creates missing files to complete the analysis (complete analysis for added samples, new differential analysis with all samples available in the *fastq* subfolder).  
