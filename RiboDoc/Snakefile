@@ -7,7 +7,7 @@ configfile: "/data/config.yaml"
 from optparse import OptionParser
 
 
-# Sets paths
+# Sets paths for inside the container
 local_path = "/data/"
 ribodoc_tools = "/RiboDoc/RiboDoc/tools/"
 
@@ -506,7 +506,6 @@ rule transcriptome_construction_gtf:
     output:
         fasta = local_path + "database/exons_IDonly_" + config['fasta'],
         transcriptome_gtf = local_path + "database/exons_" + config['fasta'] + ".gtf"
-        # transcriptome_gff = local_path + "database/exons_" + config['gff']
     log:
         samtools_index = local_path + "logs/transcriptome_construction_gtf/samtools_index.log",
         gffread_gtf = local_path + "logs/transcriptome_construction_gtf/gffread.log"
@@ -615,7 +614,7 @@ rule riboWaltz:
     output:
         bestoffset = local_path + "RESULTS/riboWaltz/best_offset.txt"
     log:
-        periodicity = "logs/riboWaltz/riboWaltz.log"
+        periodicity = local_path + "logs/riboWaltz/riboWaltz.log"
     shell:
         # r-base 4.0.3
         # bioconductor-biostrings 2.58.0
