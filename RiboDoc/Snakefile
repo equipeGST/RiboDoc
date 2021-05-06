@@ -92,8 +92,6 @@ onsuccess:
             logs_files.close()
         data_report.write("\n\n\n")
 
-        shell("rm -f " + local_path + "RESULTS/BAM/" + sample + frag_length_L + ".uniq.sam ;")
-
     data_report.close()
 
 
@@ -252,7 +250,7 @@ rule samtools_filter:
         "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h {params.sam} 1> {output.samuniq}  2> {log.view_sam} ;"
         "samtools view -@ " + config['threads'] + " -b {output.samuniq} 2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam} 2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
-        "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm};"
+        "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm} ;"
 
 # Counts reads on each transcript
 rule htseqcount_transcript:
@@ -390,8 +388,7 @@ rule DESeq2_analysis:
 # Divisions of SAM file according to read length and turns it into BAM
 rule quality_controls_bamDivision:
     input:
-        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam"
-        # sam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".uniq.sam",
+        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
         gff = local_path + "database/" + config['gff']
     output:
         bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
@@ -598,7 +595,7 @@ rule samtools_filter_transcriptome:
         "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
         "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam} 2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
-        "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm};"
+        "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm} ;"
 
 # Performs qualitative analysis with riboWaltz
 rule riboWaltz:
