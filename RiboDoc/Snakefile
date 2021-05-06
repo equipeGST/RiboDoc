@@ -105,8 +105,8 @@ onsuccess:
     # Removes useless directories
     shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/*.bed " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout ;")
     shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "database/*t2 " + local_path + "database/*.fai " + local_path + "*tempoR.Rout ;")
+    shell("cp /.snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
     shell("chmod ogu+rwx -R " + local_path + "* ;")
-
 
 
 # Builds the index of bowtie2 mapping on sequences for reads remove
@@ -230,14 +230,12 @@ rule samtools_filter:
         bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai"
     log:
         grep_header_hisat2 = local_path + "logs/samtools_filter/{sample}.grep_hisat2.log",
-        grep_header_bowtie2 = local_path + "logs/samtools_filter/{sample}.grep_bowtie2.log",
-        join_headers = local_path + "logs/samtools_filter/{sample}.join_headers.log",
         grep_core_hisat2 =  local_path + "logs/samtools_filter/{sample}.grep_core_hisat2.log",
+        ZS_filter_hisat2 = local_path + "logs/samtools_filter/{sample}.NH_filter_hisat2.log",
         XM_filter_hisat2 = local_path + "logs/samtools_filter/{sample}.XM_filter_hisat2.log",
-        ZS_filter_hisat2 = local_path + "logs/samtools_filter/{sample}.ZS_filter_hisat2.log",
         grep_core_bowtie2 =  local_path + "logs/samtools_filter/{sample}.grep_core_bowtie2.log",
-        XM_filter_bowtie2 = local_path + "logs/samtools_filter/{sample}.XM_filter_bowtie2.log",
         XS_filter_bowtie2 = local_path + "logs/samtools_filter/{sample}.XS_filter_bowtie2.log",
+        XM_filter_bowtie2 = local_path + "logs/samtools_filter/{sample}.XM_filter_bowtie2.log",
         view_sam = local_path + "logs/samtools_filter/{sample}.view_sam.log",
         view_bam = local_path + "logs/samtools_filter/{sample}.view_bam.log",
         sort_bam = local_path + "logs/samtools_filter/{sample}.sort_bam.log",
@@ -248,12 +246,11 @@ rule samtools_filter:
     shell:
         # samtools 1.12
         "set +o pipefail ;"
-        "grep '^@' {input.sam_hisat2} 1> {params.sam} 2> {log.grep_header_hisat2} ;"
-        "grep '^@' {input.sam_hisat2} 2> {log.grep_header_bowtie2} | join -v 1 - {params.sam} 1>> {params.sam} 2> {log.join_headers} ;"
-        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} | grep -v 'ZS:i:' 1>> {params.sam} 2> {log.ZS_filter_hisat2} ;"
-        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} | grep -v 'XS:i:' 1>> {params.sam} 2> {log.XS_filter_bowtie2} ;"
+        "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} 1> {params.sam} ;"
+        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
+        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
         "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h {params.sam} 1> {output.samuniq}  2> {log.view_sam} ;"
-        "samtools view -@ " + config['threads'] + " -b {output.samuniq}  2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam}  2> {log.sort_bam} ;"
+        "samtools view -@ " + config['threads'] + " -b {output.samuniq}  2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam} 2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
         "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm};"
 
@@ -330,7 +327,66 @@ rule htseqcount_transcript_utr:
         "echo '5prime : '$mean_RPKM_5prime 1>> {log.rpkm_out} 2>> {log.rpkm} ;"
         "echo '3prime : '$mean_RPKM_3prime 1>> {log.rpkm_out} 2>> {log.rpkm} ;"
 
+# Creates the row names (genes/transcript names) of the count matrix
+rule count_matrix_initialization:
+    input:
+        ready = expand(rules.htseqcount_transcript_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount_transcript.output, sample=SAMPLES),
+        counts = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA." + counts + ".txt"
+    output:
+        local_path + "RESULTS/DESeq2/gene_list.txt"
+    log:
+        header = "logs/count_matrix_initialization/head.log",
+        core = local_path + "logs/count_matrix_initialization/cut_sort.log"
+    shell:
+        "set +o pipefail ;"
+        "head -1 {input.counts} | cut -f1 >> {output} 2> {log.header} ;"
+        "tail +2 {input.counts} | cut -f1 | sort >> {output} 2> {log.core} ;"
+
+# Adds the read counts of each sample to the matrix
+rule count_matrix_creation:
+    input:
+        local_path + "RESULTS/DESeq2/gene_list.txt"
+    output:
+        local_path + "RESULTS/DESeq2/count_matrix.txt"
+    log:
+        local_path + "logs/count_matrix_creation/count_matrix.log"
+    params:
+        tmp_file = local_path + "RESULTS/DESeq2/tmp.txt"
+    run:
+        shell("cat {input} > {output} ;")
+        for sample in SAMPLES:
+            shell("join --nocheck-order --header -t $'\t' " + local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + sample + frag_length_L + ".no-outRNA." + counts + ".txt {output} > {params.tmp_file} 2>> {log} ;")
+            shell("cat {params.tmp_file} > {output} ;")
+        shell("rm -f " + local_path + "RESULTS/DESeq2/gene_list.txt {params.tmp_file} ;")
+
+# Performs differential analysis
+rule DESeq2_analysis:
+    input:
+        counts_matrix = local_path + "RESULTS/DESeq2/count_matrix.txt"
+    output:
+        complete = local_path + "RESULTS/DESeq2/complete.txt",
+        up = local_path + "RESULTS/DESeq2/up.txt",
+        down = local_path + "RESULTS/DESeq2/down.txt",
+        report = local_path + "RESULTS/DESeq2/" + config['project_name'] + ".Final_report.html"
+    log:
+        control = local_path + "logs/DESeq2_analysis/header_control.log",
+        deseq2 = local_path + "logs/DESeq2_analysis/DESeq2_analysis.log"
+    params:
+        reportPath = local_path + "RESULTS/DESeq2/",
+        reportName = config['project_name'] + ".Final_report"
+    shell:
+        # r-base 4.0.3
+        # bioconductor-deseq2 1.30.1
+        # r-rmarkdown 2.7
+        # r-factominer 2.4
+        # r-stringr 1.4.0
+        "set +o pipefail ;"
+        "[ `head -2 {input} | cut -f1 | uniq | wc -l` == 1 ] && sed -i -e '2d' {input} ;"
+        "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}')\" 2> {log.deseq2} ;"
+
+
 # Quality controls :
+# TRiP pipeline
 # Divisions of SAM file according to read length and turns it into BAM
 rule quality_controls_bamDivision:
     input:
@@ -348,6 +404,7 @@ rule quality_controls_bamDivision:
         # samtools 1.12
         # gawk 5.1.0
         "bash " + ribodoc_tools + "BamDivision.sh -N {params.sample_names} -l {params.read_length} -S {input.sam} -T " + config['threads'] + " -o " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log} ;"
+        "rm -f {input.sam} ;"
 
 # Creates bed files from fasta files
 rule quality_controls_bedcount:
@@ -436,68 +493,8 @@ rule graphs_periodicity:
         # r-base 4.0.3
         "bash " + ribodoc_tools + "generationGraph_perio.sh -N {params.sample_name} -l {params.read_length} -t '" + config['gff_element_cds'] + "' -m " + config['window_bf'] + " -M " + config['window_af'] + " 2> {log.bash} ;"
 
-# Creates the row names (genes/transcript names) of the count matrix
-rule count_matrix_initialization:
-    input:
-        ready = expand(rules.htseqcount_transcript_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount_transcript.output, sample=SAMPLES),
-        counts = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA." + counts + ".txt"
-    output:
-        local_path + "RESULTS/DESeq2/gene_list.txt"
-    log:
-        header = "logs/count_matrix_initialization/head.log",
-        core = local_path + "logs/count_matrix_initialization/cut_sort.log"
-    shell:
-        "set +o pipefail ;"
-        "head -1 {input.counts} | cut -f1 >> {output} 2> {log.header} ;"
-        "tail +2 {input.counts} | cut -f1 | sort >> {output} 2> {log.core} ;"
 
-# Adds the read counts of each sample to the matrix
-rule count_matrix_creation:
-    input:
-        local_path + "RESULTS/DESeq2/gene_list.txt"
-    output:
-        local_path + "RESULTS/DESeq2/count_matrix.txt"
-    log:
-        local_path + "logs/count_matrix_creation/count_matrix.log"
-    params:
-        tmp_file = local_path + "RESULTS/DESeq2/tmp.txt"
-    run:
-        shell("cat {input} > {output} ;")
-        for sample in SAMPLES:
-            shell("join --nocheck-order --header -t $'\t' " + local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + sample + frag_length_L + ".no-outRNA." + counts + ".txt {output} > {params.tmp_file} 2>> {log} ;")
-            shell("cat {params.tmp_file} > {output} ;")
-        shell("rm -f " + local_path + "RESULTS/DESeq2/gene_list.txt {params.tmp_file} ;")
-
-# Performs differential analysis
-rule DESeq2_analysis:
-    input:
-        counts_matrix = local_path + "RESULTS/DESeq2/count_matrix.txt"
-    output:
-        complete = local_path + "RESULTS/DESeq2/complete.txt",
-        up = local_path + "RESULTS/DESeq2/up.txt",
-        down = local_path + "RESULTS/DESeq2/down.txt",
-        report = local_path + "RESULTS/DESeq2/" + config['project_name'] + ".Final_report.html"
-    log:
-        control = local_path + "logs/DESeq2_analysis/header_control.log",
-        deseq2 = local_path + "logs/DESeq2_analysis/DESeq2_analysis.log"
-    params:
-        reportPath = local_path + "RESULTS/DESeq2/",
-        reportName = config['project_name'] + ".Final_report"
-    shell:
-        # r-base 4.0.3
-        # bioconductor-deseq2 1.30.1
-        # r-rmarkdown 2.7
-        # r-factominer 2.4
-        # r-stringr 1.4.0
-        "set +o pipefail ;"
-        "[ `head -2 {input} | cut -f1 | uniq | wc -l` == 1 ] && sed -i -e '2d' {input} ;"
-        "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}')\" 2> {log.deseq2} ;"
-
-
-
-
-
-
+# riboWaltz pipeline
 # Creates gtf and transcripts fasta files from reference gff and fasta files
 rule transcriptome_construction_gtf:
     input:
@@ -505,7 +502,7 @@ rule transcriptome_construction_gtf:
         gff = local_path + "database/" + config['gff']
     output:
         fasta = local_path + "database/exons_IDonly_" + config['fasta'],
-        transcriptome_gtf = local_path + "database/exons_" + config['fasta'] + ".gtf"
+        transcriptome_gtf = local_path + "database/exons_" + config['gff'] + ".gtf"
     log:
         samtools_index = local_path + "logs/transcriptome_construction_gtf/samtools_index.log",
         gffread_gtf = local_path + "logs/transcriptome_construction_gtf/gffread.log"
@@ -558,8 +555,8 @@ rule run_mapping_transcriptome:
         sam_hisat2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".hisat2.sam",
         sam_bowtie2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bowtie2.sam"
     log:
-        hisat2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_hisat2.log",
-        bowtie2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_bowtie2.log"
+        hisat2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_transcriptome_hisat2.log",
+        bowtie2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_transcriptome_bowtie2.log"
     params:
         index_names_hisat2 = local_path + "database/transcriptome_index_hisat2",
         index_names_bowtie2 = local_path + "database/transcriptome_index_bowtie2",
@@ -580,14 +577,12 @@ rule samtools_filter_transcriptome:
         bam = local_path + "RESULTS/BAM_transcriptome/exons_{sample}" + frag_length_L + ".bam"
     log:
         grep_header_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.grep_hisat2.log",
-        grep_header_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.grep_bowtie2.log",
-        join_headers = local_path + "logs/samtools_filter_transcriptome/{sample}.join_headers.log",
         grep_core_hisat2 =  local_path + "logs/samtools_filter_transcriptome/{sample}.grep_core_hisat2.log",
+        ZS_filter_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.NH_filter_hisat2.log",
         XM_filter_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_hisat2.log",
-        ZS_filter_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.ZS_filter_hisat2.log",
         grep_core_bowtie2 =  local_path + "logs/samtools_filter_transcriptome/{sample}.grep_core_bowtie2.log",
-        XM_filter_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_bowtie2.log",
         XS_filter_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XS_filter_bowtie2.log",
+        XM_filter_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_bowtie2.log",
         view_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.view_bam.log",
         sort_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.sort_bam.log",
         index_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.index_bam.log",
@@ -598,18 +593,17 @@ rule samtools_filter_transcriptome:
     shell:
         # samtools 1.12
         "set +o pipefail ;"
-        "grep '^@' {input.sam_hisat2} 1> {params.sam} 2> {log.grep_header_hisat2} ;"
-        "grep '^@' {input.sam_bowtie2} 2> {log.grep_header_bowtie2} | join -v 1 - {params.sam} 1>> {params.sam} 2> {log.join_headers} ;"
-        "grep --invert-match '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} | grep -v 'ZS:i:' 1>> {params.sam} 2> {log.ZS_filter_hisat2} ;"
-        "grep --invert-match '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} | grep -v 'XS:i:' 1>> {params.sam} 2> {log.XS_filter_bowtie2} ;"
-        "samtools view -@ " + config['threads'] + " -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam}  2> {log.sort_bam} ;"
+        "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} 1> {params.sam} ;"
+        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
+        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
+        "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h -b {params.sam} 1> {output.samuniq}  2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam} 2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
-        "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm} ;"
+        "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm};"
 
 # Performs qualitative analysis with riboWaltz
 rule riboWaltz:
     input:
-        transcriptome_gtf = local_path + "database/exons_" + config['fasta'] + ".gtf",
+        transcriptome_gtf = local_path + "database/exons_" + config['gff'] + ".gtf",
         transcriptome_bam = expand(rules.samtools_filter_transcriptome.output, sample=SAMPLES)
     output:
         bestoffset = local_path + "RESULTS/riboWaltz/best_offset.txt"
