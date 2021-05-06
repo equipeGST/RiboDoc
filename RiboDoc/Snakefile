@@ -45,7 +45,7 @@ rule all:
         expand(local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA." + counts + ".txt", sample=SAMPLES),
 
         # Call for qualitative analysis
-        local_path + "RESULTS/riboWaltz/best_offset.txt" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+        local_path + "RESULTS/riboWaltz/metaprofile.csv" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_bf'] + "+" + config['window_af'] + ".jpeg", sample=SAMPLES, taille=LENGTHS) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg", sample=SAMPLES) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
 
@@ -603,7 +603,7 @@ rule riboWaltz:
         transcriptome_gtf = local_path + "database/exons_" + config['gff'] + ".gtf",
         transcriptome_bam = expand(rules.samtools_filter_transcriptome.output, sample=SAMPLES)
     output:
-        bestoffset = local_path + "RESULTS/riboWaltz/best_offset.txt"
+        psite_table = local_path + "RESULTS/riboWaltz/metaprofile.csv"
     log:
         periodicity = local_path + "logs/riboWaltz/riboWaltz.log"
     shell:
@@ -614,4 +614,5 @@ rule riboWaltz:
         # bioconductor-genomeinfodbdata 1.2.4
         # bioconductor-genomicranges 1.42.0
         # bioconductor-iranges 2.24.1
-        "Rscript " + ribodoc_tools + "periodicity_riboWaltz.R 2> {log}"
+        "Rscript " + ribodoc_tools + "periodicity_riboWaltz.R 2> {log} ;"
+        "rm -f " + local_path + "Rplots.pdf ;"

@@ -16,8 +16,6 @@ gff_file <- gsub(" ", "", params[which(params=="gff")+1], fixed = TRUE)
 # Creates annotation table by transcript names
 annotation_db <- riboWaltz::create_annotation(paste0("/data/database/exons_",gff_file,".gtf"))
 annotation_db_transcript <- data.table(annotation_db)
-#transcript_id <- str_replace(annotation_db$transcript, "(ENST)", "transcript:\\1")
-#annotation_db_transcript$transcript <- transcript_id
 
 
 # Bam files to be computed
@@ -30,24 +28,13 @@ samples <- str_replace(bam_list, ".[0-9]{1,3}-[0-9]{1,3}.bam", "")
 names(samples) <- str_remove(bam_list, ".bam")
 samples
 
-#bam_names <- str_remove(bam_list, ".bam")
-#bams <- c("Treated1","Treated2","Treated3","Control1","Control2","Control3")
-##bams <- c(rep("Treated",3),rep("Control",3))
-#names(bams) <- bam_names
-
-#test <- c("WT.1","Mut.1","WT.3")
-#test <- c("Control.1","Treated.1")
-#names(test) <- c(str_remove(bam_list[4], ".bam"), str_remove(bam_list[1], ".bam"))
-
+reads_list <- try(riboWaltz::bamtolist(bamfolder = bam_folder, annotation = annotation_db_transcript, name_samples = samples))
 reads_list <- riboWaltz::bamtolist(bamfolder = bam_folder, annotation = annotation_db_transcript, name_samples = samples)
-reads_list <- riboWaltz::bamtolist(bamfolder = bam_folder, annotation = annotation_db_transcript, name_samples = samples)
-#reads_list_test <- riboWaltz::bamtolist(bamfolder = bam_folder, name_samples = test,  annotation = annotation_db_transcript)
 
 
 # p-site calculation
 psite_offset <- riboWaltz::psite(reads_list,
                                  flanking = 0,
-#                                 flanking = 6,
                                  start = TRUE,
                                  extremity = "auto",
                                  plot = TRUE,
@@ -60,10 +47,6 @@ psite_offset <- riboWaltz::psite(reads_list,
 
 reads_psite_list <- riboWaltz::psite_info(reads_list,
                                           psite_offset
-                                          #site = c("psite","esite","asite"),
-                                          #fastapath = "database/Saccharomyces_cerevisiae.R64-1-1.dna.toplevel.fa",
-                                          #fasta_genome = FALSE
-                                          #gtfpath = "database/exons_Saccharomyces_cerevisiae.R64-1-1.103_no_description.gtf"
                                           )
 
 
@@ -72,8 +55,6 @@ cds_coverage <- cds_coverage(reads_psite_list, annotation_db_transcript)
 
 
 length_dist <- rlength_distr(reads_list, sample = samples)
-                            #, cl = 99)
-#length_dist_test <- rlength_distr(reads_list_test, sample = test)
 length_dist[[paste0("plot_",samples[1])]]
 length_dist[[paste0("plot_",samples[3])]]
 
@@ -85,14 +66,7 @@ for(i in 1:length(samples))
   dev.off()
 }
 
-#example_ends_heatmap <- rends_heat(reads_list, annotation_db_transcript, sample = samples)
-##example_ends_heatmap <- rends_heat(reads_list_test, annotation_db_transcript, sample = test)
-#                                   #cl = 85, utr5l = 25, cdsl = 40, utr3l = 25)
-#example_ends_heatmap[["plot"]]
-
-
 psite_region <- region_psite(reads_psite_list, annotation_db_transcript, sample = samples)
-#psite_region <- region_psite(reads_psite_list_test, annotation_db_transcript, sample = test)
 psite_region[["plot"]]
 
 pdf(file="/data/RESULTS/riboWaltz/region_psite.pdf")
@@ -101,8 +75,6 @@ dev.off()
 
 
 frames_stratified <- frame_psite_length(reads_psite_list, sample = samples, region = "all")
-#frames_stratified <- frame_psite_length(reads_psite_list_test, sample = test, region = "all")
-                                        #cl = 90)
 frames_stratified[["plot"]]
 
 pdf(file="/data/RESULTS/riboWaltz/frame_psite_length.pdf")
@@ -110,7 +82,6 @@ frames_stratified[["plot"]]
 dev.off()
 
 frames <- frame_psite(reads_psite_list, sample = samples, region = "all")
-#frames <- frame_psite(reads_psite_list_test, sample = test, region = "all")
 frames[["plot"]]
 
 pdf(file="/data/RESULTS/riboWaltz/frame_psite.pdf")
@@ -119,9 +90,6 @@ dev.off()
 
 metaprofile <- metaprofile_psite(reads_psite_list, annotation_db_transcript, sample = samples,
                                   plot_title = "sample.transcript")
-                                  #utr5l = 20, cdsl = 40, utr3l = 20)
-#metaprofile <- metaprofile_psite(reads_psite_list_test, annotation_db_transcript, sample = test,
-#                                  plot_title = "sample.transcript")
 metaprofile[["plot_Mut.1"]]
 metaprofile[["plot_WT.1"]]
 
@@ -131,14 +99,6 @@ for(i in 1:length(samples))
   plot(metaprofile[[paste0("plot_",samples[i])]])
   dev.off()
 }
-
-#codon_usage <- codon_usage_psite(reads_psite_list, annotation_db_transcript, sample = test,
-#                                          fastapath = "database/Saccharomyces_cerevisiae.R64-1-1.dna.toplevel.fa",
-#                                          fasta_genome = FALSE,
-#                                          frequency_normalization = FALSE)
-#                                          #frequency_normalization = TRUE)
-#codon_usage[["plot"]]
-
 
 write.csv(psite_offset, "/data/RESULTS/riboWaltz/psite_offset.csv", quote = F, row.names = F)
 for(i in 1:length(samples))
