@@ -92,6 +92,8 @@ onsuccess:
             logs_files.close()
         data_report.write("\n\n\n")
 
+        shell("rm -f " + local_path + "RESULTS/BAM/" + sample + frag_length_L + ".uniq.sam ;")
+
     data_report.close()
 
 
@@ -388,7 +390,8 @@ rule DESeq2_analysis:
 # Divisions of SAM file according to read length and turns it into BAM
 rule quality_controls_bamDivision:
     input:
-        sam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".uniq.sam",
+        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam"
+        # sam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".uniq.sam",
         gff = local_path + "database/" + config['gff']
     output:
         bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
@@ -401,8 +404,7 @@ rule quality_controls_bamDivision:
     shell:
         # samtools 1.12
         # gawk 5.1.0
-        "bash " + ribodoc_tools + "BamDivision.sh -N {params.sample_names} -l {params.read_length} -S {input.sam} -T " + config['threads'] + " -o " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log} ;"
-        "rm -f {input.sam} ;"
+        "bash " + ribodoc_tools + "BamDivision.sh -N {params.sample_names} -l {params.read_length} -B {input.bam} -T " + config['threads'] + " -o " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log} ;"
 
 # Creates bed files from fasta files
 rule quality_controls_bedcount:
