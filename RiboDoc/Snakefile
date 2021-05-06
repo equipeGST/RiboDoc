@@ -223,7 +223,6 @@ rule samtools_filter:
         sam_bowtie2 = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bowtie2.sam",
         fasta = local_path + "database/" + config['fasta']
     output:
-        samuniq = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".uniq.sam",
         bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
         bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai"
     log:
@@ -234,7 +233,6 @@ rule samtools_filter:
         grep_core_bowtie2 =  local_path + "logs/samtools_filter/{sample}.grep_core_bowtie2.log",
         XS_filter_bowtie2 = local_path + "logs/samtools_filter/{sample}.XS_filter_bowtie2.log",
         XM_filter_bowtie2 = local_path + "logs/samtools_filter/{sample}.XM_filter_bowtie2.log",
-        view_sam = local_path + "logs/samtools_filter/{sample}.view_sam.log",
         view_bam = local_path + "logs/samtools_filter/{sample}.view_bam.log",
         sort_bam = local_path + "logs/samtools_filter/{sample}.sort_bam.log",
         index_bam = local_path + "logs/samtools_filter/{sample}.index_bam.log",
@@ -247,8 +245,7 @@ rule samtools_filter:
         "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} 1> {params.sam} ;"
         "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
         "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
-        "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h {params.sam} 1> {output.samuniq}  2> {log.view_sam} ;"
-        "samtools view -@ " + config['threads'] + " -b {output.samuniq} 2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam} 2> {log.sort_bam} ;"
+        "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam} 2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
         "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm} ;"
 
