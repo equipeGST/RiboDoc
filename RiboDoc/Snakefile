@@ -92,8 +92,6 @@ onsuccess:
             logs_files.close()
         data_report.write("\n\n\n")
 
-        shell("rm -f " + local_path + "RESULTS/BAM/" + sample + frag_length_L + ".uniq.sam ;")
-
     data_report.close()
 
 
