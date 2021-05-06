@@ -22,7 +22,7 @@ annotation_db_transcript <- data.table(annotation_db)
 bam_folder <- "/data/RESULTS/BAM_transcriptome/"
 
 bam_list <- list.files(bam_folder)
-bam_list <- bam_list[seq(1, length(bam_list), 3)]
+bam_list <- bam_list[seq(1, length(bam_list), 2)]
 
 samples <- str_replace(bam_list, ".[0-9]{1,3}-[0-9]{1,3}.bam", "")
 names(samples) <- str_remove(bam_list, ".bam")
