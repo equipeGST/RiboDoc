@@ -28,7 +28,7 @@ Project_name
 This subfolder, as its name suggests, should contain your FastQs. These must be compressed in .gz.  
 **Format of file name must be as following:**  
 &emsp;&emsp;&emsp;biological_condition_name.replicat.fastq.gz     
-For example, for the first replicat of the wild-type condition, sample will be named *Wild_Type.1.fastq.gz*   
+For example, for the first replicate of the wild-type condition the sample can be named *Wild_Type.1.fastq.gz* and *Wild_Type.2.fastq.gz* for the second replicate.   
 
 >Caution, for **Windows**, extensions can be hidden.    
 
@@ -40,6 +40,7 @@ Project_name
 &emsp;&emsp;&emsp;├── Mutant.1.fastq.gz   
 &emsp;&emsp;&emsp;└── Mutant.2.fastq.gz   
 
+If you want to try RiboDoc on an example dataset, you can find our data with on GEO : [GEO GSE173856](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE173856)
 
 ### b) *database* subfolder  
 In this subfolder, you must put at least the following three files:  
@@ -257,5 +258,5 @@ It contains also two files:
 >Last big tip:  
 In case that a sample is too variable against other replicats or if new samples sequencing are added to your study, you can delete/move or add them in the *fastq* subfolder, delete/move/rename the subfolder *RESULTS/DESeq2*. Run again RiboDoc on the same *project_name* folder and it only creates missing files to complete the analysis (complete analysis for added samples, new differential analysis with all samples available in the *fastq* subfolder).  
 
-Thank you for using RiboDoc !  
+Thank you for using RiboDoc !   
 We wish you the best results for your analyzes !  
