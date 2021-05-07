@@ -103,7 +103,7 @@ You also have to define the range for read length selection. Default values sele
 *readsLength_min*: minimum read length.   
 *readsLength_max*: maximum read length.   
 
-You can also parameter alignments:
+You can also parameter alignments:   
 *gff_element_cds*: feature corresponding to CDS in the annotation file. 'CDS' is the default value (can sometimes be ORF).     
 *gff_attribut*: attribut to regroup reads during counting. 'ID' is the default value.     
 #### Statistical settings  
