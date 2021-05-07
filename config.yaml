@@ -27,7 +27,7 @@ readsLength_max: "35"
 # Elements to select during counting
 gff_element_cds: "CDS"
 
-# Attribut to regroup reads during counting
+# Attribut to regroup reads during counting (usually "ID" or "Parent")
 gff_attribut: "ID"
 
 
