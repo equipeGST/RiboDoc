@@ -21,8 +21,7 @@ ENV PATH=/root/miniconda3/envs/RiboDoc_env/bin:$PATH
 
 SHELL ["/bin/bash", "-c"]
 
-RUN conda env create -f /RiboDoc/RiboDoc/RiboDoc_env.yml \
-    && conda clean -a -y
+RUN conda env create -f /RiboDoc/RiboDoc/RiboDoc_env.yml
 RUN conda init bash
 RUN echo "conda activate RiboDoc_env" >> /root/.bashrc \
     && conda info --envs \
