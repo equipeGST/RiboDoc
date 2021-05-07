@@ -11,7 +11,7 @@ RUN apt-get update \
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
     && bash Miniconda3-latest-Linux-x86_64.sh -b \
     && rm Miniconda3-latest-Linux-x86_64.sh
-
+RUN echo "fdjgnfdkfddfdfssdsfddq"
 RUN git clone https://github.com/equipeGST/RiboDoc.git
 
 ENV BASH_ENV ~/.bashrc
@@ -21,7 +21,8 @@ ENV PATH=/root/miniconda3/envs/RiboDoc_env/bin:$PATH
 
 SHELL ["/bin/bash", "-c"]
 
-RUN conda env create -f /RiboDoc/RiboDoc/RiboDoc_env.yml
+RUN conda env create -f /RiboDoc/RiboDoc/RiboDoc_env.yml \
+    && conda clean -a -y
 RUN conda init bash
 RUN echo "conda activate RiboDoc_env" >> /root/.bashrc \
     && conda info --envs \
