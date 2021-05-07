@@ -11,7 +11,7 @@ RUN apt-get update \
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
     && bash Miniconda3-latest-Linux-x86_64.sh -b \
     && rm Miniconda3-latest-Linux-x86_64.sh
-RUN echo "fdjgnfdkfddfdfssdsfddq"
+
 RUN git clone https://github.com/equipeGST/RiboDoc.git
 
 ENV BASH_ENV ~/.bashrc
