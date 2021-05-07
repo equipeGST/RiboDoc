@@ -98,9 +98,9 @@ onsuccess:
     if config['UTR'] == "yes":
         shell("Rscript " + ribodoc_tools + "CDSvsUTR_coverage_graph.R " + config['project_name'] + " ;")
 
-    # Copies config file to keep trace of parameters used
+    # Copy config file to keep trace of parameters used
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/ ;")
-    # Removes useless directories
+    # Remove useless directories
     shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/*.bed " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout ;")
     shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "database/*t2 " + local_path + "database/*.fai " + local_path + "*tempoR.Rout ;")
     shell("cp /.snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
@@ -263,7 +263,7 @@ rule htseqcount_transcript:
         # htseq 0.13.5
         "set +o pipefail ;"
         "echo Genes\\\t{wildcards.sample} > {output};"
-        "htseq-count -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr 'Name' -m intersection-strict {input.bam} {input.gff} 2> {log.htseqcount} | head -n -5 >> {output} ;"
+        "htseq-count -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' -m intersection-strict {input.bam} {input.gff} 2> {log.htseqcount} | head -n -5 >> {output} ;"
 
 # Counts reads on each 5prime, 3prime or CDS part of each transcript
 rule htseqcount_transcript_utr:
@@ -299,7 +299,7 @@ rule htseqcount_transcript_utr:
         "totalReads=`samtools view -c {input.bam} 2> {log.view}` ;"
 
         "echo Genes\\\t{wildcards.sample} > {output.counts_CDS} ;"
-        "htseq-count -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr 'Name' -m intersection-strict {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt ;"
+        "htseq-count -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' -m intersection-strict {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt ;"
         "mean_RPKM_CDS=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\t' {input.CDS} " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt 2> {log.join_CDS} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_CDS}` ;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt >> {output.counts_CDS} ;"
 
