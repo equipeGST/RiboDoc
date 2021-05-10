@@ -123,8 +123,6 @@ rule name_CDS:
 
             for feature in db.all_features():
                 if feature.featuretype == config['gff_element_cds']:
-                    # If level=1 not specified, it will also return gene "grandparent"
-                    # which you don't care about
                     parent = list(db.parents(feature, level=1))
                     # sanity checking
                     assert len(parent) == 1
