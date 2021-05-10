@@ -5,6 +5,7 @@ configfile: "/data/config.yaml"
 
 # Imports
 from optparse import OptionParser
+import gffutils
 
 
 # Sets paths for inside the container
@@ -106,6 +107,30 @@ onsuccess:
     shell("cp /.snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
     shell("chmod ogu+rwx -R " + local_path + "* ;")
 
+
+# Adds gene names to th CDS lines
+rule name_CDS:
+    input:
+        gff = local_path + "database/" + config['gff']
+    output:
+        gff_namedCDS = local_path + "database/NamedCDS_" + config['gff']
+    run:
+        # gffutils 0.10.1
+        db = gffutils.create_db(input.gff, ':memory:', merge_strategy='create_unique', keep_order=True)
+        with open(output.gff_namedCDS, 'w') as fout:
+            for d in db.directives:
+                fout.write('##{0}\n'.format(d))
+
+            for feature in db.all_features():
+                if feature.featuretype == config['gff_element_cds']:
+                    # If level=1 not specified, it will also return gene "grandparent"
+                    # which you don't care about
+                    parent = list(db.parents(feature, level=1))
+                    # sanity checking
+                    assert len(parent) == 1
+                    parent = parent[0]
+                    feature.attributes['Name'] = parent.attributes['Name']
+                fout.write(str(feature) + '\n')
 
 # Builds the index of bowtie2 mapping on sequences for reads remove
 rule bowtie2_build_outRNA:
@@ -389,7 +414,7 @@ rule DESeq2_analysis:
 rule quality_controls_bamDivision:
     input:
         bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
-        gff = local_path + "database/" + config['gff']
+        gff = local_path + "database/NamedCDS_" + config['gff']
     output:
         bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
         bai = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam.bai"
@@ -445,7 +470,7 @@ rule quality_controls_readsLengthRepartition:
 rule quality_controls_periodicity:
     input:
         bed = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed",
-        gff = local_path + "database/" + config['gff']
+        gff = local_path + "database/NamedCDS_" + config['gff']
     output:
         start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_bf'] + "+" + config['window_af'] + ".txt",
         stop = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_element_cds'] + ".-" + config['window_af'] + "+" + config['window_bf'] + ".txt"
@@ -496,7 +521,7 @@ rule graphs_periodicity:
 rule transcriptome_construction_gtf:
     input:
         fasta = local_path + "database/" + config['fasta'],
-        gff = local_path + "database/" + config['gff']
+        gff = local_path + "database/NamedCDS_" + config['gff']
     output:
         fasta = local_path + "database/exons_IDonly_" + config['fasta'],
         transcriptome_gtf = local_path + "database/exons_" + config['gff'] + ".gtf"

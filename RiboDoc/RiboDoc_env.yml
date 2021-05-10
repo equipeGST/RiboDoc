@@ -11,6 +11,8 @@ dependencies:
   - aiohttp=3.7.4=py38h497a2fe_0
   - amply=0.1.4=py_0
   - appdirs=1.4.4=pyh9f0ad1d_0
+  - argcomplete=1.12.3=pyhd8ed1ab_2
+  - argh=0.26.2=py38_1001
   - async-timeout=3.0.1=py_1000
   - atk-1.0=2.36.0=h3371d22_4
   - attmap=0.13.0=pyhd8ed1ab_0
@@ -97,6 +99,7 @@ dependencies:
   - gdk-pixbuf=2.42.6=h04a7f16_0
   - gettext=0.21.0=hf68c758_0
   - gffread=0.12.1=h2e03b76_1
+  - gffutils=0.10.1=pyh864c0ab_1
   - gfortran_impl_linux-64=9.3.0=hc4a2995_19
   - gfortran_linux-64=9.3.0=hdc58fab_30
   - ghostscript=9.53.3=h58526e2_2
@@ -220,6 +223,7 @@ dependencies:
   - pyasn1=0.4.8=py_0
   - pyasn1-modules=0.2.8=py_0
   - pycparser=2.20=pyh9f0ad1d_2
+  - pyfaidx=0.5.9.5=pyh3252c3a_0
   - pygments=2.8.1=pyhd8ed1ab_0
   - pygraphviz=1.7=py38h0d738da_0
   - pyjwt=2.0.1=pyhd8ed1ab_1
