@@ -47,8 +47,11 @@ Var_padj <- as.numeric(gsub(" ", "", params[which(params=="p-val")+1], fixed = T
 \
 
 ```{r data , echo=FALSE}
-pathway = "/data/RESULTS/DESeq2/count_matrix.txt"
-expData = read.table(pathway, header = T, row.names = 1, check.names = FALSE)
+pathway_matrix = "/data/RESULTS/DESeq2/count_matrix.txt"
+expData = read.table(pathway_matrix, header = T, row.names = 1, check.names = FALSE)
+
+pathway_names = "/data/RESULTS/DESeq2/transcript_list.txt"
+names_list = read.table(pathway_names, header = T, row.names = 1, check.names = FALSE)
 ```
 
 
@@ -309,26 +312,25 @@ plot(resDESeq[, "log2FoldChange"], -log10(Valeurs_Limite_Y),
 ```
 \
 
-```{r Creation Tables finales, include = FALSE}
+```{r Final tables creation, include = FALSE}
 Bruts_Norm <- cbind(expData_Sorted, normCountData )
 
 Table_Complete <- data.frame(cbind(row.names(Bruts_Norm) , Bruts_Norm, CT_Mean,Mut_Mean , resDESeq) )
 
 
-colnames(Table_Complete) =  c("genes" ,
+colnames(Table_Complete) =  c("ID" ,
                                Names_Col,
                                paste("norm", Names_Col, sep = "_"),
                                paste0(refCond,"_Mean"),
                                paste0(sample, "_Mean"),
                                colnames(resDESeq))
 
+allGenes <- merge(Table_Complete, names_list, by.x = 1, by.y = "row.names")
 
-
-
-inducedGenes = Table_Complete[which((Table_Complete[, "log2FoldChange"] > Var_log2FC) & (Table_Complete[, "padj"] < Var_padj)),]
+inducedGenes = allGenes[which((allGenes[, "log2FoldChange"] > Var_log2FC) & (allGenes[, "padj"] < Var_padj)),]
 dim(inducedGenes)
 
-repressedGenes = Table_Complete[which((Table_Complete[, "log2FoldChange"] < -Var_log2FC) & (Table_Complete[, "padj"] < Var_padj)),]
+repressedGenes = allGenes[which((allGenes[, "log2FoldChange"] < -Var_log2FC) & (allGenes[, "padj"] < Var_padj)),]
 dim(repressedGenes)
 
 # Sort tables by padj
@@ -338,7 +340,7 @@ repressedGenes <- repressedGenes[(order(repressedGenes[,"padj"])),]
 
 
 ```{r, echo = FALSE}
-write.table(Table_Complete,
+write.table(allGenes,
             file = paste0("/data/RESULTS/DESeq2/complete.txt"),
             quote = F, sep = "\t", row.names = F)
 
