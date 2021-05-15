@@ -7,38 +7,33 @@ output: "html_document"
 
 ```{r Sys, echo=FALSE}
 #Sys.getenv("RSTUDIO_PANDOC")
-Sys.setenv(RSTUDIO_PANDOC="/root/miniconda3/envs/all_RiboDoc/bin/pandoc")
+Sys.setenv(RSTUDIO_PANDOC="/root/miniconda3/envs/RiboDoc_env/bin/pandoc")
 ```
-
-```{r mkdir, echo = FALSE, include = FALSE}
-dir.create("/data/RESULTS/DESeq2/Images/")
-```
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(include = TRUE, message = FALSE, warning = FALSE)
-knitr::opts_chunk$set(fig.path = "/data/RESULTS/DESeq2/Images/", dev=c('png','tiff'))
-```
-
 
 ```{r rm Global environment, include=FALSE}
 rm(list=ls())
 ```
 
-```{r packages, echo = FALSE}
+```{r packages, echo=FALSE, include=FALSE}
 library(DESeq2)
 library(stringr)
 library(FactoMineR)
 ```
 
 
-```{r Arguments, include=FALSE}
+```{r Arguments, echo=FALSE, include=FALSE}
 params <- scan(file = "/data/config.yaml",
                    what = "character",
                    sep = ":"
                    )
 
 trans_or_gene <- gsub(" ", "", params[which(params=="transcript_or_gene")+1], fixed = TRUE)
+if(trans_or_gene=="gene")
+{
+  DESeq2_folder <- "DESeq2_by_gene"
+} else {
+  DESeq2_folder <- "DESeq2_by_transcript"
+}
 
 refCond <- gsub(" ", "", params[which(params=="reference_condition")+1], fixed = TRUE)
 Var_log2FC <- as.numeric(gsub(" ", "", params[which(params=="logFC")+1], fixed = TRUE))
@@ -47,6 +42,17 @@ Var_padj <- as.numeric(gsub(" ", "", params[which(params=="p-val")+1], fixed = T
 \
 ##### *`r paste0("Reference condition : ", refCond)`*
 \
+
+```{r mkdir, echo = FALSE, include = FALSE}
+dir.create(paste0("/data/RESULTS/",DESeq2_folder,"/Images/"))
+```
+
+```{r setup, echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(include = TRUE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(fig.path = paste0("/data/RESULTS/",DESeq2_folder,"/Images/"), dev=c('png','tiff'))
+```
+
 
 ```{r data , echo=FALSE}
 pathway_matrix = "/data/RESULTS/DESeq2/count_matrix.txt"

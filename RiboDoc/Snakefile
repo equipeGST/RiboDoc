@@ -358,8 +358,9 @@ rule count_matrix_initialization:
         sort = local_path + "logs/count_matrix_initialization/sort.log"
     shell:
         "set +o pipefail ;"
-        "head -1 {input.counts} | cut -f1,2 2> {log.header} > {output.transcript_list} ;"
+        "echo -e 'ID\tTranscript_name\tGene_name' 2> {log.header} > {output.transcript_list} ;"
         "tail +2 {input.counts} | cut -f1,2 2> {log.id_name} | LC_COLLATE=C sort 2> {log.sort} >> {output.transcript_list} ;"
+        "sed -i -E 's/\\t([^\\t]+)(-[0-9]{{3}})/\\t\\1\\2\\t\\1/' {output.transcript_list} ;"
 
 # Adds the read counts of each sample to the matrix
 rule count_matrix_creation:
@@ -403,7 +404,7 @@ rule DESeq2_analysis:
         "set +o pipefail ;"
         "[ `head -2 {input.counts_matrix} | cut -f1 | uniq | wc -l` == 1 ] && sed -i -e '2d' {input.counts_matrix} ;"
         "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}')\" 2> {log.deseq2} ;"
-        "rm -f {input.transcript_list}"
+        # "rm -f {input.transcript_list} ;"
 
 
 # Quality controls :
