@@ -38,6 +38,8 @@ params <- scan(file = "/data/config.yaml",
                    sep = ":"
                    )
 
+trans_or_gene <- gsub(" ", "", params[which(params=="transcript_or_gene")+1], fixed = TRUE)
+
 refCond <- gsub(" ", "", params[which(params=="reference_condition")+1], fixed = TRUE)
 Var_log2FC <- as.numeric(gsub(" ", "", params[which(params=="logFC")+1], fixed = TRUE))
 Var_padj <- as.numeric(gsub(" ", "", params[which(params=="p-val")+1], fixed = TRUE))
@@ -54,6 +56,15 @@ pathway_names = "/data/RESULTS/DESeq2/transcript_list.txt"
 names_list = read.table(pathway_names, header = T, row.names = 1, check.names = FALSE)
 ```
 
+```{r Merge by gene, echo=FALSE}
+if(trans_or_gene=="gene")
+{
+  expData_named <- data.frame(merge(expData, names_list, by = "row.names"), row.names = 1)
+  expData_named_gene <- expData_named[,-(dim(expData_named)[2]-1)]
+  expData_counts_by_gene <- aggregate(expData_named_gene[,-dim(expData_named_gene)[2]], expData_named_gene["Gene_name"], sum)
+  expData <- data.frame(expData_counts_by_gene, row.names = 1)
+}
+```
 
 The present analysis report is part of RiboDoc tool, developed by the GST team, Université Paris-Saclay, CEA, CNRS, Institute for Integrative Biology of the Cell (I2BC), 91198, Gif-sur-Yvette, France.
 
@@ -325,7 +336,12 @@ colnames(Table_Complete) =  c("ID" ,
                                paste0(sample, "_Mean"),
                                colnames(resDESeq))
 
-allGenes <- merge(Table_Complete, names_list, by.x = 1, by.y = "row.names")
+if(trans_or_gene=="gene")
+{
+  allGenes <- Table_Complete
+} else {
+  allGenes <- merge(Table_Complete, names_list, by = "row.names")
+}
 
 inducedGenes = allGenes[which((allGenes[, "log2FoldChange"] > Var_log2FC) & (allGenes[, "padj"] < Var_padj)),]
 dim(inducedGenes)

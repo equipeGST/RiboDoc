@@ -109,7 +109,7 @@ You can also parameter alignments:
 #### Statistical settings  
 To be able to perform statistical analyzes, you must define a reference condition as well as your thresholds.   
 *reference_condition*: it correspond to the reference biological_condition_name
-We have pre-define them:  
+*transcript_or_gene*: choose whether to perfom the differential analysis on features grouped by "transcripts" or by "gene"  
 *p-val*: p-value threshold for the differential analysis. Defaut value is 0.01.  
 *logFC*: logFC threshold for the differential analysis. Defaut value is 0 to keep all the genes without logFC filtering.  
 #### Window for qualitative test  

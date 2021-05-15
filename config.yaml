@@ -28,11 +28,14 @@ readsLength_max: "35"
 gff_element_cds: "CDS"
 
 # Attribut to regroup reads during counting (usually "ID" or "Parent")
-gff_attribut: "ID"
+gff_attribut: "Parent"
 
 
 # Name of the reference condition (same as file name)
 reference_condition: ""
+
+# Choose whether to perform the differential analysis on counts grouped by "gene" or by "transcript"
+transcript_or_gene: "gene"
 
 # Thresholds to adjust for differential expression analysis
 p-val: "0.01"

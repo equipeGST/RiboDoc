@@ -51,7 +51,7 @@ rule all:
         expand(local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg", sample=SAMPLES) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
 
         # Call for count matrix creation for DESeq2 dans final report
-        local_path + "RESULTS/DESeq2/" + config['project_name'] + ".Final_report.html"
+        local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/" + config['project_name'] + ".Final_report.html"
 
 
 # When the jobs are all done
@@ -351,7 +351,7 @@ rule count_matrix_initialization:
         ready = expand(rules.htseqcount_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount.output, sample=SAMPLES),
         counts = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA." + counts + ".txt"
     output:
-        transcript_list = local_path + "RESULTS/DESeq2/transcript_list.txt"
+        transcript_list = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/transcript_list.txt"
     log:
         header = "logs/count_matrix_initialization/head.log",
         id_name = "logs/count_matrix_initialization/id_name.log",
@@ -364,13 +364,13 @@ rule count_matrix_initialization:
 # Adds the read counts of each sample to the matrix
 rule count_matrix_creation:
     input:
-        transcript_list = local_path + "RESULTS/DESeq2/transcript_list.txt"
+        transcript_list = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/transcript_list.txt"
     output:
-        counts_matrix = local_path + "RESULTS/DESeq2/count_matrix.txt"
+        counts_matrix = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/count_matrix.txt"
     log:
         local_path + "logs/count_matrix_creation/count_matrix.log"
     params:
-        tmp_file = local_path + "RESULTS/DESeq2/tmp.txt"
+        tmp_file = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/tmp.txt"
     run:
         shell("cut -f1 {input.transcript_list} 2> {log} > {output.counts_matrix} ;")
         for sample in SAMPLES:
@@ -381,18 +381,18 @@ rule count_matrix_creation:
 # Performs differential analysis
 rule DESeq2_analysis:
     input:
-        counts_matrix = local_path + "RESULTS/DESeq2/count_matrix.txt",
-        transcript_list = local_path + "RESULTS/DESeq2/transcript_list.txt"
+        counts_matrix = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/count_matrix.txt",
+        transcript_list = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/transcript_list.txt"
     output:
-        complete = local_path + "RESULTS/DESeq2/complete.txt",
-        up = local_path + "RESULTS/DESeq2/up.txt",
-        down = local_path + "RESULTS/DESeq2/down.txt",
-        report = local_path + "RESULTS/DESeq2/" + config['project_name'] + ".Final_report.html"
+        complete = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/complete.txt",
+        up = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/up.txt",
+        down = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/down.txt",
+        report = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/" + config['project_name'] + ".Final_report.html"
     log:
         control = local_path + "logs/DESeq2_analysis/header_control.log",
         deseq2 = local_path + "logs/DESeq2_analysis/DESeq2_analysis.log"
     params:
-        reportPath = local_path + "RESULTS/DESeq2/",
+        reportPath = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/",
         reportName = config['project_name'] + ".Final_report"
     shell:
         # r-base 4.0.3
