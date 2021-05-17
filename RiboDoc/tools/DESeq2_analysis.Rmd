@@ -69,6 +69,7 @@ if(trans_or_gene=="gene")
   expData_named_gene <- expData_named[,-(dim(expData_named)[2]-1)]
   expData_counts_by_gene <- aggregate(expData_named_gene[,-dim(expData_named_gene)[2]], expData_named_gene["Gene_name"], sum)
   expData <- data.frame(expData_counts_by_gene, row.names = 1)
+  write.table(expData, paste0("/data/RESULTS/",DESeq2_folder,"/count_matrix_mRNA_by_gene.txt"), sep = "\t")
 }
 ```
 
