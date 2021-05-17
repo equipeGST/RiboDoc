@@ -56,7 +56,7 @@ knitr::opts_chunk$set(fig.path = paste0("/data/RESULTS/",DESeq2_folder,"/Images/
 
 ```{r data , echo=FALSE}
 pathway_matrix = paste0("/data/RESULTS/",DESeq2_folder,"/count_matrix.txt")
-expData = read.table(pathway_matrix, header = T, row.names = 1, check.names = FALSE)
+expData = round(read.table(pathway_matrix, header = T, row.names = 1, check.names = FALSE))
 
 pathway_names = paste0("/data/RESULTS/",DESeq2_folder,"/transcript_list.txt")
 names_list = read.table(pathway_names, header = T, row.names = 1, check.names = FALSE)
