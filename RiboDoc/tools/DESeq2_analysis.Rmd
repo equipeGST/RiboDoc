@@ -55,10 +55,10 @@ knitr::opts_chunk$set(fig.path = paste0("/data/RESULTS/",DESeq2_folder,"/Images/
 
 
 ```{r data , echo=FALSE}
-pathway_matrix = "/data/RESULTS/DESeq2/count_matrix.txt"
+pathway_matrix = paste0("../RESULTS/",DESeq2_folder,"/count_matrix.txt")
 expData = read.table(pathway_matrix, header = T, row.names = 1, check.names = FALSE)
 
-pathway_names = "/data/RESULTS/DESeq2/transcript_list.txt"
+pathway_names = paste0("../RESULTS/",DESeq2_folder,"/transcript_list.txt")
 names_list = read.table(pathway_names, header = T, row.names = 1, check.names = FALSE)
 ```
 
@@ -363,24 +363,24 @@ repressedGenes <- repressedGenes[(order(repressedGenes[,"padj"])),]
 
 ```{r, echo = FALSE}
 write.table(allGenes,
-            file = paste0("/data/RESULTS/DESeq2/complete.txt"),
+            file = paste0("../RESULTS/",DESeq2_folder,"/complete.txt"),
             quote = F, sep = "\t", row.names = F)
 
 
 write.table(inducedGenes,
-            file = paste0("/data/RESULTS/DESeq2/up.txt"),
+            file = paste0("../RESULTS/",DESeq2_folder,"/up.txt"),
             quote = F, sep = "\t", row.names = F)
 
 write.table(repressedGenes,
-            file = paste0("/data/RESULTS/DESeq2/down.txt"),
+            file = paste0("../RESULTS/",DESeq2_folder,"/down.txt"),
             quote = F, sep = "\t", row.names = F)
 ```
 \
 **OUTPUT FILES** :  
-All the output files can be found in the directory “RESULTS/DESeq2/”   
-`r paste0("RESULTS/DESeq2/complete.txt")`  
-`r paste0("RESULTS/DESeq2/up.txt")  `  
-`r paste0("RESULTS/DESeq2/down.txt")  `   
+All the output files can be found in the directory “RESULTS/DESeq2_by_gene/” or " RESULTS/DESeq2_by_transcript/”  
+`r paste0("RESULTS/",DESeq2_folder,"/complete.txt")`  
+`r paste0("RESULTS/",DESeq2_folder,"/up.txt")  `  
+`r paste0("RESULTS/",DESeq2_folder,"/down.txt")  `   
 \
 *Explanation of each column* :  
 
