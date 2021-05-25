@@ -20,8 +20,7 @@ library(stringr)
 library(FactoMineR)
 ```
 
-
-```{r Arguments, echo=FALSE, include=FALSE}
+```{r scan_and_paths, echo=FALSE, include=FALSE}
 params <- scan(file = "/data/config.yaml",
                    what = "character",
                    sep = ":"
@@ -30,11 +29,16 @@ params <- scan(file = "/data/config.yaml",
 trans_or_gene <- gsub(" ", "", params[which(params=="transcript_or_gene")+1], fixed = TRUE)
 if(trans_or_gene=="gene")
 {
-  DESeq2_folder <- "DESeq2_by_gene"
+  DESeq2_folder <- "/data/RESULTS/DESeq2_by_gene/"
 } else {
-  DESeq2_folder <- "DESeq2_by_transcript"
+  DESeq2_folder <- "/data/RESULTS/DESeq2_by_transcript/"
 }
 
+pathway_matrix = paste0(DESeq2_folder,"count_matrix.txt")
+pathway_names = paste0(DESeq2_folder,"transcript_list.txt")
+```
+
+```{r Arguments, echo=FALSE, include=FALSE}
 refCond <- gsub(" ", "", params[which(params=="reference_condition")+1], fixed = TRUE)
 Var_log2FC <- as.numeric(gsub(" ", "", params[which(params=="logFC")+1], fixed = TRUE))
 Var_padj <- as.numeric(gsub(" ", "", params[which(params=="p-val")+1], fixed = TRUE))
@@ -44,21 +48,19 @@ Var_padj <- as.numeric(gsub(" ", "", params[which(params=="p-val")+1], fixed = T
 \
 
 ```{r mkdir, echo = FALSE, include = FALSE}
-dir.create(paste0("/data/RESULTS/",DESeq2_folder,"/Images/"))
+dir.create(paste0(DESeq2_folder,"Images/"))
 ```
 
 ```{r setup, echo=FALSE, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(include = TRUE, message = FALSE, warning = FALSE)
-knitr::opts_chunk$set(fig.path = paste0("/data/RESULTS/",DESeq2_folder,"/Images/"), dev=c('png','tiff'))
+knitr::opts_chunk$set(fig.path = paste0(DESeq2_folder,"Images/"), dev=c('png','tiff'))
 ```
 
 
 ```{r data , echo=FALSE}
-pathway_matrix = paste0("/data/RESULTS/",DESeq2_folder,"/count_matrix.txt")
 expData = round(read.table(pathway_matrix, header = T, row.names = 1, check.names = FALSE))
 
-pathway_names = paste0("/data/RESULTS/",DESeq2_folder,"/transcript_list.txt")
 names_list = read.table(pathway_names, header = T, row.names = 1, check.names = FALSE)
 ```
 
@@ -69,7 +71,7 @@ if(trans_or_gene=="gene")
   expData_named_gene <- expData_named[,-(dim(expData_named)[2]-1)]
   expData_counts_by_gene <- aggregate(expData_named_gene[,-dim(expData_named_gene)[2]], expData_named_gene["Gene_name"], sum)
   expData <- data.frame(expData_counts_by_gene, row.names = 1)
-  write.table(expData, paste0("/data/RESULTS/",DESeq2_folder,"/count_matrix_mRNA_by_gene.txt"), sep = "\t")
+  write.table(expData, paste0(DESeq2_folder,"count_matrix_mRNA_by_gene.txt"), sep = "\t")
 }
 ```
 
@@ -364,24 +366,24 @@ repressedGenes <- repressedGenes[(order(repressedGenes[,"padj"])),]
 
 ```{r, echo = FALSE}
 write.table(allGenes,
-            file = paste0("/data/RESULTS/",DESeq2_folder,"/complete.txt"),
+            file = paste0(DESeq2_folder,"complete.txt"),
             quote = F, sep = "\t", row.names = F)
 
 
 write.table(inducedGenes,
-            file = paste0("/data/RESULTS/",DESeq2_folder,"/up.txt"),
+            file = paste0(DESeq2_folder,"up.txt"),
             quote = F, sep = "\t", row.names = F)
 
 write.table(repressedGenes,
-            file = paste0("/data/RESULTS/",DESeq2_folder,"/down.txt"),
+            file = paste0(DESeq2_folder,"down.txt"),
             quote = F, sep = "\t", row.names = F)
 ```
 \
 **OUTPUT FILES** :  
 All the output files can be found in the directory “RESULTS/DESeq2_by_gene/” or " RESULTS/DESeq2_by_transcript/”  
-`r paste0("RESULTS/",DESeq2_folder,"/complete.txt")`  
-`r paste0("RESULTS/",DESeq2_folder,"/up.txt")  `  
-`r paste0("RESULTS/",DESeq2_folder,"/down.txt")  `   
+`r paste0("RESULTS/DESeq2_by_",trans_or_gene,"/complete.txt")`  
+`r paste0("RESULTS/DESeq2_by_",trans_or_gene,"/up.txt")  `  
+`r paste0("RESULTS/DESeq2_by_",trans_or_gene,"/down.txt")  `   
 \
 *Explanation of each column* :  
 
