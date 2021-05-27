@@ -286,7 +286,7 @@ rule htseqcount:
         # htseq 0.13.5
         "set +o pipefail ;"
         "echo ID\\\tName\\\t{wildcards.sample} > {output};"
-        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr 'Name' -m intersection-strict  --stranded 'no' --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount} | head -n -5 >> {output} ;"
+        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr 'Name' -m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount} | head -n -5 >> {output} ;"
 
 # Counts reads on each 5prime, 3prime or CDS part of each transcript
 rule htseqcount_utr:
@@ -322,17 +322,17 @@ rule htseqcount_utr:
         "totalReads=`samtools view -c {input.bam} 2> {log.view}` ;"
 
         "echo ID\\\tName\\\t{wildcards.sample} > {output.counts_CDS} ;"
-        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr 'Name' -m intersection-strict --stranded 'no' --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt ;"
+        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr 'Name' -m intersection-strict --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt ;"
         "mean_RPKM_CDS=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\t' {input.CDS} " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt 2> {log.join_CDS} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_CDS}` ;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt >> {output.counts_CDS} ;"
 
         "echo ID\\\tName\\\t{wildcards.sample} > {output.counts_threeprime} ;"
-        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_three_prime_utr'] + "' -i '" + config['gff_attribut'] + "' -m intersection-strict --stranded 'no' --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_3prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt ;"
+        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_three_prime_utr'] + "' -i '" + config['gff_attribut'] + "' -m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_3prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt ;"
         "mean_RPKM_3prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\t' {input.three_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_3prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_3prime}` ;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_threeprime} ;"
 
         "echo ID\\\tName\\\t{wildcards.sample} > {output.counts_fiveprime} ;"
-        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_five_prime_utr'] + "' -i '" + config['gff_attribut'] + "' -m intersection-strict --stranded 'no' --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_5prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt ;"
+        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_five_prime_utr'] + "' -i '" + config['gff_attribut'] + "' -m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_5prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt ;"
         "mean_RPKM_5prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\t' {input.five_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_5prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_5prime}` ;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_fiveprime} ;"
 
