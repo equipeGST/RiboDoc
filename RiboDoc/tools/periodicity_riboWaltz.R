@@ -100,17 +100,17 @@ for(i in 1:length(samples))
   dev.off()
 }
 
-write.csv(psite_offset, "/data/RESULTS/riboWaltz/psite_offset.csv", quote = F, row.names = F)
+write.table(psite_offset, "/data/RESULTS/riboWaltz/psite_offset.csv", quote = F, row.names = F, sep ="\t")
 for(i in 1:length(samples))
 {
-  write.csv(reads_list[[i]], paste0("/data/RESULTS/riboWaltz/",samples[i],"/reads_list_",samples[i],".csv"), quote = F, row.names = F)
-  write.csv(reads_psite_list[[i]], paste0("/data/RESULTS/riboWaltz/",samples[i],"/reads_psite_list_",samples[i],".csv"), quote = F, row.names = F)
+  write.table(reads_list[[i]], paste0("/data/RESULTS/riboWaltz/",samples[i],"/reads_list_",samples[i],".csv"), quote = F, row.names = F, sep ="\t")
+  write.table(reads_psite_list[[i]], paste0("/data/RESULTS/riboWaltz/",samples[i],"/reads_psite_list_",samples[i],".csv"), quote = F, row.names = F, sep ="\t")
 }
-write.csv(psite_region$dt, "/data/RESULTS/riboWaltz/psite_region.csv", quote = F)
-write.csv(metaprofile$dt, "/data/RESULTS/riboWaltz/metaprofile.csv", quote = F, row.names = F)
-write.csv(codon_coverage, "/data/RESULTS/riboWaltz/codon_coverage.csv", quote = F, row.names = F)
-write.csv(cds_coverage, "/data/RESULTS/riboWaltz/cds_coverage.csv", quote = F, row.names = F)
-write.csv(length_dist$dt, "/data/RESULTS/riboWaltz/length_dist.csv", quote = F, row.names = F)
-write.csv(frames_stratified$dt, "/data/RESULTS/riboWaltz/frames_stratified.csv", quote = F, row.names = F)
-write.csv(frames$dt, "/data/RESULTS/riboWaltz/frames.csv", quote = F, row.names = F)
+write.table(psite_region$dt, "/data/RESULTS/riboWaltz/psite_region.csv", quote = F, sep ="\t")
+write.table(metaprofile$dt, "/data/RESULTS/riboWaltz/metaprofile.csv", quote = F, row.names = F, sep ="\t")
+write.table(codon_coverage, "/data/RESULTS/riboWaltz/codon_coverage.csv", quote = F, row.names = F, sep ="\t")
+write.table(cds_coverage, "/data/RESULTS/riboWaltz/cds_coverage.csv", quote = F, row.names = F, sep ="\t")
+write.table(length_dist$dt, "/data/RESULTS/riboWaltz/length_dist.csv", quote = F, row.names = F, sep ="\t")
+write.table(frames_stratified$dt, "/data/RESULTS/riboWaltz/frames_stratified.csv", quote = F, row.names = F, sep ="\t")
+write.table(frames$dt, "/data/RESULTS/riboWaltz/frames.csv", quote = F, row.names = F, sep ="\t")
 
