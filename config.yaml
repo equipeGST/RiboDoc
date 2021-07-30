@@ -27,8 +27,11 @@ readsLength_max: "35"
 # Elements to select during counting
 gff_element_cds: "CDS"
 
-# Attribut to regroup reads during counting (usually "ID" or "Parent")
+# Attribut to regroup reads during counting (usually "ID" for CDS or "Parent" for transcript)
 gff_attribut: "Parent"
+
+# Attribut containing the names of the genes
+gff_name_attribut: "Name"
 
 
 # Name of the reference condition (same as file name)

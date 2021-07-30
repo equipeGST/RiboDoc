@@ -127,7 +127,7 @@ rule name_CDS:
                     # sanity checking
                     assert len(parent) == 1
                     parent = parent[0]
-                    feature.attributes['Name'] = parent.attributes['Name']
+                    feature.attributes[config['gff_name_attribut']] = parent.attributes[config['gff_name_attribut']]
                 fout.write(str(feature) + '\n')
 
 # Builds the index of bowtie2 mapping on sequences for reads remove
