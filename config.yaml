@@ -14,7 +14,7 @@ fasta_outRNA: ""
 # Are the sequencing adapters already removed in fastq files ? 'yes' or 'no'
 already_trimmed: ""
 
-# Adapter sequence
+# Adapter sequence (Example sequence for Illumina TruSeq™ single or CD index : "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA")
 adapt_sequence: ""
 
 # Minimum read length kept for ribosome profiling
@@ -30,7 +30,7 @@ gff_element_cds: "CDS"
 # Attribut to regroup reads during counting (usually "ID" for CDS or "Parent" for transcript)
 gff_attribut: "Parent"
 
-# Attribut containing the names of the genes
+# Attribut containing the names of the genes in gff
 gff_name_attribut: "Name"
 
 
