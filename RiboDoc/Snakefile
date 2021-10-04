@@ -50,60 +50,28 @@ rule all:
         expand(local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_bf'] + "+" + config['window_af'] + ".jpeg", sample=SAMPLES, taille=LENGTHS) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg", sample=SAMPLES) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
 
+        # Alignment statistics report
+        local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report.txt",
         # Call for count matrix creation for DESeq2 dans final report
         local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/" + config['project_name'] + ".Final_report.html"
 
 
 # When the jobs are all done
 onsuccess:
-    # List of interesting logs to make the report
-    logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2","rpkmMoyen"]
-    if config['UTR'] == "no":
-        logs_names = logs_names[:-1]
-    # else:
-    #     shell("Rscript " + ribodoc_tools + "CDSvsUTR_coverage_graph.R ;")
-
-    # File for the statistical report
-    data_report = open(local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report.txt","w")
-
-    for sample in SAMPLES:
-        # Data treatment report creation
-        data_report.write("##################\n## NEXT SAMPLE ##\n##################\n\n" + sample + "\n")
-
-        for log in logs_names:
-            data_report.write("\n" + ("#" * (len(log)+6)) + "\n## " + log + " ##\n" + ("#" * (len(log)+6)) + "\n")
-            logs_files = open(local_path + "logsTmp/" + sample + "_" + log + ".log","r")
-
-            # Keep only lines of interest from cutadapt report
-            i=-1
-            if log=="adapt_trimming":
-                if int(config['threads']) > 1:
-                    lines_to_read = range(22)
-                else:
-                    lines_to_read = range(20)
-                for position, line in enumerate(logs_files):
-                    if position in lines_to_read:
-                        data_report.write(line)
-                    else:
-                        break
-            else:
-                for line in logs_files:
-                    data_report.write(line)
-
-            logs_files.close()
-        data_report.write("\n\n\n")
-
-    data_report.close()
-
-
     if config['UTR'] == "yes":
         shell("Rscript " + ribodoc_tools + "CDSvsUTR_coverage_graph.R " + config['project_name'] + " ;")
-
     # Copy config file to keep trace of parameters used
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/ ;")
     # Remove useless directories
     shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/*.bed " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout ;")
     shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "database/*t2 " + local_path + "database/*.fai " + local_path + "*tempoR.Rout ;")
+    shell("cp /.snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
+    shell("chmod ogu+rwx -R " + local_path + "* ;")
+
+# If anything goes wrong
+onerror:
+    # Copy config file to keep trace of parameters used
+    shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/ ;")
     shell("cp /.snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
     shell("chmod ogu+rwx -R " + local_path + "* ;")
 
@@ -345,6 +313,45 @@ rule htseqcount_utr:
         "echo '5prime : '$mean_RPKM_5prime 1>> {log.rpkm_out} 2>> {log.rpkm} ;"
         "echo '3prime : '$mean_RPKM_3prime 1>> {log.rpkm_out} 2>> {log.rpkm} ;"
 
+# Creates an analysis report with trimming and alignment statistics
+rule stats_report:
+    input:
+        ready = expand(rules.run_mapping.output, sample=SAMPLES)
+    output:
+        stat_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report.txt"
+    run:
+        # List of interesting logs to make the report
+        logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2","rpkmMoyen"]
+        if config['UTR'] == "no":
+            logs_names = logs_names[:-1]
+
+        # File for the statistical report
+        data_report = open(output.stat_report,"w")
+        for sample in SAMPLES:
+            # Data treatment report creation
+            data_report.write("##################\n## NEXT SAMPLE ##\n##################\n\n" + sample + "\n")
+            for log in logs_names:
+                data_report.write("\n" + ("#" * (len(log)+6)) + "\n## " + log + " ##\n" + ("#" * (len(log)+6)) + "\n")
+                logs_files = open(local_path + "logsTmp/" + sample + "_" + log + ".log","r")
+                # Keep only lines of interest from cutadapt report
+                i=-1
+                if log=="adapt_trimming":
+                    if int(config['threads']) > 1:
+                        lines_to_read = range(22)
+                    else:
+                        lines_to_read = range(20)
+                    for position, line in enumerate(logs_files):
+                        if position in lines_to_read:
+                            data_report.write(line)
+                        else:
+                            break
+                else:
+                    for line in logs_files:
+                        data_report.write(line)
+                logs_files.close()
+            data_report.write("\n\n\n")
+        data_report.close()
+
 # Creates the row names (genes/transcript names) of the count matrix
 rule count_matrix_initialization:
     input:
@@ -360,7 +367,7 @@ rule count_matrix_initialization:
         "set +o pipefail ;"
         "echo -e 'ID\tTranscript_name\tGene_name' 2> {log.header} > {output.transcript_list} ;"
         "tail +2 {input.counts} | cut -f1,2 2> {log.id_name} | LC_COLLATE=C sort 2> {log.sort} >> {output.transcript_list} ;"
-        "sed -i -E 's/\\t([^\\t]+)(-[0-9]{{3}})/\\t\\1\\2\\t\\1/' {output.transcript_list} ;"
+        "sed -i -E 's/\\t([^\\t]+)(-[0-9]{3})/\\t\\1\\2\\t\\1/' {output.transcript_list} ;"
 
 # Adds the read counts of each sample to the matrix
 rule count_matrix_creation:
@@ -572,7 +579,7 @@ rule run_mapping_transcriptome:
         expand(local_path + "database/transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2),
         fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
-        fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.fastq.gz",
+        fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.transcriptome.fastq.gz",
         sam_hisat2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".hisat2.sam",
         sam_bowtie2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bowtie2.sam"
     log:
