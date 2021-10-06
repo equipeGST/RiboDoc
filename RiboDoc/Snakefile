@@ -63,7 +63,7 @@ onsuccess:
     # Copy config file to keep trace of parameters used
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/ ;")
     # Remove useless directories
-    shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/*.bed " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout ;")
+    shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout ;")
     shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "database/*t2 " + local_path + "database/*.fai " + local_path + "*tempoR.Rout ;")
     shell("cp /.snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
     shell("chmod ogu+rwx -R " + local_path + "* ;")
@@ -160,7 +160,7 @@ rule adapt_trimming:
     input:
         local_path + "fastq/{sample}.fastq.gz"
     output:
-        local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
+        temp(local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz")
     log:
         cutadapt = local_path + "logs/adapt_trimming/{sample}.log",
         cutadapt_out = local_path + "logsTmp/{sample}_adapt_trimming.log"
@@ -176,7 +176,7 @@ rule bowtie2_run_outRNA:
         expand(local_path + "database/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2),
         fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
     output:
-        local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
+        temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz")
     log:
         bt2 = local_path + "logsTmp/{sample}_bowtie2_run_outRNA.log"
     params:
@@ -193,19 +193,21 @@ rule run_mapping:
         expand(local_path + "database/index_bowtie2.{extb}.bt2",extb=BOWTIE2),
         fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
-        fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.fastq.gz",
-        sam_hisat2 = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".hisat2.sam",
-        sam_bowtie2 = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bowtie2.sam"
+        fastq = temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.fastq.gz"),
+        sam_hisat2 = temp(local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".hisat2.sam"),
+        sam_bowtie2 = temp(local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bowtie2.sam")
     log:
         hisat2_out = local_path + "logsTmp/{sample}_run_mapping_hisat2.log",
         bowtie2_out = local_path + "logsTmp/{sample}_run_mapping_bowtie2.log"
     params:
+        index_names_hisat2 = local_path + "database/index_hisat2",
+        index_names_bowtie2 = local_path + "database/index_bowtie2",
         sample_names="{sample}"
     shell:
         # bowtie2 2.4.2
         # hisat2 2.2.1
-        "hisat2 -x " + local_path + "database/index_hisat2 --threads " + config['threads'] + " -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
-        "bowtie2 -x " + local_path + "database/index_bowtie2 --threads " + config['threads'] + " -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out};"
+        "hisat2 -x {params.index_names_hisat2} --threads " + config['threads'] + " -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
+        "bowtie2 -x {params.index_names_bowtie2} --threads " + config['threads'] + " -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out};"
 
 # Creates bam and sam files
 rule samtools_filter:
@@ -238,7 +240,7 @@ rule samtools_filter:
         "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
         "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam} 2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
-        "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm} ;"
+        "rm -f {params.sam} 2> {log.rm} ;"
 
 # Counts reads on each transcript
 rule htseqcount:
@@ -367,7 +369,7 @@ rule count_matrix_initialization:
         "set +o pipefail ;"
         "echo -e 'ID\tTranscript_name\tGene_name' 2> {log.header} > {output.transcript_list} ;"
         "tail +2 {input.counts} | cut -f1,2 2> {log.id_name} | LC_COLLATE=C sort 2> {log.sort} >> {output.transcript_list} ;"
-        "sed -i -E 's/\\t([^\\t]+)(-[0-9]{3})/\\t\\1\\2\\t\\1/' {output.transcript_list} ;"
+        "sed -i -E 's/\\t([^\\t]+)(-[0-9]{{3}})/\\t\\1\\2\\t\\1/' {output.transcript_list} ;"
 
 # Adds the read counts of each sample to the matrix
 rule count_matrix_creation:
@@ -442,8 +444,8 @@ rule quality_controls_bedcount:
         fasta = local_path + "database/" + config['fasta']
     output:
         sequenceBedCount = local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/{sample}.{taille}.count.sequence.bed",
-        readsLengthRepartitionBed = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed",
-        bed = local_path + "RESULTS/qualitativeAnalysis/bedCount/{sample}.{taille}.count.bed",
+        readsLengthRepartitionBed = temp(local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed"),
+        bed = temp(local_path + "RESULTS/qualitativeAnalysis/bedCount/{sample}.{taille}.count.bed")
     params:
         sample_names = "{sample}",
         read_length = "{taille}"
@@ -579,21 +581,22 @@ rule run_mapping_transcriptome:
         expand(local_path + "database/transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2),
         fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
-        fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.transcriptome.fastq.gz",
-        sam_hisat2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".hisat2.sam",
-        sam_bowtie2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bowtie2.sam"
+        sam_hisat2 = temp(local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".hisat2.sam"),
+        sam_bowtie2 = temp(local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bowtie2.sam")
     log:
         hisat2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_transcriptome_hisat2.log",
         bowtie2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_transcriptome_bowtie2.log"
     params:
+        fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.transcriptome.fastq.gz",
         index_names_hisat2 = local_path + "database/transcriptome_index_hisat2",
         index_names_bowtie2 = local_path + "database/transcriptome_index_bowtie2",
         sample_names="{sample}"
     shell:
         # bowtie2 2.4.2
         # hisat2 2.2.1
-        "hisat2 -x {params.index_names_hisat2} --threads " + config['threads'] + " -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
-        "bowtie2 -x {params.index_names_bowtie2} --threads " + config['threads'] + " -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out};"
+        "hisat2 -x {params.index_names_hisat2} --threads " + config['threads'] + " -U {input.fastq} --un-gz {params.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
+        "bowtie2 -x {params.index_names_bowtie2} --threads " + config['threads'] + " -U {params.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
+        "rm {params.fastq} ;"
 
 # Creates bam and sam files
 rule samtools_filter_transcriptome:
@@ -626,7 +629,7 @@ rule samtools_filter_transcriptome:
         "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
         "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam} 2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
-        "rm -f {params.sam} {input.sam_hisat2} {input.sam_bowtie2} 2> {log.rm} ;"
+        "rm -f {params.sam} 2> {log.rm} ;"
 
 # Performs qualitative analysis with riboWaltz
 rule riboWaltz:
