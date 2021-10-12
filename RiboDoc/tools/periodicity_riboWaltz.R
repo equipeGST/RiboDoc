@@ -41,8 +41,8 @@ psite_offset <- riboWaltz::psite(reads_list,
                                  plot_dir = "/data/RESULTS/riboWaltz/",
                                  plot_format = "png",
                                  cl = 100,
-                                 log_file = TRUE,
-                                 log_file_dir = "/data/RESULTS/riboWaltz/"
+                                 txt = TRUE,
+                                 txt_file = "/data/RESULTS/riboWaltz/best_offset.txt"
                                  )
 
 reads_psite_list <- riboWaltz::psite_info(reads_list,
