@@ -184,7 +184,6 @@ rule bowtie2_run_outRNA:
     shell:
         # bowtie2 2.4.2
         "bowtie2 -x " + local_path + "database/outRNA_bowtie2 --threads " + config['threads'] + " -U {input.fastq} --un-gz {output} > /dev/null 2>> {log.bt2} ;"
-        "rm -f {input.fastq} ;"
 
 # Mapping of all RNA by bowtie2 and hisat2
 rule run_mapping:
@@ -596,7 +595,6 @@ rule run_mapping_transcriptome:
         # hisat2 2.2.1
         "hisat2 -x {params.index_names_hisat2} --threads " + config['threads'] + " -U {input.fastq} --un-gz {params.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
         "bowtie2 -x {params.index_names_bowtie2} --threads " + config['threads'] + " -U {params.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
-        "rm {params.fastq} ;"
 
 # Creates bam and sam files
 rule samtools_filter_transcriptome:
