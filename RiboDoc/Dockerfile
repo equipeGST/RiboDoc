@@ -27,6 +27,6 @@ RUN echo "conda activate RiboDoc_env" >> /root/.bashrc \
     && conda info --envs \
     && conda list --name RiboDoc_env
 
-RUN R -e "library('devtools');devtools::install_github('LabTranslationalArchitectomics/riboWaltz', dependencies = FALSE);"
+RUN R -e "library('devtools');devtools::install_github('LabTranslationalArchitectomics/riboWaltz@v1.1.0', dependencies = FALSE);"
 
 CMD ["bash","/RiboDoc/RiboDoc/RiboDoc.sh"]

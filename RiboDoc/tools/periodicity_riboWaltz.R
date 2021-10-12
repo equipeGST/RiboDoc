@@ -41,8 +41,8 @@ psite_offset <- riboWaltz::psite(reads_list,
                                  plot_dir = "/data/RESULTS/riboWaltz/",
                                  plot_format = "png",
                                  cl = 100,
-                                 txt = TRUE,
-                                 txt_file = "/data/RESULTS/riboWaltz/best_offest.txt"
+                                 log_file = TRUE,
+                                 log_file_dir = "/data/RESULTS/riboWaltz/"
                                  )
 
 reads_psite_list <- riboWaltz::psite_info(reads_list,
@@ -60,7 +60,7 @@ length_dist[[paste0("plot_",samples[3])]]
 
 for(i in 1:length(samples))
 {
-  dir.create(paste0("/data/RESULTS/riboWaltz/",samples[i],"/"))
+  dir.create(paste0("/data/RESULTS/riboWaltz/",samples[i],"/"), showWarnings = F)
   pdf(file=paste0("/data/RESULTS/riboWaltz/",samples[i],"/reads_distribution_",samples[i],".pdf"))
   plot(length_dist[[paste0("plot_",samples[i])]])
   dev.off()
