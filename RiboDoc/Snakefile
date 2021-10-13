@@ -317,7 +317,7 @@ rule htseqcount_utr:
 # Creates an analysis report with trimming and alignment statistics
 rule stats_report:
     input:
-        ready = expand(rules.run_mapping.output, sample=SAMPLES)
+        ready = expand(rules.samtools_filter.output, sample=SAMPLES)
     output:
         stat_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report.txt"
     run:
