@@ -14,7 +14,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
     && bash Miniconda3-latest-Linux-x86_64.sh -b -u -p /RiboDoc/miniconda3/ \
     && rm Miniconda3-latest-Linux-x86_64.sh
 
-ADD . /RiboDoc/
+RUN git clone https://github.com/equipeGST/RiboDoc.git
 
 RUN mv /root/.bashrc /bin/ && ln -s /bin/.bashrc /root/.bashrc && \
     mv /root/.conda /bin/ && ln -s /bin/.conda /root/.conda && \
