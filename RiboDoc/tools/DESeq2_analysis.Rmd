@@ -7,7 +7,8 @@ output: "html_document"
 
 ```{r Sys, echo=FALSE}
 #Sys.getenv("RSTUDIO_PANDOC")
-Sys.setenv(RSTUDIO_PANDOC="/root/miniconda3/envs/RiboDoc_env/bin/pandoc")
+# Sys.setenv(RSTUDIO_PANDOC="/root/miniconda3/envs/RiboDoc_env/bin/pandoc")
+Sys.setenv(RSTUDIO_PANDOC="/RiboDoc/miniconda3/envs/RiboDoc_env/bin/pandoc")
 ```
 
 ```{r rm Global environment, include=FALSE}
@@ -33,6 +34,9 @@ if(trans_or_gene=="gene")
 } else {
   DESeq2_folder <- "/data/RESULTS/DESeq2_by_transcript/"
 }
+
+report_path <- tempfile(pattern = paste0(DESeq2_folder,".Final_report"), fileext = ".Rmd")
+file.copy(paste0(DESeq2_folder,".Final_report.Rmd"), report_path, overwrite = TRUE)
 
 pathway_matrix = paste0(DESeq2_folder,"count_matrix.txt")
 pathway_names = paste0(DESeq2_folder,"transcript_list.txt")

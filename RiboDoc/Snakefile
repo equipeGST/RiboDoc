@@ -411,7 +411,7 @@ rule DESeq2_analysis:
         # r-stringr 1.4.0
         "set +o pipefail ;"
         "[ `head -2 {input.counts_matrix} | cut -f1 | uniq | wc -l` == 1 ] && sed -i -e '2d' {input.counts_matrix} ;"
-        "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}')\" 2> {log.deseq2} ;"
+        "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', knit_root_dir = '{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2} ;"
         # "rm -f {input.transcript_list} ;"
 
 
