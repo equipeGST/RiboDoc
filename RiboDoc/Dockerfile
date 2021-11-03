@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-LABEL version="0.6"
+LABEL version="0.6.1"
 
 ENV LC_ALL=C
 
@@ -11,7 +11,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
-    && bash Miniconda3-latest-Linux-x86_64.sh -b -u -p /RiboDoc/miniconda3/ \
+    && bash Miniconda3-latest-Linux-x86_64.sh -b -u -p /bin/miniconda3/ \
     && rm Miniconda3-latest-Linux-x86_64.sh
 
 RUN git clone https://github.com/equipeGST/RiboDoc.git
@@ -21,8 +21,8 @@ RUN mv /root/.bashrc /bin/ && ln -s /bin/.bashrc /root/.bashrc && \
     mv /root/.profile /bin/ && ln -s /bin/.profile /root/.profile && \
     ln -s /root/ /bin/
 
-ENV PATH=/RiboDoc/miniconda3/bin:$PATH
-ENV PATH=/RiboDoc/miniconda3/envs/RiboDoc_env/bin:$PATH
+ENV PATH=/bin/miniconda3/bin:$PATH
+ENV PATH=/bin/miniconda3/envs/RiboDoc_env/bin:$PATH
 ENV PATH=$PATH:/bin
 
 SHELL ["/bin/bash", "-c"]
