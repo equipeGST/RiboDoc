@@ -60,9 +60,9 @@ knitr::opts_chunk$set(fig.path = paste0(DESeq2_folder,"Images/"), dev=c('png','t
 
 
 ```{r data , echo=FALSE}
-expData = round(read.table(pathway_matrix, header = T, row.names = 1, check.names = FALSE, sep="\t"))
+expData = round(read.table(pathway_matrix, header = T, row.names = 1, check.names = FALSE, sep="\t", quote = ""))
 
-names_list = read.table(pathway_names, header = T, row.names = 1, check.names = FALSE, sep="\t")
+names_list = read.table(pathway_names, header = T, row.names = 1, check.names = FALSE, sep = "\t", quote = "")
 ```
 
 ```{r Merge by gene, echo=FALSE}
