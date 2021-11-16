@@ -7,11 +7,6 @@
 ### GST team
 ################################################################################
 
-######
-# Run this script with an interactive shell ()-i) :
-# bash -i RiboDoc.sh
-######
-
 cpu=`nproc --all`;
 echo "Total CPU available : "${cpu};
 cpu_use=$((${cpu}/4));

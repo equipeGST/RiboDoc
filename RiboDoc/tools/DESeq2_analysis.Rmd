@@ -60,9 +60,9 @@ knitr::opts_chunk$set(fig.path = paste0(DESeq2_folder,"Images/"), dev=c('png','t
 
 
 ```{r data , echo=FALSE}
-expData = round(read.table(pathway_matrix, header = T, row.names = 1, check.names = FALSE))
+expData = round(read.table(pathway_matrix, header = T, row.names = 1, check.names = FALSE, sep="\t"))
 
-names_list = read.table(pathway_names, header = T, row.names = 1, check.names = FALSE)
+names_list = read.table(pathway_names, header = T, row.names = 1, check.names = FALSE, sep="\t")
 ```
 
 ```{r Merge by gene, echo=FALSE}
@@ -147,7 +147,8 @@ upper.panel<-function(x, y){
 
 pairs(log10(expData_Sorted), 
       lower.panel= panel.cor,
-      upper.panel = upper.panel
+      upper.panel = upper.panel,
+      main = "Pairwise scatter plot and Spearman correlation coefficients"
       )
 ```
 \
@@ -286,7 +287,7 @@ Figure 10 is the MA-plot which shows the mean of normalized counts for each feat
    
 *Figure 10 : MA-plot*   
 ```{r MA-plot, fig.height = 4, fig.width =4, echo=FALSE}
-plotMA(resDESeq, alpha = Var_padj, ylab = "log2 FC", colSig = rgb(1,0,0,0.5))
+plotMA(resDESeq, alpha = Var_padj, ylab = "log2 FC", colSig = rgb(1,0,0,0.5), main = "MA-plot")
 ```
 
 
