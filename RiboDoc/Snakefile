@@ -6,7 +6,7 @@ configfile: "/data/config.yaml"
 # Imports
 from optparse import OptionParser
 import gffutils
-
+import re
 
 # Sets paths for inside the container
 local_path = "/data/"
@@ -84,19 +84,34 @@ rule name_CDS:
         gff_namedCDS = local_path + "database/NamedCDS_" + config['gff']
     run:
         # gffutils 0.10.1
-        db = gffutils.create_db(input.gff, ':memory:', merge_strategy='create_unique', keep_order=True)
-        with open(output.gff_namedCDS, 'w') as fout:
-            for d in db.directives:
-                fout.write('##{0}\n'.format(d))
+        with_names = False
+        f = open(input.gff,"r")
+        for l in f:
+            is_name = re.search("^([^\t]+\t){8}.+" + config['gff_name_attribut'],l)
+            if is_name:
+                with_names = True
+                break
+        f.close()
 
-            for feature in db.all_features():
-                if feature.featuretype == config['gff_element_cds']:
-                    parent = list(db.parents(feature, level=1))
-                    # sanity checking
-                    assert len(parent) == 1
-                    parent = parent[0]
-                    feature.attributes[config['gff_name_attribut']] = parent.attributes[config['gff_name_attribut']]
-                fout.write(str(feature) + '\n')
+        if with_names == True:
+            db = gffutils.create_db(input.gff, ':memory:', merge_strategy='create_unique', keep_order=True)
+            with open(output.gff_namedCDS, 'w') as fout:
+                for d in db.directives:
+                    fout.write('##{0}\n'.format(d))
+
+                for feature in db.all_features():
+                    if feature.featuretype == config['gff_element_cds']:
+                        parent = list(db.parents(feature, level=1))
+                        # sanity checking
+                        assert len(parent) == 1
+                        parent = parent[0]
+                        feature.attributes[config['gff_name_attribut']] = parent.attributes[config['gff_name_attribut']]
+                    fout.write(str(feature) + '\n')
+        else:
+            shell("cp {input.gff} {output.gff_namedCDS};")
+
+        shell("sed -i -E 's/\s/\t/g' {output.gff_namedCDS};")
+
 
 # Builds the index of bowtie2 mapping on sequences for reads remove
 rule bowtie2_build_outRNA:
