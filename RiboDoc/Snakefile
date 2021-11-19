@@ -107,8 +107,10 @@ rule name_CDS:
                         parent = parent[0]
                         feature.attributes[config['gff_name_attribut']] = parent.attributes[config['gff_name_attribut']]
                     fout.write(str(feature) + '\n')
+                    htseq_additional = ""
         else:
             shell("cp {input.gff} {output.gff_namedCDS};")
+            htseq_additional = "--additional-attr '" + config['gff_name_attribut'] + "' "
 
         shell("sed -i -E 's/\s/\t/g' {output.gff_namedCDS};")
 
@@ -270,7 +272,7 @@ rule htseqcount:
         # htseq 0.13.5
         "set +o pipefail ;"
         "echo ID\\\tName\\\t{wildcards.sample} > {output};"
-        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr 'Name' -m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount} | head -n -5 >> {output} ;"
+        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' " + htseq_additional + "-m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount} | head -n -5 >> {output} ;"
 
 # Counts reads on each 5prime, 3prime or CDS part of each transcript
 rule htseqcount_utr:
