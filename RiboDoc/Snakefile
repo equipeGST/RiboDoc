@@ -421,7 +421,7 @@ rule count_matrix_initialization:
             echo -e 'ID\\tTranscript_name\\tGene_name' 2> {log.header} > {output.transcript_list} ;
             tail +2 {input.counts} | cut -f 1,2 2> {log.id_name} | LC_COLLATE=C sort 2> {log.sort} >> {output.transcript_list} ;
             sed -i -E 's/\\t([^\\t]+)(-[0-9]{{3}})/\\t\\1\\2\\t\\1/' {output.transcript_list} ;
-            sed -i -E 's/\\t([^\\t]+)\\t/\\t\1 ; /' {output.transcript_list} ;
+            sed -i -E 's/^([^\\t]+)\\t([^\t]+)$/\\1\\t\\2\\t\\2/' {output.transcript_list} ;
             """)
         else:
             shell("""
