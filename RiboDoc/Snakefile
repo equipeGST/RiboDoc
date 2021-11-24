@@ -12,6 +12,7 @@ import re
 # Sets paths for inside the container
 local_path = "/data/"
 ribodoc_tools = "/work/RiboDoc/tools/"
+snakemake_log_path = "/.snakemake/log/"
 
 
 #Wildcards definition
@@ -90,8 +91,8 @@ onsuccess:
     # Remove useless directories
     shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout ;")
     shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "database/*t2 " + local_path + "database/*.fai " + local_path + "*tempoR.Rout ;")
-    shell("cp /.snakemake/log/*.snakemake.log " + local_path + "logs/ && chmod ogu+rwx -R " + local_path + "* || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
-    # shell("cp /.snakemake/log/*.snakemake.log " + local_path + "logs/ || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
+    shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ && chmod ogu+rwx -R " + local_path + "* || cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ ;")
+    # shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
     try:
         shell("chmod ogu+rwx -R " + local_path + "* ;")
     except:
@@ -102,8 +103,8 @@ onsuccess:
 onerror:
     # Copy config file to keep trace of parameters used
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/ ;")
-    shell("cp /.snakemake/log/*.snakemake.log " + local_path + "logs/ && chmod ogu+rwx -R " + local_path + "* || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
-    # shell("cp /.snakemake/log/*.snakemake.log " + local_path + "logs/ || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
+    shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ && chmod ogu+rwx -R " + local_path + "* || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
+    # shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
     try:
         shell("chmod ogu+rwx -R " + local_path + "* ;")
     except:
@@ -136,7 +137,7 @@ rule name_CDS:
         else:
             shell("cp {input.gff} {output.gff_namedCDS} ;")
 
-        shell("sed -i -E 's/\s/\\\t/g' {output.gff_namedCDS} ;")
+        shell("sed -i -E 's/\s/\\t/g' {output.gff_namedCDS} ;")
 
 # Builds the index of bowtie2 mapping on sequences for reads remove
 rule bowtie2_build_outRNA:
@@ -293,7 +294,8 @@ rule htseqcount:
         echo = local_path + "logs/htseqcount/{sample}.echo.log",
         sed = local_path + "logs/htseqcount/{sample}.sed.log",
         htseqcount = local_path + "logs/htseqcount/{sample}.htseqcount.log",
-        head = local_path + "logs/htseqcount/{sample}.head.log"
+        head = local_path + "logs/htseqcount/{sample}.head.log",
+        awk = local_path + "logs/htseqcount/{sample}.awk.log"
     params:
         tmp_file = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}_tmp.txt"
     shell:
@@ -302,7 +304,7 @@ rule htseqcount:
         "echo -e '" + htseq_header + "' 2> {log.echo} > {output} ;"
         "sed -i '1s/$/{wildcards.sample}/' {output} 2> {log.sed} ;"
         "htseq-count -n " + config['threads'] + " -f bam -t " + config['gff_element_cds'] + " -i " + ID_or_Parent + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount} > {params.tmp_file} ;"
-        "head -n -5 {params.tmp_file} 2> {log.head} >> {output} ;"
+        """head -n -5 {params.tmp_file} 2> {log.head} | awk -F '\t+' '{{if($3 >= 0) {{print($0)}} else {{printf("%s\\tNA\\t%s\\n",$1,$2)}}}}' 2> {log.awk} >> {output} ;"""
         "rm {params.tmp_file} ;"
 
 # Counts reads on each 5prime, 3prime or CDS part of each transcript
@@ -338,19 +340,19 @@ rule htseqcount_utr:
         "set +o pipefail ;"
         "totalReads=`samtools view -c {input.bam} 2> {log.view}` ;"
 
-        "echo -e 'ID\\\tName\\\t{wildcards.sample}' > {output.counts_CDS} ;"
+        "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_CDS} ;"
         "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt ;"
-        "mean_RPKM_CDS=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\\t' {input.CDS} " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt 2> {log.join_CDS} | awk -F '\\\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_CDS}` ;"
+        "mean_RPKM_CDS=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.CDS} " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt 2> {log.join_CDS} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_CDS}` ;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt >> {output.counts_CDS} ;"
 
-        "echo -e 'ID\\\tName\\\t{wildcards.sample}' > {output.counts_threeprime} ;"
+        "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_threeprime} ;"
         "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_three_prime_utr'] + "' -i '" + config['gff_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_3prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt ;"
-        "mean_RPKM_3prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\\t' {input.three_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_3prime} | awk -F '\\\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_3prime}` ;"
+        "mean_RPKM_3prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.three_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_3prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_3prime}` ;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_threeprime} ;"
 
-        "echo -e 'ID\\\tName\\\t{wildcards.sample}' > {output.counts_fiveprime} ;"
+        "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_fiveprime} ;"
         "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_five_prime_utr'] + "' -i '" + config['gff_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_5prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt ;"
-        "mean_RPKM_5prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\\t' {input.five_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_5prime} | awk -F '\\\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_5prime}` ;"
+        "mean_RPKM_5prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.five_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_5prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_5prime}` ;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_fiveprime} ;"
 
         "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt ;"
@@ -416,10 +418,10 @@ rule count_matrix_initialization:
         shell("set +o pipefail ;")
         if name_in_gff == True:
             shell("""
-            echo -e 'ID\\\tTranscript_name\\\tGene_name' 2> {log.header} > {output.transcript_list} ;
+            echo -e 'ID\\tTranscript_name\\tGene_name' 2> {log.header} > {output.transcript_list} ;
             tail +2 {input.counts} | cut -f 1,2 2> {log.id_name} | LC_COLLATE=C sort 2> {log.sort} >> {output.transcript_list} ;
-            sed -i -E 's/\\\t([^\\\t]+)(-[0-9]{{3}})/\\\t\\1\\2\\\t\\1/' {output.transcript_list} ;
-            sed -i -E 's/\\\t([^\\\t]+)\\\t/\\\t\1 ; /' {output.transcript_list} ;
+            sed -i -E 's/\\t([^\\t]+)(-[0-9]{{3}})/\\t\\1\\2\\t\\1/' {output.transcript_list} ;
+            sed -i -E 's/\\t([^\\t]+)\\t/\\t\1 ; /' {output.transcript_list} ;
             """)
         else:
             shell("""
@@ -444,7 +446,7 @@ rule count_matrix_creation:
                 fields = "1,3"
             else:
                 fields = "1,2"
-            shell("cut -f " + fields + " " + local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + sample + frag_length_L + ".no-outRNA." + counts + ".txt | LC_COLLATE=C join --header -t $'\\\t' {output.counts_matrix} - > {params.tmp_file} 2>> {log} ;")
+            shell("cut -f " + fields + " " + local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + sample + frag_length_L + ".no-outRNA." + counts + ".txt | LC_COLLATE=C join --header -t $'\t' {output.counts_matrix} - > {params.tmp_file} 2>> {log} ;")
             shell("cat {params.tmp_file} > {output.counts_matrix} ;")
         shell("rm -f {params.tmp_file} ;")
 
@@ -532,7 +534,7 @@ rule quality_controls_readsLengthRepartition:
         head = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.head.log"
     shell:
         "set +o pipefail ;"
-        "wc -l {params.path}{params.sample_names}* 2> {log.wc} | sed 's/\./ /g' 2> {log.sed1} | awk -F ' ' '{{print $(NF-1),$1}}' 2> {log.awk} | sed 's/ /\\\t/g' 2> {log.sed2} | head -n -1 2> {log.head}  > {output} ;"
+        "wc -l {params.path}{params.sample_names}* 2> {log.wc} | sed 's/\./ /g' 2> {log.sed1} | awk -F ' ' '{{print $(NF-1),$1}}' 2> {log.awk} | sed 's/ /\\t/g' 2> {log.sed2} | head -n -1 2> {log.head}  > {output} ;"
 
 # Looks how many reads start on each base to find if there is a periodicity signal
 rule quality_controls_periodicity:
@@ -604,7 +606,7 @@ rule transcriptome_construction_gtf:
         "sed -i 's/transcript://g' {output.fasta} ;"
         "sed -i 's/transcript://g' {output.transcriptome_gtf} ;"
         "sed -i 's/description[^\;]*\;//' {output.transcriptome_gtf} ;"
-        "sed -i 's/\\\t[A-Z]*[_]*gene_segment\\\t/\\\ttranscript\\\t/' {output.transcriptome_gtf} ;"
+        "sed -i 's/\\t[A-Z]*[_]*gene_segment\\t/\\ttranscript\\t/' {output.transcriptome_gtf} ;"
 
 # Builds the index of bowtie2 mapping for all RNA
 rule bowtie2_build_transcriptome:
