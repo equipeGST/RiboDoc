@@ -145,10 +145,12 @@ rule bowtie2_build_outRNA:
         local_path + "database/" + config['fasta_outRNA']
     output:
         expand(local_path + "database/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2)
-    params:
-        outNames = local_path + "database/outRNA_bowtie2"
     log:
         local_path + "logs/bowtie2_build_outRNA/bowtie2_build_outRNA.log"
+    benchmark:
+        local_path + "benchmarks/bowtie2_build_outRNA/bowtie2_build_outRNA.benchmark.txt"
+    params:
+        outNames = local_path + "database/outRNA_bowtie2"
     shell:
         # bowtie2 2.4.2
         "bowtie2-build --threads " + config['threads'] + " {input} {params.outNames} &> {log} ;"
@@ -159,10 +161,12 @@ rule bowtie2_build:
         local_path + "database/" + config['fasta']
     output:
         expand(local_path + "database/index_bowtie2.{extb}.bt2",extb=BOWTIE2)
-    params:
-        outNames = local_path + "database/index_bowtie2"
     log:
         local_path + "logs/bowtie2_build/bowtie2_build.log"
+    benchmark:
+        local_path + "benchmarks/bowtie2_build/bowtie2_build.benchmark.txt"
+    params:
+        outNames = local_path + "database/index_bowtie2"
     shell:
         # bowtie2 2.4.2
         "bowtie2-build --threads " + config['threads'] + " {input} {params.outNames} &> {log} ;"
@@ -173,10 +177,12 @@ rule hisat2_build:
         local_path + "database/" + config['fasta']
     output:
         expand(local_path + "database/index_hisat2.{exth}.ht2",exth=HISAT2)
-    params:
-        outNames = local_path + "database/index_hisat2"
     log:
         local_path + "logs/hisat2_build/hisat2_build.log"
+    benchmark:
+        local_path + "benchmarks/hisat2_build/hisat2_build.benchmark.txt"
+    params:
+        outNames = local_path + "database/index_hisat2"
     shell:
         # hisat2 2.2.1
         "hisat2-build --threads " + config['threads'] + " {input} {params.outNames} &> {log} ;"
@@ -188,10 +194,12 @@ rule make_fastqc:
     output:
         local_path + "RESULTS/fastqc/{sample}_fastqc.zip",
         local_path + "RESULTS/fastqc/{sample}_fastqc.html"
-    params:
-       outdir = local_path + "RESULTS/fastqc/"
     log:
         local_path + "logs/make_fastqc/{sample}.log"
+    benchmark:
+        local_path + "benchmarks/make_fastqc/{sample}.benchmark.txt"
+    params:
+       outdir = local_path + "RESULTS/fastqc/"
     shell:
         # fastqc 0.11.9
         "fastqc {input} --outdir {params.outdir} 2> {log} ;"
@@ -205,6 +213,8 @@ rule adapt_trimming:
     log:
         cutadapt = local_path + "logs/adapt_trimming/{sample}.log",
         cutadapt_out = local_path + "logsTmp/{sample}_adapt_trimming.log"
+    benchmark:
+        local_path + "benchmarks/adapt_trimming/{sample}.benchmark.txt"
     params:
         sample_names = "{sample}"
     shell:
@@ -220,6 +230,8 @@ rule bowtie2_run_outRNA:
         temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz")
     log:
         bt2 = local_path + "logsTmp/{sample}_bowtie2_run_outRNA.log"
+    benchmark:
+        local_path + "benchmarks/bowtie2_run_outRNA/{sample}.benchmark.txt"
     params:
         sample_names = "{sample}"
     shell:
@@ -239,6 +251,8 @@ rule run_mapping:
     log:
         hisat2_out = local_path + "logsTmp/{sample}_run_mapping_hisat2.log",
         bowtie2_out = local_path + "logsTmp/{sample}_run_mapping_bowtie2.log"
+    benchmark:
+        local_path + "benchmarks/run_mapping/{sample}.benchmark.txt"
     params:
         index_names_hisat2 = local_path + "database/index_hisat2",
         index_names_bowtie2 = local_path + "database/index_bowtie2",
@@ -270,6 +284,8 @@ rule samtools_filter:
         sort_bam = local_path + "logs/samtools_filter/{sample}.sort_bam.log",
         index_bam = local_path + "logs/samtools_filter/{sample}.index_bam.log",
         rm = local_path + "logs/samtools_filter/{sample}.rm.log"
+    benchmark:
+        local_path + "benchmarks/samtools_filter-bowtie2/{sample}.benchmark.txt"
     params:
         sam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".sam"
     shell:
@@ -296,6 +312,8 @@ rule htseqcount:
         htseqcount = local_path + "logs/htseqcount/{sample}.htseqcount.log",
         head = local_path + "logs/htseqcount/{sample}.head.log",
         awk = local_path + "logs/htseqcount/{sample}.awk.log"
+    benchmark:
+        local_path + "benchmarks/htseqcount/{sample}.benchmark.txt"
     params:
         tmp_file = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}_tmp.txt"
     shell:
@@ -333,6 +351,8 @@ rule htseqcount_utr:
         awk_5prime = local_path + "logs/htseqcount_utr/{sample}.awk_5prime.log",
         rpkm = local_path + "logs/htseqcount_utr/{sample}.rpkm.log",
         rpkm_out = local_path + "logsTmp/{sample}_rpkmMoyen.log"
+    benchmark:
+        local_path + "benchmarks/htseqcount_utr/{sample}.benchmark.txt"
     params:
         sample_names="{sample}"
     shell:
@@ -414,6 +434,8 @@ rule count_matrix_initialization:
         header = "logs/count_matrix_initialization/head.log",
         id_name = "logs/count_matrix_initialization/id_name.log",
         sort = local_path + "logs/count_matrix_initialization/sort.log"
+    benchmark:
+        local_path + "benchmarks/count_matrix_initialization/count_matrix_initialization.benchmark.txt"
     run:
         shell("set +o pipefail ;")
         if name_in_gff == True:
@@ -437,6 +459,8 @@ rule count_matrix_creation:
         counts_matrix = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/count_matrix.txt"
     log:
         local_path + "logs/count_matrix_creation/count_matrix.log"
+    benchmark:
+        local_path + "benchmarks/count_matrix_creation/count_matrix_creation.benchmark.txt"
     params:
         tmp_file = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/tmp.txt"
     run:
@@ -463,6 +487,8 @@ rule DESeq2_analysis:
     log:
         control = local_path + "logs/DESeq2_analysis/header_control.log",
         deseq2 = local_path + "logs/DESeq2_analysis/DESeq2_analysis.log"
+    benchmark:
+        local_path + "benchmarks/DESeq2_analysis/DESeq2_analysis.benchmark.txt"
     params:
         reportPath = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/",
         reportName = config['project_name'] + ".Final_report"
@@ -488,11 +514,13 @@ rule quality_controls_bamDivision:
     output:
         bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
         bai = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam.bai"
+    log:
+        local_path + "logs/quality_controls_bamDivision/{sample}.{taille}.BamDivision.log"
+    benchmark:
+        local_path + "benchmarks/quality_controls_bamDivision/{sample}.{taille}.benchmark.txt"
     params:
         sample_names = "{sample}",
         read_length = "{taille}"
-    log:
-        local_path + "logs/quality_controls_bamDivision/{sample}.{taille}.BamDivision.log"
     shell:
         # samtools 1.12
         # gawk 5.1.0
@@ -513,6 +541,8 @@ rule quality_controls_bedcount:
         read_length = "{taille}"
     log:
         local_path + "logs/quality_controls_bedcount/{sample}.{taille}.readsLengthRepartition.log"
+    benchmark:
+        local_path + "benchmarks/quality_controls_bedcount/{sample}.{taille}.benchmark.txt"
     shell:
         # bedtools 2.30.0
         "bash " + ribodoc_tools + "readsLengthRepartition.sh -N {params.sample_names} -l {params.read_length} -F {input.fasta} -D " + local_path + "RESULTS/qualitativeAnalysis/bamDivision/ -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log} ;"
@@ -523,15 +553,17 @@ rule quality_controls_readsLengthRepartition:
         expand(rules.quality_controls_bedcount.output.readsLengthRepartitionBed, sample=SAMPLES, taille=LENGTHS)
     output:
         local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.readsLengthRepartition.txt"
-    params:
-        path = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/",
-        sample_names = "{sample}"
     log:
         wc = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.wc.log",
         sed1 = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.sed1.log",
         awk = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.awk.log",
         sed2 = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.sed2.log",
         head = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.head.log"
+    benchmark:
+        local_path + "benchmarks/quality_controls_readsLengthRepartition/{sample}.benchmark.txt"
+    params:
+        path = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/",
+        sample_names = "{sample}"
     shell:
         "set +o pipefail ;"
         "wc -l {params.path}{params.sample_names}* 2> {log.wc} | sed 's/\./ /g' 2> {log.sed1} | awk -F ' ' '{{print $(NF-1),$1}}' 2> {log.awk} | sed 's/ /\\t/g' 2> {log.sed2} | head -n -1 2> {log.head}  > {output} ;"
@@ -544,12 +576,14 @@ rule quality_controls_periodicity:
     output:
         start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_bf'] + "+" + config['window_af'] + ".txt",
         stop = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_element_cds'] + ".-" + config['window_af'] + "+" + config['window_bf'] + ".txt"
-    params:
-        sample_names = "{sample}",
-        read_length = "{taille}"
     log:
         start = local_path + "logs/quality_controls_periodicity/{sample}.{taille}.log",
         stop = local_path + "logs/quality_controls_periodicity/{sample}.{taille}.log"
+    benchmark:
+        local_path + "benchmarks/quality_controls_periodicity/{sample}.{taille}.benchmark.txt"
+    params:
+        sample_names = "{sample}",
+        read_length = "{taille}"
     shell:
         # gawk 5.1.0
         "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'start' -t '" + config['gff_element_cds'] + "' -m " + config['window_bf'] + " -M " + config['window_af'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.start} ;"
@@ -561,10 +595,12 @@ rule graphs_length:
         length = rules.quality_controls_readsLengthRepartition.output
     output:
         length = local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg"
-    params:
-        sample_name = "{sample}"
     log:
         bash = local_path + "logs/graphs_length/{sample}.generationGraph_length.log"
+    benchmark:
+        local_path + "benchmarks/graphs_length/{sample}.benchmark.txt"
+    params:
+        sample_name = "{sample}"
     shell:
         # r-base 4.0.3
         "bash " + ribodoc_tools + "generationGraph_length.sh -N {params.sample_name} 2> {log.bash} ;"
@@ -576,11 +612,13 @@ rule graphs_periodicity:
     output:
         perioStart = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_bf'] + "+" + config['window_af'] + ".jpeg",
         perioStop = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_element_cds'] + ".-" + config['window_af'] + "+" + config['window_bf'] + ".jpeg"
+    log:
+        bash = local_path + "logs/graphs_periodicity/{sample}.{taille}.generationGraph_perio.log"
+    benchmark:
+        local_path + "benchmarks/graphs_periodicity/{sample}.{taille}.benchmark.txt"
     params:
         sample_name = "{sample}",
         read_length = "{taille}"
-    log:
-        bash = local_path + "logs/graphs_periodicity/{sample}.{taille}.generationGraph_perio.log"
     shell:
         # r-base 4.0.3
         "bash " + ribodoc_tools + "generationGraph_perio.sh -N {params.sample_name} -l {params.read_length} -t '" + config['gff_element_cds'] + "' -m " + config['window_bf'] + " -M " + config['window_af'] + " 2> {log.bash} ;"
@@ -598,6 +636,8 @@ rule transcriptome_construction_gtf:
     log:
         samtools_index = local_path + "logs/transcriptome_construction_gtf/samtools_index.log",
         gffread_gtf = local_path + "logs/transcriptome_construction_gtf/gffread.log"
+    benchmark:
+        local_path + "benchmarks/transcriptome_construction_gtf/transcriptome_construction_gtf.benchmark.txt"
     shell:
         # samtools 1.12
         # gffread 0.12.1
@@ -614,10 +654,12 @@ rule bowtie2_build_transcriptome:
         local_path + "database/exons_IDonly_" + config['fasta']
     output:
         expand(local_path + "database/transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2)
-    params:
-        index_names = local_path + "database/transcriptome_index_bowtie2"
     log:
         local_path + "logs/bowtie2_build_transcriptome/bowtie2_build.log"
+    benchmark:
+        local_path + "benchmarks/bowtie2_build_transcriptome/transcriptome_index_bowtie2.benchmark.txt"
+    params:
+        index_names = local_path + "database/transcriptome_index_bowtie2"
     shell:
         # bowtie2 2.4.2
         "bowtie2-build --threads " + config['threads'] + " {input} {params.index_names} &> {log} ;"
@@ -628,10 +670,12 @@ rule hisat2_build_transcriptome:
         local_path + "database/exons_IDonly_" + config['fasta']
     output:
         expand(local_path + "database/transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2)
-    params:
-        index_names = local_path + "database/transcriptome_index_hisat2"
     log:
         local_path + "logs/hisat2_build_transcriptome/hisat2_build.log"
+    benchmark:
+        local_path + "benchmarks/hisat2_build_transcriptome/hisat2_build_transcriptome.benchmark.txt"
+    params:
+        index_names = local_path + "database/transcriptome_index_hisat2"
     shell:
         # hisat2 2.2.1
         "hisat2-build --threads " + config['threads'] + " {input} {params.index_names} &> {log} ;"
@@ -648,6 +692,8 @@ rule run_mapping_transcriptome:
     log:
         hisat2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_transcriptome_hisat2.log",
         bowtie2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_transcriptome_bowtie2.log"
+    benchmark:
+        local_path + "benchmarks/run_mapping_transcriptome/{sample}.benchmark.txt"
     params:
         fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.transcriptome.fastq.gz",
         index_names_hisat2 = local_path + "database/transcriptome_index_hisat2",
@@ -680,6 +726,8 @@ rule samtools_filter_transcriptome:
         sort_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.sort_bam.log",
         index_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.index_bam.log",
         rm = local_path + "logs/samtools_filter_transcriptome/{sample}.rm.log"
+    benchmark:
+        local_path + "benchmarks/samtools_filter_transcriptome/{sample}.benchmark.txt"
     params:
         sam = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".sam",
         sample = "{sample}"
@@ -702,6 +750,8 @@ rule riboWaltz:
         psite_table = local_path + "RESULTS/riboWaltz/metaprofile.csv"
     log:
         periodicity = local_path + "logs/riboWaltz/riboWaltz.log"
+    benchmark:
+        local_path + "benchmarks/riboWaltz/riboWaltz.benchmark.txt"
     shell:
         # r-base 4.0.3
         # bioconductor-biostrings 2.58.0
