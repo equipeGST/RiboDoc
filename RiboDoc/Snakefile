@@ -97,7 +97,6 @@ onsuccess:
     shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout ;")
     shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "database/*t2 " + local_path + "database/*.fai " + local_path + "*tempoR.Rout ;")
     shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ && chmod ogu+rwx -R " + local_path + "* || cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ ;")
-    # shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
     try:
         shell("chmod ogu+rwx -R " + local_path + "* ;")
     except:
@@ -109,7 +108,6 @@ onerror:
     # Copy config file to keep trace of parameters used
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/ ;")
     shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ && chmod ogu+rwx -R " + local_path + "* || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
-    # shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
     try:
         shell("chmod ogu+rwx -R " + local_path + "* ;")
     except:
@@ -511,7 +509,6 @@ rule DESeq2_analysis:
         "set +o pipefail ;"
         "[ `head -2 {input.counts_matrix} | cut -f 1 | uniq | wc -l` == 1 ] && sed -i -e '2d' {input.counts_matrix} ;"
         "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', knit_root_dir = '{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2} ;"
-        # "rm -f {input.transcript_list} ;"
 
 
 # Quality controls :
@@ -719,8 +716,8 @@ rule run_mapping_transcriptome:
     shell:
         # bowtie2 2.4.2
         # hisat2 2.2.1
-        "hisat2 -x {params.index_names_hisat2} --threads 2 -U {input.fastq} --un-gz {params.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
-        "bowtie2 -x {params.index_names_bowtie2} --threads 2 -U {params.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
+        "hisat2 -x {params.index_names_hisat2} --threads 2 -k 10 -U {input.fastq} --un-gz {params.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
+        "bowtie2 -x {params.index_names_bowtie2} --threads 2 -k 10 -U {params.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
 
 # Creates bam and sam files
 rule samtools_filter_transcriptome:
@@ -734,11 +731,8 @@ rule samtools_filter_transcriptome:
         grep_header_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.grep_hisat2.log",
         uniq_header = local_path + "logs/samtools_filter_transcriptome/{sample}.uniq_header.log",
         grep_core_hisat2 =  local_path + "logs/samtools_filter_transcriptome/{sample}.grep_core_hisat2.log",
-        ZS_filter_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.NH_filter_hisat2.log",
         XM_filter_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_hisat2.log",
         grep_core_bowtie2 =  local_path + "logs/samtools_filter_transcriptome/{sample}.grep_core_bowtie2.log",
-        XS_filter_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XS_filter_bowtie2.log",
-        XM_filter_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_bowtie2.log",
         view_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.view_bam.log",
         sort_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.sort_bam.log",
         index_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.index_bam.log",
@@ -752,9 +746,9 @@ rule samtools_filter_transcriptome:
         # samtools 1.12
         "set +o pipefail ;"
         "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} | uniq 2> {log.uniq_header} 1> {params.sam} ;"
-        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
-        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
-        "samtools view -@ 2 -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ 2 -o {output.bam} 2> {log.sort_bam} ;"
+        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
+        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} 1>> {params.sam} ;"
+        "samtools view -@ 2 -F 3588 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ 2 -o {output.bam} 2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
         "rm -f {params.sam} 2> {log.rm} ;"
 
