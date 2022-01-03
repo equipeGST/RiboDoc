@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-LABEL version="0.6.1"
+LABEL version="0.7.0"
 
 ENV LC_ALL=C
 
@@ -15,6 +15,8 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
     && rm Miniconda3-latest-Linux-x86_64.sh
 
 RUN git clone https://github.com/equipeGST/RiboDoc.git
+
+RUN chmod +rx /RiboDoc/RiboDoc/RiboDoc.sh
 
 RUN mv /root/.bashrc /bin/ && ln -s /bin/.bashrc /root/.bashrc && \
     mv /root/.conda /bin/ && ln -s /bin/.conda /root/.conda && \
@@ -35,4 +37,4 @@ RUN echo "conda activate RiboDoc_env" >> /bin/.bashrc \
 
 RUN R -e "library('devtools');devtools::install_github('LabTranslationalArchitectomics/riboWaltz@v1.2.0', dependencies = FALSE);"
 
-CMD ["bash","/RiboDoc/RiboDoc/RiboDoc.sh"]
+ENTRYPOINT ["bash","/RiboDoc/RiboDoc/RiboDoc.sh"]

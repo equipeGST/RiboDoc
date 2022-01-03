@@ -50,6 +50,13 @@ logFC: "0"
 # RiboDoc needs a specific gff format
 qualitative_analysis: "ribowaltz"
 
+# Number of bases to look before the start and after the stop for periodicity (relative positions)
+window_bf: "50"
+
+# Number of bases to look after the start and before the stop for periodicity (relative positions)
+window_af: "100"
+
+
 ########## Optional and only for qualitative_analysis: "trip" ##########
 # Does UTR covering has to be calculated ('yes' or 'no'). You need the corresponding length files if set to 'yes'
 UTR: "no"
@@ -68,13 +75,3 @@ CDSlength: ""
 gff_element_three_prime_utr: "three_prime_UTR"
 gff_element_five_prime_utr: "five_prime_UTR"
 ###########################################################################
-
-# Number of bases to look before the start and after the stop for periodicity (relative positions)
-window_bf: "50"
-
-# Number of bases to look after the start and before the stop for periodicity (relative positions)
-window_af: "100"
-
-
-# Number of threads to be used
-threads: "2"
