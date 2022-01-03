@@ -647,11 +647,14 @@ rule transcriptome_construction_gtf:
         # samtools 1.12
         # gffread 0.12.1
         "samtools faidx {input.fasta} 2> {log.samtools_index} ;"
-        "gffread -w {output.fasta} -T -o {output.transcriptome_gtf} -g {input.fasta} {input.gff} 2> {log.gffread_gtf} ;"
-        "sed -i 's/transcript://g' {output.fasta} ;"
-        "sed -i 's/transcript://g' {output.transcriptome_gtf} ;"
-        "sed -i 's/description[^\;]*\;//' {output.transcriptome_gtf} ;"
-        "sed -i 's/\\t[A-Z]*[_]*gene_segment\\t/\\ttranscript\\t/' {output.transcriptome_gtf} ;"
+        "gffread -F -w {output.fasta} -T -o {params.tmp_gtf} -g {input.fasta} {input.gff} 2> {log.gffread_gtf} ;"
+        "sed -i 's/transcript://g' {output.fasta} 2> {log.sed} ;"
+        "sed -i 's/transcript://g' {params.tmp_gtf} 2>> {log.sed} ;"
+        "sed -i 's/description[^\;]*\;//' {params.tmp_gtf} 2>> {log.sed} ;"
+        "sed -i 's/\\t[A-Z]*[_]*gene_segment\\t/\\ttranscript\\t/' {params.tmp_gtf} 2>> {log.sed} ;"
+        """awk -F '\\t' '{{if(NF<=9) {{print($0);}} else {{for(field=1;field<9;field++) {{printf("%s\\t",$field);}} for(field=9;field<=NF;field++) {{printf("%s ",$field);}} printf("%s","\\n");}}}}' {params.tmp_gtf} > {output.transcriptome_gtf} 2>> {log.awk} ;"""
+        "rm -f {params.tmp_gtf} ;"
+        "sed -i 's/\\s$//' {output.transcriptome_gtf} 2>> {log.sed} ;"
 
 # Builds the index of bowtie2 mapping for all RNA
 rule bowtie2_build_transcriptome:
