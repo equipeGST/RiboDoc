@@ -158,7 +158,7 @@ rule bowtie2_build_outRNA:
         outNames = local_path + "database/outRNA_bowtie2"
     shell:
         # bowtie2 2.4.2
-        "bowtie2-build --threads " + config['threads'] + " {input} {params.outNames} &> {log} ;"
+        "bowtie2-build --threads 2 {input} {params.outNames} &> {log} ;"
 
 # Builds the index of bowtie2 mapping for all RNA
 rule bowtie2_build:
@@ -174,7 +174,7 @@ rule bowtie2_build:
         outNames = local_path + "database/index_bowtie2"
     shell:
         # bowtie2 2.4.2
-        "bowtie2-build --threads " + config['threads'] + " {input} {params.outNames} &> {log} ;"
+        "bowtie2-build --threads 2 {input} {params.outNames} &> {log} ;"
 
 # Builds the index of hisat2 mapping for all RNA
 rule hisat2_build:
@@ -190,7 +190,7 @@ rule hisat2_build:
         outNames = local_path + "database/index_hisat2"
     shell:
         # hisat2 2.2.1
-        "hisat2-build --threads " + config['threads'] + " {input} {params.outNames} &> {log} ;"
+        "hisat2-build --threads 2 {input} {params.outNames} &> {log} ;"
 
 # Quality control of data : build of the fastqc
 rule make_fastqc:
@@ -224,7 +224,7 @@ rule adapt_trimming:
         sample_names = "{sample}"
     shell:
         # cutadapt 3.4
-        "cutadapt " + trim + "-e 0.125 -j " + config['threads'] + " --max-n=1 -m " + config['readsLength_min'] + " -M " + config['readsLength_max'] + " -o {output} {input} 1>> {log.cutadapt_out} 2> {log.cutadapt} ;"
+        "cutadapt " + trim + "-e 0.125 -j 2 --max-n=1 -m " + config['readsLength_min'] + " -M " + config['readsLength_max'] + " -o {output} {input} 1>> {log.cutadapt_out} 2> {log.cutadapt} ;"
 
 # Mapping of non-coding RNA
 rule bowtie2_run_outRNA:
@@ -241,7 +241,7 @@ rule bowtie2_run_outRNA:
         sample_names = "{sample}"
     shell:
         # bowtie2 2.4.2
-        "bowtie2 -x " + local_path + "database/outRNA_bowtie2 --threads " + config['threads'] + " -U {input.fastq} --un-gz {output} > /dev/null 2>> {log.bt2} ;"
+        "bowtie2 -x " + local_path + "database/outRNA_bowtie2 --threads 2 -U {input.fastq} --un-gz {output} > /dev/null 2>> {log.bt2} ;"
 
 # Mapping of all RNA by bowtie2 and hisat2
 rule run_mapping:
@@ -265,8 +265,8 @@ rule run_mapping:
     shell:
         # bowtie2 2.4.2
         # hisat2 2.2.1
-        "hisat2 -x {params.index_names_hisat2} --threads " + config['threads'] + " -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
-        "bowtie2 -x {params.index_names_bowtie2} --threads " + config['threads'] + " -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
+        "hisat2 -x {params.index_names_hisat2} --threads 2 -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
+        "bowtie2 -x {params.index_names_bowtie2} --threads 2 -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
 
 # Creates bam and sam files
 rule samtools_filter:
@@ -299,7 +299,7 @@ rule samtools_filter:
         "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} 1> {params.sam} ;"
         "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
         "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
-        "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam} 2> {log.sort_bam} ;"
+        "samtools view -@ 2 -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ 2 -o {output.bam} 2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
         "rm -f {params.sam} 2> {log.rm} ;"
 
@@ -326,7 +326,7 @@ rule htseqcount:
         "set +o pipefail ;"
         "echo -e '" + htseq_header + "' 2> {log.echo} > {output} ;"
         "sed -i '1s/$/{wildcards.sample}/' {output} 2> {log.sed} ;"
-        "htseq-count -n " + config['threads'] + " -f bam -t " + config['gff_element_cds'] + " -i " + ID_or_Parent + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount} > {params.tmp_file} ;"
+        "htseq-count -n 2 -f bam -t " + config['gff_element_cds'] + " -i " + ID_or_Parent + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount} > {params.tmp_file} ;"
         """head -n -5 {params.tmp_file} 2> {log.head} | awk -F '\t+' '{{if($3 >= 0) {{print($0)}} else {{printf("%s\\tNA\\t%s\\n",$1,$2)}}}}' 2> {log.awk} >> {output} ;"""
         "rm {params.tmp_file} ;"
 
@@ -366,17 +366,17 @@ rule htseqcount_utr:
         "totalReads=`samtools view -c {input.bam} 2> {log.view}` ;"
 
         "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_CDS} ;"
-        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt ;"
+        "htseq-count -n 2 -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt ;"
         "mean_RPKM_CDS=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.CDS} " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt 2> {log.join_CDS} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_CDS}` ;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt >> {output.counts_CDS} ;"
 
         "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_threeprime} ;"
-        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_three_prime_utr'] + "' -i '" + config['gff_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_3prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt ;"
+        "htseq-count -n 2 -f bam -t '" + config['gff_element_three_prime_utr'] + "' -i '" + config['gff_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_3prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt ;"
         "mean_RPKM_3prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.three_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_3prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_3prime}` ;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_threeprime} ;"
 
         "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_fiveprime} ;"
-        "htseq-count -n " + config['threads'] + " -f bam -t '" + config['gff_element_five_prime_utr'] + "' -i '" + config['gff_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_5prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt ;"
+        "htseq-count -n 2 -f bam -t '" + config['gff_element_five_prime_utr'] + "' -i '" + config['gff_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_5prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt ;"
         "mean_RPKM_5prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.five_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_5prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_5prime}` ;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_fiveprime} ;"
 
@@ -529,7 +529,7 @@ rule quality_controls_bamDivision:
     shell:
         # samtools 1.12
         # gawk 5.1.0
-        "bash " + ribodoc_tools + "BamDivision.sh -N {params.sample_names} -l {params.read_length} -B {input.bam} -T " + config['threads'] + " -o " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log} ;"
+        "bash " + ribodoc_tools + "BamDivision.sh -N {params.sample_names} -l {params.read_length} -B {input.bam} -T 2 -o " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log} ;"
 
 # Creates bed files from fasta files
 rule quality_controls_bedcount:
@@ -667,7 +667,7 @@ rule bowtie2_build_transcriptome:
         index_names = local_path + "database/transcriptome_index_bowtie2"
     shell:
         # bowtie2 2.4.2
-        "bowtie2-build --threads " + config['threads'] + " {input} {params.index_names} &> {log} ;"
+        "bowtie2-build --threads 2 {input} {params.index_names} &> {log} ;"
 
 # Builds the index of hisat2 mapping for all RNA
 rule hisat2_build_transcriptome:
@@ -683,7 +683,7 @@ rule hisat2_build_transcriptome:
         index_names = local_path + "database/transcriptome_index_hisat2"
     shell:
         # hisat2 2.2.1
-        "hisat2-build --threads " + config['threads'] + " {input} {params.index_names} &> {log} ;"
+        "hisat2-build --threads 2 {input} {params.index_names} &> {log} ;"
 
 # Performs qualitative analysis with riboWaltz
 rule run_mapping_transcriptome:
@@ -707,8 +707,8 @@ rule run_mapping_transcriptome:
     shell:
         # bowtie2 2.4.2
         # hisat2 2.2.1
-        "hisat2 -x {params.index_names_hisat2} --threads " + config['threads'] + " -U {input.fastq} --un-gz {params.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
-        "bowtie2 -x {params.index_names_bowtie2} --threads " + config['threads'] + " -U {params.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
+        "hisat2 -x {params.index_names_hisat2} --threads 2 -U {input.fastq} --un-gz {params.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
+        "bowtie2 -x {params.index_names_bowtie2} --threads 2 -U {params.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
 
 # Creates bam and sam files
 rule samtools_filter_transcriptome:
@@ -742,7 +742,7 @@ rule samtools_filter_transcriptome:
         "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} | uniq 2> {log.uniq_header} 1> {params.sam} ;"
         "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
         "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
-        "samtools view -@ " + config['threads'] + " -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ " + config['threads'] + " -o {output.bam} 2> {log.sort_bam} ;"
+        "samtools view -@ 2 -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ 2 -o {output.bam} 2> {log.sort_bam} ;"
         "samtools index {output.bam} 2> {log.index_bam} ;"
         "rm -f {params.sam} 2> {log.rm} ;"
 
