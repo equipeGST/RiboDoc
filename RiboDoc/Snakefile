@@ -645,9 +645,13 @@ rule transcriptome_construction_gtf:
         transcriptome_gtf = local_path + "database/exons_" + config['gff'] + ".gtf"
     log:
         samtools_index = local_path + "logs/transcriptome_construction_gtf/samtools_index.log",
-        gffread_gtf = local_path + "logs/transcriptome_construction_gtf/gffread.log"
+        gffread_gtf = local_path + "logs/transcriptome_construction_gtf/gffread.log",
+        sed = local_path + "logs/transcriptome_construction_gtf/sed.log",
+        awk = local_path + "logs/transcriptome_construction_gtf/awk.log"
     benchmark:
         local_path + "benchmarks/transcriptome_construction_gtf/transcriptome_construction_gtf.benchmark.txt"
+    params:
+        tmp_gtf = local_path + "database/exons_tmp_gtf.txt"
     shell:
         # samtools 1.12
         # gffread 0.12.1
