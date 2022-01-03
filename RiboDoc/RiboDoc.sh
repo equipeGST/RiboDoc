@@ -7,8 +7,6 @@
 ### GST team
 ################################################################################
 
-printf "RiboDoc version : 0.6.2\n"
-
 # If the user does not provide a minimum number of cpu available :
 # a quarter of computer resources is assigned for the analysis (doubled on specific steps)
 if [ $# -eq 0 ];
