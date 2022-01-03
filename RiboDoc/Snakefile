@@ -3,6 +3,7 @@ configfile: "/data/config.yaml"
 # Conda 4.9.2
 # snakemake 6.1.1
 
+
 ribodoc_version = "0.7.0"
 
 
@@ -18,7 +19,7 @@ ribodoc_tools = "/RiboDoc/RiboDoc/tools/"
 snakemake_log_path = "/.snakemake/log/"
 
 
-#Wildcards definition
+# Wildcards definition
 SAMPLES, = glob_wildcards(local_path + "fastq/{sample}.fastq.gz")
 BOWTIE2 = ["1","2","3","4","rev.1","rev.2"]
 HISAT2 = ["1","2","3","4","5","6","7","8"]
@@ -97,10 +98,11 @@ onsuccess:
     shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout ;")
     shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "database/*t2 " + local_path + "database/*.fai " + local_path + "*tempoR.Rout ;")
     shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ && chmod ogu+rwx -R " + local_path + "* || cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ ;")
-    try:
-        shell("chmod ogu+rwx -R " + local_path + "* ;")
-    except:
-        print("No super user privilegies.")
+    # shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
+    # try:
+    #     shell("chmod ogu+rwx -R " + local_path + "* ;")
+    # except:
+    #     print("No super user privilegies.")
 
 
 # If anything goes wrong
@@ -108,10 +110,11 @@ onerror:
     # Copy config file to keep trace of parameters used
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/ ;")
     shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ && chmod ogu+rwx -R " + local_path + "* || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
-    try:
-        shell("chmod ogu+rwx -R " + local_path + "* ;")
-    except:
-        print("No super user privilegies.")
+    # shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ || cp .snakemake/log/*.snakemake.log " + local_path + "logs/ ;")
+    # try:
+    #     shell("chmod ogu+rwx -R " + local_path + "* ;")
+    # except:
+    #     print("No super user privilegies.")
 
 
 # Adds transcript names and gene IDs to the CDS and exon lines if possible
@@ -153,12 +156,12 @@ rule bowtie2_build_outRNA:
         local_path + "database/" + config['fasta_outRNA']
     output:
         expand(local_path + "database/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2)
+    params:
+        outNames = local_path + "database/outRNA_bowtie2"
     log:
         local_path + "logs/bowtie2_build_outRNA/bowtie2_build_outRNA.log"
     benchmark:
         local_path + "benchmarks/bowtie2_build_outRNA/bowtie2_build_outRNA.benchmark.txt"
-    params:
-        outNames = local_path + "database/outRNA_bowtie2"
     shell:
         # bowtie2 2.4.2
         "bowtie2-build --threads 2 {input} {params.outNames} &> {log} ;"
@@ -415,7 +418,7 @@ rule stats_report:
                 # Keep only lines of interest from cutadapt report1,2
                 i=-1
                 if log=="adapt_trimming":
-                    if int(config['threads']) > 1:
+                    if int(2) > 1:
                         lines_to_read = range(22)
                     else:
                         lines_to_read = range(20)
@@ -509,6 +512,7 @@ rule DESeq2_analysis:
         "set +o pipefail ;"
         "[ `head -2 {input.counts_matrix} | cut -f 1 | uniq | wc -l` == 1 ] && sed -i -e '2d' {input.counts_matrix} ;"
         "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', knit_root_dir = '{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2} ;"
+        # "rm -f {input.transcript_list} ;"
 
 
 # Quality controls :
@@ -543,13 +547,13 @@ rule quality_controls_bedcount:
         sequenceBedCount = local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/{sample}.{taille}.count.sequence.bed",
         readsLengthRepartitionBed = temp(local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed"),
         bed = temp(local_path + "RESULTS/qualitativeAnalysis/bedCount/{sample}.{taille}.count.bed")
-    params:
-        sample_names = "{sample}",
-        read_length = "{taille}"
     log:
         local_path + "logs/quality_controls_bedcount/{sample}.{taille}.readsLengthRepartition.log"
     benchmark:
         local_path + "benchmarks/quality_controls_bedcount/{sample}.{taille}.benchmark.txt"
+    params:
+        sample_names = "{sample}",
+        read_length = "{taille}"
     shell:
         # bedtools 2.30.0
         "bash " + ribodoc_tools + "readsLengthRepartition.sh -N {params.sample_names} -l {params.read_length} -F {input.fasta} -D " + local_path + "RESULTS/qualitativeAnalysis/bamDivision/ -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log} ;"
@@ -569,7 +573,7 @@ rule quality_controls_readsLengthRepartition:
     benchmark:
         local_path + "benchmarks/quality_controls_readsLengthRepartition/{sample}.benchmark.txt"
     params:
-        path = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/",
+        path = local_path + "RESULTS/quality_controls_readsLengthRepartition/readsLengthRepartition/",
         sample_names = "{sample}"
     shell:
         "set +o pipefail ;"
@@ -583,14 +587,14 @@ rule quality_controls_periodicity:
     output:
         start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_bf'] + "+" + config['window_af'] + ".txt",
         stop = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_element_cds'] + ".-" + config['window_af'] + "+" + config['window_bf'] + ".txt"
+    params:
+        sample_names = "{sample}",
+        read_length = "{taille}"
     log:
         start = local_path + "logs/quality_controls_periodicity/{sample}.{taille}.log",
         stop = local_path + "logs/quality_controls_periodicity/{sample}.{taille}.log"
     benchmark:
         local_path + "benchmarks/quality_controls_periodicity/{sample}.{taille}.benchmark.txt"
-    params:
-        sample_names = "{sample}",
-        read_length = "{taille}"
     shell:
         # gawk 5.1.0
         "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'start' -t '" + config['gff_element_cds'] + "' -m " + config['window_bf'] + " -M " + config['window_af'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.start} ;"
@@ -602,12 +606,12 @@ rule graphs_length:
         length = rules.quality_controls_readsLengthRepartition.output
     output:
         length = local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg"
+    params:
+        sample_name = "{sample}"
     log:
         bash = local_path + "logs/graphs_length/{sample}.generationGraph_length.log"
     benchmark:
         local_path + "benchmarks/graphs_length/{sample}.benchmark.txt"
-    params:
-        sample_name = "{sample}"
     shell:
         # r-base 4.0.3
         "bash " + ribodoc_tools + "generationGraph_length.sh -N {params.sample_name} 2> {log.bash} ;"
@@ -619,13 +623,13 @@ rule graphs_periodicity:
     output:
         perioStart = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_bf'] + "+" + config['window_af'] + ".jpeg",
         perioStop = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_element_cds'] + ".-" + config['window_af'] + "+" + config['window_bf'] + ".jpeg"
+    params:
+        sample_name = "{sample}",
+        read_length = "{taille}"
     log:
         bash = local_path + "logs/graphs_periodicity/{sample}.{taille}.generationGraph_perio.log"
     benchmark:
         local_path + "benchmarks/graphs_periodicity/{sample}.{taille}.benchmark.txt"
-    params:
-        sample_name = "{sample}",
-        read_length = "{taille}"
     shell:
         # r-base 4.0.3
         "bash " + ribodoc_tools + "generationGraph_perio.sh -N {params.sample_name} -l {params.read_length} -t '" + config['gff_element_cds'] + "' -m " + config['window_bf'] + " -M " + config['window_af'] + " 2> {log.bash} ;"
