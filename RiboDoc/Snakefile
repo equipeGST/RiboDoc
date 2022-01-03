@@ -3,6 +3,9 @@ configfile: "/data/config.yaml"
 # Conda 4.9.2
 # snakemake 6.1.1
 
+ribodoc_version = "0.7.0"
+
+
 # Imports
 from optparse import OptionParser
 import gffutils
@@ -81,6 +84,8 @@ rule all:
         local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/" + config['project_name'] + ".Final_report.html"
 
 
+onstart:
+    print("RiboDoc version : " + ribodoc_version)
 
 # When the jobs are all done
 onsuccess:
