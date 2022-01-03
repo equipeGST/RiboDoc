@@ -16,7 +16,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
 
 RUN git clone https://github.com/equipeGST/RiboDoc.git
 
-RUN chmod +rx /work/RiboDoc/RiboDoc.sh
+RUN chmod +rx /RiboDoc/RiboDoc/RiboDoc.sh
 
 RUN mv /root/.bashrc /bin/ && ln -s /bin/.bashrc /root/.bashrc && \
     mv /root/.conda /bin/ && ln -s /bin/.conda /root/.conda && \
@@ -29,7 +29,7 @@ ENV PATH=$PATH:/bin
 
 SHELL ["/bin/bash", "-c"]
 
-RUN conda env create -f /work/RiboDoc/RiboDoc_env.yml
+RUN conda env create -f /RiboDoc/RiboDoc/RiboDoc_env.yml
 RUN conda init bash
 RUN echo "conda activate RiboDoc_env" >> /bin/.bashrc \
     && conda info --envs \
@@ -37,4 +37,4 @@ RUN echo "conda activate RiboDoc_env" >> /bin/.bashrc \
 
 RUN R -e "library('devtools');devtools::install_github('LabTranslationalArchitectomics/riboWaltz@v1.2.0', dependencies = FALSE);"
 
-ENTRYPOINT ["bash","/work/RiboDoc/RiboDoc.sh"]
+ENTRYPOINT ["bash","/RiboDoc/RiboDoc/RiboDoc.sh"]
