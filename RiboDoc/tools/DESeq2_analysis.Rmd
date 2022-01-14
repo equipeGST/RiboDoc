@@ -9,6 +9,7 @@ output: "html_document"
 #Sys.getenv("RSTUDIO_PANDOC")
 # Sys.setenv(RSTUDIO_PANDOC="/root/miniconda3/envs/RiboDoc_env/bin/pandoc")
 Sys.setenv(RSTUDIO_PANDOC="/RiboDoc/miniconda3/envs/RiboDoc_env/bin/pandoc")
+local_path <- "/data/"
 ```
 
 ```{r rm Global environment, include=FALSE}
@@ -22,7 +23,7 @@ library(FactoMineR)
 ```
 
 ```{r scan_and_paths, echo=FALSE, include=FALSE}
-params <- scan(file = "/data/config.yaml",
+params <- scan(file = paste0(local_path, "config.yaml"),
                    what = "character",
                    sep = ":"
                    )
@@ -30,9 +31,9 @@ params <- scan(file = "/data/config.yaml",
 trans_or_gene <- gsub(" ", "", params[which(params=="transcript_or_gene")+1], fixed = TRUE)
 if(trans_or_gene=="gene")
 {
-  DESeq2_folder <- "/data/RESULTS/DESeq2_by_gene/"
+  DESeq2_folder <- paste0(local_path, "RESULTS/DESeq2_by_gene/")
 } else {
-  DESeq2_folder <- "/data/RESULTS/DESeq2_by_transcript/"
+  DESeq2_folder <- paste0(local_path, "RESULTS/DESeq2_by_transcript/")
 }
 
 pathway_matrix = paste0(DESeq2_folder,"count_matrix.txt")
