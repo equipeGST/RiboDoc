@@ -37,11 +37,6 @@ if config['UTR'] == "yes":
 else:
     counts = "htseqcount"
 
-# Change cutadapt options, depending on data given
-if config['already_trimmed'] == "no":
-    trim = "-a " + config['adapt_sequence'] + " --trimmed-only "
-else:
-    trim = ""
 
 # Check if attributes specified by the user are present in the gff file
 ID_or_Parent = "ID "
@@ -105,6 +100,21 @@ onerror:
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/;")
     shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ && chmod ogu+rwx -R " + local_path + "* || cp .snakemake/log/*.snakemake.log " + local_path + "logs/;")
 
+
+# Find the adapter sequence if not set in config file
+rule find_adapter_sequence:
+    input:
+        local_path + "fastq/"+ SAMPLES[0] + ".fastq.gz"
+    output:
+        local_path + "RESULTS/adapter_list.txt"
+    log:
+        rscript = local_path + "logs/find_adapter_sequence/rscript.log",
+        sed = local_path + "logs/find_adapter_sequence/sed.log",
+        echo = local_path + "logs/find_adapter_sequence/echo.log"
+    shell:
+        "if [ -z " + config['adapt_sequence'] + " ]; then "
+        "Rscript " + ribodoc_tools + "find_adapter_sequence.R 2> {log.rscript};"
+        "else echo " + config['adapt_sequence'] + " 1> {output} 2> {log.echo}; fi;"
 
 # Adds transcript names and gene IDs to the CDS and exon lines if possible
 rule name_CDS:
@@ -207,19 +217,21 @@ rule make_fastqc:
 # Removes/cuts potential adapters on the reads
 rule adapt_trimming:
     input:
-        local_path + "fastq/{sample}.fastq.gz"
+        fastq = local_path + "fastq/{sample}.fastq.gz",
+        adapt_seq = local_path + "RESULTS/adapter_list.txt"
     output:
-        temp(local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz")
+        cut_fastq = temp(local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz")
     log:
-        cutadapt = local_path + "logs/adapt_trimming/{sample}.log",
+        trim_value = local_path + "logs/adapt_trimming/{sample}_trim_value.log",
+        cutadapt = local_path + "logs/adapt_trimming/{sample}_cutadapt.log",
         cutadapt_out = local_path + "logsTmp/{sample}_adapt_trimming.log"
     benchmark:
         local_path + "benchmarks/adapt_trimming/{sample}.benchmark.txt"
-    params:
-        sample_names = "{sample}"
     shell:
         # cutadapt 3.4
-        "cutadapt " + trim + "-e 0.125 -j 2 --max-n=1 -m " + config['readsLength_min'] + " -M " + config['readsLength_max'] + " -o {output} {input} 1>> {log.cutadapt_out} 2> {log.cutadapt};"
+        "adapter_sequence=`cat {input.adapt_seq}`;"
+        "if [ " + config['already_trimmed'] + " == 'no' ]; then trim=\"-a ${{adapter_sequence}} --trimmed-only\"; else trim=''; fi 2> {log.trim_value};"
+        "cutadapt ${{trim}} -e 0.125 -j 2 --max-n=1 -m " + config['readsLength_min'] + " -M " + config['readsLength_max'] + " -o {output.cut_fastq} {input.fastq} 1>> {log.cutadapt_out} 2> {log.cutadapt};"
 
 # Mapping of non-coding RNA
 rule bowtie2_run_outRNA:
