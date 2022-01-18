@@ -82,6 +82,7 @@ rule all:
 
 onstart:
     print("RiboDoc version : " + ribodoc_version)
+    shell("conda list;")
 
 # When the jobs are all done
 onsuccess:
