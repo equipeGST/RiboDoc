@@ -80,9 +80,10 @@ rule all:
         local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/" + config['project_name'] + ".Final_report.html"
 
 
+# When RiboDoc starts
 onstart:
-    print("RiboDoc version : " + ribodoc_version)
-    shell("conda list;")
+    shell("echo 'RiboDoc version : " + ribodoc_version + "' > " + local_path + "logs/RiboDoc_package_versions.txt;")
+    shell("conda list >> " + local_path + "logs/RiboDoc_package_versions.txt;")
 
 # When the jobs are all done
 onsuccess:
