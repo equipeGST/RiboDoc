@@ -82,6 +82,7 @@ rule all:
 
 # When RiboDoc starts
 onstart:
+    shell("mkdir -p " + local_path + "logs/;")
     shell("echo 'RiboDoc version : " + ribodoc_version + "' > " + local_path + "logs/RiboDoc_package_versions.txt;")
     shell("conda list >> " + local_path + "logs/RiboDoc_package_versions.txt;")
 
