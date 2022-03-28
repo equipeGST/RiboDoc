@@ -34,7 +34,7 @@ reads_list <- riboWaltz::bamtolist(bamfolder = bam_folder, annotation = annotati
 
 # p-site calculation
 psite_offset <- riboWaltz::psite(reads_list,
-                                 flanking = 0,
+                                 flanking = 6,
                                  start = TRUE,
                                  extremity = "auto",
                                  plot = TRUE,
@@ -90,8 +90,6 @@ dev.off()
 
 metaprofile <- metaprofile_psite(reads_psite_list, annotation_db_transcript, sample = samples,
                                   plot_title = "sample.transcript")
-metaprofile[["plot_Mut.1"]]
-metaprofile[["plot_WT.1"]]
 
 for(i in 1:length(samples))
 {
