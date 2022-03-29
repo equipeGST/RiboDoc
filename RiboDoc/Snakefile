@@ -4,19 +4,26 @@ configfile: "/data/config.yaml"
 # snakemake 6.1.1
 
 
-ribodoc_version = "0.7.0"
+ribodoc_version = "0.7.2"
 
 
 # Imports
 from optparse import OptionParser
 import gffutils
 import re
+import os
 
 
 # Sets paths for inside the container
 local_path = "/data/"
 ribodoc_tools = "/RiboDoc/RiboDoc/tools/"
 snakemake_log_path = "/.snakemake/log/"
+
+
+# Sets the number of threads for multi-threading steps
+multi_threads_nbr = 3
+mem_mb_resources = 10000
+# mem_mb_resources = (workflow.cores/3)*3000
 
 
 # Wildcards definition
@@ -107,17 +114,20 @@ onerror:
 # Find the adapter sequence if not set in config file
 rule find_adapter_sequence:
     input:
-        local_path + "fastq/"+ SAMPLES[0] + ".fastq.gz"
+        fastq = local_path + "fastq/{sample}.fastq.gz"
     output:
-        local_path + "RESULTS/adapter_list.txt"
+        adapter = local_path + "RESULTS/adapter_lists/{sample}.txt"
     log:
-        rscript = local_path + "logs/find_adapter_sequence/rscript.log",
-        sed = local_path + "logs/find_adapter_sequence/sed.log",
-        echo = local_path + "logs/find_adapter_sequence/echo.log"
+        rscript = local_path + "logs/find_adapter_sequence/{sample}.rscript.log",
+        sed = local_path + "logs/find_adapter_sequence/{sample}.sed.log",
+        echo = local_path + "logs/find_adapter_sequence/{sample}.echo.log",
+        touch = local_path + "logs/find_adapter_sequence/{sample}.touch.log"
     shell:
+        "touch {output.adapter} 2> {log.touch};"
         "if [ -z " + config['adapt_sequence'] + " ]; then "
-        "Rscript " + ribodoc_tools + "find_adapter_sequence.R 2> {log.rscript};"
-        "else echo " + config['adapt_sequence'] + " 1> {output} 2> {log.echo}; fi;"
+        "Rscript " + ribodoc_tools + "find_adapter_sequence.R {input.fastq} 2> {log.rscript} ;"
+        "elif [ '" + config['already_trimmed'] + "' = 'no' ]; then echo " + config['adapt_sequence'] + " 1> {output.adapter} 2> {log.echo};"
+        "fi;"
 
 # Adds transcript names and gene IDs to the CDS and exon lines if possible
 rule name_CDS:
