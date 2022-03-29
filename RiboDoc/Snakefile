@@ -832,23 +832,19 @@ rule index_bam_transcriptome:
         "samtools index {input.bam} 2> {log.index_bam} ;"
 
 # Performs qualitative analysis with riboWaltz
-rule riboWaltz:
+rule riboWaltz_transcriptome:
     input:
-        transcriptome_gtf = local_path + "database/exons_" + config['gff'] + ".gtf",
+        transcriptome_gtf = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_" + os.path.basename(config['gff']) + ".gtf",
         transcriptome_bam = expand(rules.samtools_filter_transcriptome.output, sample=SAMPLES)
     output:
-        psite_table = local_path + "RESULTS/riboWaltz/metaprofile.csv"
+        psite_table = local_path + "RESULTS/riboWaltz/psite_offset.csv"
     log:
-        periodicity = local_path + "logs/riboWaltz/riboWaltz.log"
+        periodicity = local_path + "logs/riboWaltz_transcriptome/riboWaltz.log"
+    resources:
+        mem_mb = mem_mb_resources
     benchmark:
-        local_path + "benchmarks/riboWaltz/riboWaltz.benchmark.txt"
+        local_path + "benchmarks/riboWaltz_transcriptome/riboWaltz.benchmark.txt"
     shell:
-        # r-base 4.0.3
-        # bioconductor-biostrings 2.58.0
-        # bioconductor-genomicalignments 1.26.0
-        # bioconductor-genomicfeatures 1.42.2
-        # bioconductor-genomeinfodbdata 1.2.4
-        # bioconductor-genomicranges 1.42.0
-        # bioconductor-iranges 2.24.1
-        "Rscript " + ribodoc_tools + "periodicity_riboWaltz.R 2> {log};"
-        "rm -f " + local_path + "Rplots.pdf;"
+        "touch {output.psite_table};"
+        "Rscript " + ribodoc_tools + "periodicity_riboWaltz.R {input.transcriptome_gtf} 2> {log} ;"
+        "rm -f " + local_path + "Rplots.pdf ;"

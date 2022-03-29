@@ -2,24 +2,26 @@ library(riboWaltz)
 library(stringr)
 library(data.table)
 
-dir.create("/data/RESULTS/riboWaltz/")
 
-system(paste0("cat /proc/",Sys.getpid(),"/status | grep VmSize"))
+local_path <- "/data/"
+dir.create(paste0(local_path, "RESULTS/riboWaltz/"))
 
-params <- scan(file = "/data/config.yaml",
+params <- scan(file = paste0(local_path, "config.yaml"),
                what = "character",
                sep = ":"
 )
+args <- commandArgs(trailingOnly=TRUE)
 
-gff_file <- gsub(" ", "", params[which(params=="gff")+1], fixed = TRUE)
+gtf_file <- args[1]
 
 # Creates annotation table by transcript names
-annotation_db <- riboWaltz::create_annotation(paste0("/data/database/exons_",gff_file,".gtf"))
-annotation_db_transcript <- data.table(annotation_db)
+annotation_db <- riboWaltz::create_annotation(gtf_file)
+annotation_db_transcript_with_cds0l <- data.table(annotation_db)
+annotation_db_transcript <- annotation_db_transcript_with_cds0l[annotation_db_transcript_with_cds0l$l_cds > 0,]
 
 
 # Bam files to be computed
-bam_folder <- "/data/RESULTS/BAM_transcriptome/"
+bam_folder <- paste0(local_path, "RESULTS/BAM_transcriptome/")
 
 bam_list <- list.files(bam_folder)
 bam_list <- bam_list[seq(1, length(bam_list), 2)]
@@ -38,16 +40,16 @@ psite_offset <- riboWaltz::psite(reads_list,
                                  start = TRUE,
                                  extremity = "auto",
                                  plot = TRUE,
-                                 plot_dir = "/data/RESULTS/riboWaltz/",
+                                 plot_dir = paste0(local_path, "RESULTS/riboWaltz/"),
                                  plot_format = "png",
                                  cl = 100,
                                  txt = TRUE,
-                                 txt_file = "/data/RESULTS/riboWaltz/best_offset.txt"
-                                 )
+                                 txt_file = paste0(local_path, "RESULTS/riboWaltz/best_offset.txt")
+)
 
 reads_psite_list <- riboWaltz::psite_info(reads_list,
                                           psite_offset
-                                          )
+)
 
 
 codon_coverage <- codon_coverage(reads_psite_list, annotation_db_transcript, psite = TRUE)
@@ -55,60 +57,57 @@ cds_coverage <- cds_coverage(reads_psite_list, annotation_db_transcript)
 
 
 length_dist <- rlength_distr(reads_list, sample = samples)
-length_dist[[paste0("plot_",samples[1])]]
-length_dist[[paste0("plot_",samples[3])]]
 
 for(i in 1:length(samples))
 {
-  dir.create(paste0("/data/RESULTS/riboWaltz/",samples[i],"/"), showWarnings = F)
-  pdf(file=paste0("/data/RESULTS/riboWaltz/",samples[i],"/reads_distribution_",samples[i],".pdf"))
+  dir.create(paste0(local_path, "RESULTS/riboWaltz/",samples[i],"/"), showWarnings = F)
+  pdf(file=paste0(local_path, "RESULTS/riboWaltz/",samples[i],"/reads_distribution_",samples[i],".pdf"))
   plot(length_dist[[paste0("plot_",samples[i])]])
   dev.off()
 }
 
 psite_region <- region_psite(reads_psite_list, annotation_db_transcript, sample = samples)
-psite_region[["plot"]]
 
-pdf(file="/data/RESULTS/riboWaltz/region_psite.pdf")
+pdf(file=paste0(local_path, "RESULTS/riboWaltz/region_psite.pdf"))
 psite_region[["plot"]]
 dev.off()
 
 
 frames_stratified <- frame_psite_length(reads_psite_list, sample = samples, region = "all")
-frames_stratified[["plot"]]
 
-pdf(file="/data/RESULTS/riboWaltz/frame_psite_length.pdf")
+pdf(file=paste0(local_path, "RESULTS/riboWaltz/frame_psite_length.pdf"))
 frames_stratified[["plot"]]
 dev.off()
 
 frames <- frame_psite(reads_psite_list, sample = samples, region = "all")
-frames[["plot"]]
 
-pdf(file="/data/RESULTS/riboWaltz/frame_psite.pdf")
+pdf(file=paste0(local_path, "RESULTS/riboWaltz/frame_psite.pdf"))
 frames[["plot"]]
 dev.off()
 
-metaprofile <- metaprofile_psite(reads_psite_list, annotation_db_transcript, sample = samples,
-                                  plot_title = "sample.transcript")
+metaprofile <- metaprofile_psite(reads_psite_list,
+                                 annotation_db_transcript,
+                                 sample = samples,
+                                 plot_title = "sample.transcript")
 
 for(i in 1:length(samples))
 {
-  pdf(file=paste0("/data/RESULTS/riboWaltz/",samples[i],"/metaprofile_psite_",samples[i],".pdf"))
+  pdf(file=paste0(local_path, "RESULTS/riboWaltz/",samples[i],"/metaprofile_psite_",samples[i],".pdf"))
   plot(metaprofile[[paste0("plot_",samples[i])]])
   dev.off()
 }
 
-write.table(psite_offset, "/data/RESULTS/riboWaltz/psite_offset.csv", quote = F, row.names = F, sep ="\t")
+write.table(psite_offset, paste0(local_path, "RESULTS/riboWaltz/psite_offset.csv"), quote = F, row.names = F, sep ="\t")
 for(i in 1:length(samples))
 {
-  write.table(reads_list[[i]], paste0("/data/RESULTS/riboWaltz/",samples[i],"/reads_list_",samples[i],".csv"), quote = F, row.names = F, sep ="\t")
-  write.table(reads_psite_list[[i]], paste0("/data/RESULTS/riboWaltz/",samples[i],"/reads_psite_list_",samples[i],".csv"), quote = F, row.names = F, sep ="\t")
+  write.table(reads_list[[i]], paste0(local_path, "RESULTS/riboWaltz/",samples[i],"/reads_list_",samples[i],".csv"), quote = F, row.names = F, sep ="\t")
+  write.table(reads_psite_list[[i]], paste0(local_path, "RESULTS/riboWaltz/",samples[i],"/reads_psite_list_",samples[i],".csv"), quote = F, row.names = F, sep ="\t")
 }
-write.table(psite_region$dt, "/data/RESULTS/riboWaltz/psite_region.csv", quote = F, sep ="\t")
-write.table(metaprofile$dt, "/data/RESULTS/riboWaltz/metaprofile.csv", quote = F, row.names = F, sep ="\t")
-write.table(codon_coverage, "/data/RESULTS/riboWaltz/codon_coverage.csv", quote = F, row.names = F, sep ="\t")
-write.table(cds_coverage, "/data/RESULTS/riboWaltz/cds_coverage.csv", quote = F, row.names = F, sep ="\t")
-write.table(length_dist$dt, "/data/RESULTS/riboWaltz/length_dist.csv", quote = F, row.names = F, sep ="\t")
-write.table(frames_stratified$dt, "/data/RESULTS/riboWaltz/frames_stratified.csv", quote = F, row.names = F, sep ="\t")
-write.table(frames$dt, "/data/RESULTS/riboWaltz/frames.csv", quote = F, row.names = F, sep ="\t")
+write.table(psite_region$dt, paste0(local_path, "RESULTS/riboWaltz/psite_region.csv"), quote = F, sep ="\t")
+write.table(metaprofile$dt, paste0(local_path, "RESULTS/riboWaltz/metaprofile.csv"), quote = F, row.names = F, sep ="\t")
+write.table(codon_coverage, paste0(local_path, "RESULTS/riboWaltz/codon_coverage.csv"), quote = F, row.names = F, sep ="\t")
+write.table(cds_coverage, paste0(local_path, "RESULTS/riboWaltz/cds_coverage.csv"), quote = F, row.names = F, sep ="\t")
+write.table(length_dist$dt, paste0(local_path, "RESULTS/riboWaltz/length_dist.csv"), quote = F, row.names = F, sep ="\t")
+write.table(frames_stratified$dt, paste0(local_path, "RESULTS/riboWaltz/frames_stratified.csv"), quote = F, row.names = F, sep ="\t")
+write.table(frames$dt, paste0(local_path, "RESULTS/riboWaltz/frames.csv"), quote = F, row.names = F, sep ="\t")
 
