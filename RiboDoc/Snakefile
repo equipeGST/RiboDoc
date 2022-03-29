@@ -242,7 +242,7 @@ rule bowtie2_run_outRNA:
         expand(local_path + "database/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2),
         fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
     output:
-        temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz")
+        local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     log:
         bt2 = local_path + "logsTmp/{sample}_bowtie2_run_outRNA.log"
     benchmark:
@@ -317,10 +317,9 @@ rule htseqcount:
     input:
         bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
         bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai",
-        gff = local_path + "database/NamedCDS_" + config['gff']
+        gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
     output:
-        htseq_table = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount.txt",
-        tmp_file = temp(local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}_tmp.txt")
+        htseq_table = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount.txt"
     log:
         echo = local_path + "logs/htseqcount/{sample}.echo.log",
         sed = local_path + "logs/htseqcount/{sample}.sed.log",
@@ -329,13 +328,16 @@ rule htseqcount:
         awk = local_path + "logs/htseqcount/{sample}.awk.log"
     benchmark:
         local_path + "benchmarks/htseqcount/{sample}.benchmark.txt"
+    params:
+        tmp_file = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}_tmp.txt"
     shell:
         # htseq 0.13.5
         "set +o pipefail;"
         "echo -e '" + htseq_header + "' 2> {log.echo} > {output.htseq_table};"
         "sed -i '1s/$/{wildcards.sample}/' {output.htseq_table} 2> {log.sed};"
-        "htseq-count -n 2 -f bam -t " + config['gff_element_cds'] + " -i " + ID_or_Parent + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount} > {output.tmp_file};"
-        """head -n -5 {output.tmp_file} 2> {log.head} | awk -F '\t+' '{{if($3 >= 0) {{print($0)}} else {{printf("%s\\tNA\\t%s\\n",$1,$2)}}}}' 2> {log.awk} >> {output.htseq_table};"""
+        "htseq-count -n 2 -f bam -t " + config['gff_element_cds'] + " -i " + ID_or_Parent + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount} > {params.tmp_file};"
+        """head -n -5 {params.tmp_file} 2> {log.head} | awk -F '\t+' '{{if($3 >= 0) {{print($0)}} else {{printf("%s\\tNA\\t%s\\n",$1,$2)}}}}' 2> {log.awk} >> {output.htseq_table};"""
+        "rm -f {params.tmp_file};"
 
 # Counts reads on each 5prime, 3prime or CDS part of each transcript
 rule htseqcount_utr:
@@ -468,12 +470,13 @@ rule count_matrix_creation:
     input:
         transcript_list = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/transcript_list.txt"
     output:
-        counts_matrix = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/count_matrix.txt",
-        tmp_file = temp(local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/tmp.txt")
+        counts_matrix = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/count_matrix.txt"
     log:
         local_path + "logs/count_matrix_creation/count_matrix.log"
     benchmark:
         local_path + "benchmarks/count_matrix_creation/count_matrix_creation.benchmark.txt"
+    params:
+        tmp_file = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/tmp.txt"
     run:
         shell("cut -f 1 {input.transcript_list} 2> {log} > {output.counts_matrix};")
         for sample in SAMPLES:
@@ -481,8 +484,9 @@ rule count_matrix_creation:
                 fields = "1,3"
             else:
                 fields = "1,2"
-            shell("cut -f " + fields + " " + local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + sample + frag_length_L + ".no-outRNA." + counts + ".txt | LC_COLLATE=C join --header -t $'\t' {output.counts_matrix} - > {output.tmp_file} 2>> {log};")
-            shell("cat {output.tmp_file} > {output.counts_matrix};")
+            shell("cut -f " + fields + " " + local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + sample + frag_length_L + ".no-outRNA." + counts + ".txt | LC_COLLATE=C join --header -t $'\t' {output.counts_matrix} - > {params.tmp_file} 2>> {log};")
+            shell("cat {params.tmp_file} > {output.counts_matrix};")
+            shell("rm -f {params.tmp_file};")
 
 # Performs differential analysis
 rule DESeq2_analysis:
@@ -635,15 +639,14 @@ rule graphs_periodicity:
 
 
 # riboWaltz pipeline
-# Creates gtf and transcripts fasta files from reference gff and fasta files
+# Create GTF file for riboWaltz
 rule transcriptome_construction_gtf:
     input:
-        fasta = local_path + "database/" + config['fasta'],
-        gff = local_path + "database/NamedCDS_" + config['gff']
+        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta",
+        gff_with_genes = local_path + "RESULTS/annex_database/transcriptome_elongated_with_gene_features.gff"
     output:
-        fasta = local_path + "database/exons_IDonly_" + config['fasta'],
-        transcriptome_gtf = local_path + "database/exons_" + config['gff'] + ".gtf",
-        tmp_gtf = temp(local_path + "database/exons_tmp_gtf.txt")
+        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_" + os.path.basename(config['fasta']),
+        gtf = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_" + os.path.basename(config['gff']) + ".gtf"
     log:
         samtools_index = local_path + "logs/transcriptome_construction_gtf/samtools_index.log",
         gffread_gtf = local_path + "logs/transcriptome_construction_gtf/gffread.log",
@@ -651,17 +654,16 @@ rule transcriptome_construction_gtf:
         awk = local_path + "logs/transcriptome_construction_gtf/awk.log"
     benchmark:
         local_path + "benchmarks/transcriptome_construction_gtf/transcriptome_construction_gtf.benchmark.txt"
+    params:
+        tmp_gtf = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_tmp.gtf"
     shell:
-        # samtools 1.12
-        # gffread 0.12.1
-        "samtools faidx {input.fasta} 2> {log.samtools_index};"
-        "gffread -F -w {output.fasta} -T -o {output.tmp_gtf} -g {input.fasta} {input.gff} 2> {log.gffread_gtf};"
-        "sed -i 's/transcript://g' {output.fasta} 2> {log.sed};"
-        "sed -i 's/transcript://g' {output.tmp_gtf} 2>> {log.sed};"
-        "sed -i 's/description[^\;]*\;//' {output.tmp_gtf} 2>> {log.sed};"
-        "sed -i 's/\\t[A-Z]*[_]*gene_segment\\t/\\ttranscript\\t/' {output.tmp_gtf} 2>> {log.sed};"
-        """awk -F '\\t' '{{if(NF<=9) {{print($0);}} else {{for(field=1;field<9;field++) {{printf("%s\\t",$field);}} for(field=9;field<=NF;field++) {{printf("%s ",$field);}} printf("%s","\\n");}}}}' {output.tmp_gtf} > {output.transcriptome_gtf} 2>> {log.awk};"""
-        "sed -i 's/\\s$//' {output.transcriptome_gtf} 2>> {log.sed};"
+        "samtools faidx {input.fasta} 2> {log.samtools_index} ;"
+        "gffread -F -T -w {output.fasta} -o {params.tmp_gtf} -g {input.fasta} {input.gff_with_genes} 2> {log.gffread_gtf} ;"
+        "sed -i 's/description[^\;]*\;//' {params.tmp_gtf} 2>> {log.sed} ;"
+        "sed -i 's/\\t[A-Z]*[_]*gene_segment\\t/\\ttranscript\\t/' {params.tmp_gtf} 2>> {log.sed} ;"
+        """awk -F '\\t' '{{if(NF<=9) {{print($0);}} else {{for(field=1;field<9;field++) {{printf("%s\\t",$field);}} for(field=9;field<=NF;field++) {{printf("%s ",$field);}} printf("\\n");}}}}' {params.tmp_gtf} > {output.gtf} 2>> {log.awk} ;"""
+        "rm -f {params.tmp_gtf};"
+        "sed -i 's/\\s$//' {output.gtf} 2>> {log.sed} ;"
 
 # Builds the index of bowtie2 mapping for all RNA
 rule bowtie2_build_transcriptome:
