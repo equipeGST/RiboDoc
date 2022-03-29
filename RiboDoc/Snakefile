@@ -132,11 +132,10 @@ rule find_adapter_sequence:
 # Adds transcript names and gene IDs to the CDS and exon lines if possible
 rule name_CDS:
     input:
-        gff = local_path + "database/" + config['gff']
+        gff = local_path + "database/" + os.path.basename(config['gff'])
     output:
-        gff_namedCDS = local_path + "database/NamedCDS_" + config['gff']
+        gff_namedCDS = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
     run:
-        # gffutils 0.10.1
         gene_id_bool = True
         if name_in_gff == True:
             db = gffutils.create_db(input.gff, ':memory:', merge_strategy='create_unique', keep_order=True)
@@ -147,20 +146,20 @@ rule name_CDS:
                     if feature.featuretype == config['gff_element_cds'] or feature.featuretype == "exon":
                         parent = list(db.parents(feature, level=1))
                         parent = parent[0]
-                        if parent.attributes.get(config['gff_name_attribut']):
-                            feature.attributes[config['gff_name_attribut']] = parent.attributes[config['gff_name_attribut']]
-                            try:
-                                feature.attributes["gene_id"] = parent.attributes["gene_id"]
-                            except:
-                                gene_id_bool = False
+                        if parent.attributes.get(config['gff_name_attribut']) and not feature.attributes.get(config['gff_name_attribut']):
+                            feature.attributes[config['gff_name_attribut']] = [i.replace("mRNA","cds") for i in parent.attributes.get(config['gff_name_attribut'])]
+                            feature.attributes[config['gff_name_attribut']][0] + "_name"
+                        if parent.attributes.get('ID') and not feature.attributes.get('ID'):
+                            feature.attributes["ID"] = parent.attributes["ID"]
+                            feature.attributes['ID'] = feature.attributes['ID'][0] + "_CDS"
                     fout.write(str(feature) + '\n')
         else:
-            shell("cp {input.gff} {output.gff_namedCDS};")
+            shell("cp {input.gff} {output.gff_namedCDS} ;")
         if gene_id_bool:
             print("'gene_id' attributes are present.")
         else:
             print("Missing at least some 'gene_id' attribute in this gff.")
-        shell("sed -i -E 's/\s/\\t/g' {output.gff_namedCDS};")
+        shell("sed -i -E 's/\\s/\\t/8' {output.gff_namedCDS} ;")
 
 # Builds the index of bowtie2 mapping on sequences for reads remove
 rule bowtie2_build_outRNA:
