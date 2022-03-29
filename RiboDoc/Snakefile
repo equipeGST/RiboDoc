@@ -330,12 +330,14 @@ rule htseqcount:
         local_path + "benchmarks/htseqcount/{sample}.benchmark.txt"
     params:
         tmp_file = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}_tmp.txt"
+    threads:
+        multi_threads_nbr
     shell:
         # htseq 0.13.5
         "set +o pipefail;"
         "echo -e '" + htseq_header + "' 2> {log.echo} > {output.htseq_table};"
         "sed -i '1s/$/{wildcards.sample}/' {output.htseq_table} 2> {log.sed};"
-        "htseq-count -n 2 -f bam -t " + config['gff_element_cds'] + " -i " + ID_or_Parent + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount} > {params.tmp_file};"
+        "htseq-count -n {threads} -f bam -t " + config['gff_element_cds'] + " -i " + ID_or_Parent + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount} > {params.tmp_file};"
         """head -n -5 {params.tmp_file} 2> {log.head} | awk -F '\t+' '{{if($3 >= 0) {{print($0)}} else {{printf("%s\\tNA\\t%s\\n",$1,$2)}}}}' 2> {log.awk} >> {output.htseq_table};"""
         "rm -f {params.tmp_file};"
 
