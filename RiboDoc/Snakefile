@@ -1,7 +1,4 @@
 configfile: "/data/config.yaml"
-# Docker 19.03.12
-# Conda 4.9.2
-# snakemake 6.1.1
 
 
 ribodoc_version = "0.7.2"
@@ -164,7 +161,6 @@ rule name_CDS:
         else:
             print("Missing at least some 'gene_id' attribute in this gff.")
         shell("sed -i -E 's/\\s/\\t/8' {output.gff_namedCDS} ;")
-
 
 # Quality control of data : build of the fastqc
 rule make_fastqc:
@@ -410,7 +406,6 @@ rule htseqcount:
     threads:
         multi_threads_nbr
     shell:
-        # htseq 0.13.5
         "set +o pipefail;"
         "echo -e '" + htseq_header + "' 2> {log.echo} > {output.htseq_table};"
         "sed -i '1s/$/{wildcards.sample}/' {output.htseq_table} 2> {log.sed};"
@@ -451,7 +446,6 @@ rule htseqcount_utr:
     params:
         sample_names="{sample}"
     shell:
-        # htseq 0.13.5
         "set +o pipefail;"
         "totalReads=`samtools view -c {input.bam} 2> {log.view}`;"
 
@@ -549,15 +543,9 @@ rule DESeq2_analysis:
         reportPath = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/",
         reportName = config['project_name'] + ".Final_report"
     shell:
-        # r-base 4.0.3
-        # bioconductor-deseq2 1.30.1
-        # r-rmarkdown 2.7
-        # r-factominer 2.4
-        # r-stringr 1.4.0
         "set +o pipefail;"
         "[ `head -2 {input.counts_matrix} | cut -f 1 | uniq | wc -l` == 1 ] && sed -i -e '2d' {input.counts_matrix};"
         "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', knit_root_dir = '{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2};"
-        # "rm -f {input.transcript_list};"
 
 
 # Quality controls :
@@ -752,8 +740,6 @@ rule quality_controls_bamDivision:
         sample_names = "{sample}",
         read_length = "{taille}"
     shell:
-        # samtools 1.12
-        # gawk 5.1.0
         "bash " + ribodoc_tools + "BamDivision.sh -N {params.sample_names} -l {params.read_length} -B {input.bam} -T {threads} -o " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log};"
 
 # Creates bed files from fasta files
@@ -774,7 +760,6 @@ rule quality_controls_bedcount:
         sample_names = "{sample}",
         read_length = "{taille}"
     shell:
-        # bedtools 2.30.0
         "bash " + ribodoc_tools + "readsLengthRepartition.sh -N {params.sample_names} -l {params.read_length} -F {input.fasta} -D " + local_path + "RESULTS/qualitativeAnalysis/bamDivision/ -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log};"
 
 # Outputs the number of reads on each reads length
@@ -815,7 +800,6 @@ rule quality_controls_periodicity:
     benchmark:
         local_path + "benchmarks/quality_controls_periodicity/{sample}.{taille}.benchmark.txt"
     shell:
-        # gawk 5.1.0
         "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'start' -t '" + config['gff_element_cds'] + "' -m " + config['window_bf'] + " -M " + config['window_af'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.start};"
         "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'stop' -t '" + config['gff_element_cds'] + "' -m " + config['window_af'] + " -M " + config['window_bf'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.stop};"
 
@@ -832,7 +816,6 @@ rule graphs_length:
     benchmark:
         local_path + "benchmarks/graphs_length/{sample}.benchmark.txt"
     shell:
-        # r-base 4.0.3
         "bash " + ribodoc_tools + "generationGraph_length.sh -N {params.sample_name} 2> {log.bash};"
 
 # Creates periodicity graphs
@@ -850,5 +833,4 @@ rule graphs_periodicity:
     benchmark:
         local_path + "benchmarks/graphs_periodicity/{sample}.{taille}.benchmark.txt"
     shell:
-        # r-base 4.0.3
         "bash " + ribodoc_tools + "generationGraph_perio.sh -N {params.sample_name} -l {params.read_length} -t '" + config['gff_element_cds'] + "' -m " + config['window_bf'] + " -M " + config['window_af'] + " 2> {log.bash};"
