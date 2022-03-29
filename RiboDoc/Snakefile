@@ -679,6 +679,26 @@ rule graphs_periodicity:
 
 
 # riboWaltz pipeline
+## In case there are no UTRs in the original GFF, call for ORFelongate functions
+rule ORFelongate:
+    input:
+        fasta = local_path + "database/" + os.path.basename(config['fasta']),
+        gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
+    output:
+        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta",
+        gff = local_path + "RESULTS/annex_database/transcriptome_elongated.gff",
+        gff_with_genes = local_path + "RESULTS/annex_database/transcriptome_elongated_with_gene_features.gff"
+    log:
+        orf_elongate = local_path + "logs/ORFelongate/orf_elongate.log"
+    benchmark:
+        local_path + "benchmarks/ORFelongate/ORFelongate.benchmark.txt"
+    params:
+        path = local_path + "RESULTS/annex_database/transcriptome_elongated"
+    shell:
+        "python3 " + ribodoc_tools + "ORFelongate.py -fna {input.fasta} -gff {input.gff} -features_include " + config['gff_element_cds'] + " -type nucl -o {params.path};"
+        "mv {output.gff} {output.gff_with_genes};"
+        """awk '$3 !~ "gene"' {output.gff_with_genes} > {output.gff};"""
+
 # Create GTF file for riboWaltz
 rule transcriptome_construction_gtf:
     input:
@@ -708,44 +728,42 @@ rule transcriptome_construction_gtf:
 # Builds the index of bowtie2 mapping for all RNA
 rule bowtie2_build_transcriptome:
     input:
-        local_path + "database/exons_IDonly_" + config['fasta']
+        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta"
     output:
-        expand(local_path + "database/transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2)
+        expand(local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2)
     log:
         local_path + "logs/bowtie2_build_transcriptome/bowtie2_build.log"
     benchmark:
         local_path + "benchmarks/bowtie2_build_transcriptome/transcriptome_index_bowtie2.benchmark.txt"
+    params:
+        index_names = local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_bowtie2"
     threads:
         multi_threads_nbr
-    params:
-        index_names = local_path + "database/transcriptome_index_bowtie2"
     shell:
-        # bowtie2 2.4.2
-        "bowtie2-build --threads {threads} {input} {params.index_names} &> {log};"
+        "bowtie2-build --threads {threads} {input.fasta} {params.index_names} &> {log} ;"
 
 # Builds the index of hisat2 mapping for all RNA
 rule hisat2_build_transcriptome:
     input:
-        local_path + "database/exons_IDonly_" + config['fasta']
+        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta"
     output:
-        expand(local_path + "database/transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2)
+        expand(local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2)
     log:
         local_path + "logs/hisat2_build_transcriptome/hisat2_build.log"
     benchmark:
         local_path + "benchmarks/hisat2_build_transcriptome/hisat2_build_transcriptome.benchmark.txt"
+    params:
+        index_names = local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_hisat2"
     threads:
         multi_threads_nbr
-    params:
-        index_names = local_path + "database/transcriptome_index_hisat2"
     shell:
-        # hisat2 2.2.1
-        "hisat2-build --threads {threads} {input} {params.index_names} &> {log};"
+        "hisat2-build --threads {threads} {input.fasta} {params.index_names} &> {log} ;"
 
-# Performs qualitative analysis with riboWaltz
+# Performs mapping on transcriptome
 rule run_mapping_transcriptome:
     input:
-        expand(local_path + "database/transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2),
-        expand(local_path + "database/transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2),
+        expand(local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2),
+        expand(local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2),
         fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
         sam_hisat2 = temp(local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".hisat2.sam"),
@@ -756,17 +774,17 @@ rule run_mapping_transcriptome:
         bowtie2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_transcriptome_bowtie2.log"
     benchmark:
         local_path + "benchmarks/run_mapping_transcriptome/{sample}.benchmark.txt"
+    resources:
+        mem_mb = mem_mb_resources
+    params:
+        index_names_hisat2 = local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_hisat2",
+        index_names_bowtie2 = local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_bowtie2",
+        sample_names = "{sample}"
     threads:
         multi_threads_nbr
-    params:
-        index_names_hisat2 = local_path + "database/transcriptome_index_hisat2",
-        index_names_bowtie2 = local_path + "database/transcriptome_index_bowtie2",
-        sample_names="{sample}"
     shell:
-        # bowtie2 2.4.2
-        # hisat2 2.2.1
-        "hisat2 -x {params.index_names_hisat2} --threads {threads} -k 10 -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out};"
-        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} -k 10 -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out};"
+        "hisat2 -x {params.index_names_hisat2} --threads {threads} -k 10 -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
+        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} -k 10 -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
 
 # Creates bam and sam files
 rule samtools_filter_transcriptome:
