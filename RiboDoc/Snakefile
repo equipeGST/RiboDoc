@@ -303,11 +303,9 @@ rule run_mapping:
 rule samtools_filter:
     input:
         sam_hisat2 = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".hisat2.sam",
-        sam_bowtie2 = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bowtie2.sam",
-        fasta = local_path + "database/" + config['fasta']
+        sam_bowtie2 = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bowtie2.sam"
     output:
-        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
-        bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai"
+        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam"
     log:
         grep_header_hisat2 = local_path + "logs/samtools_filter/{sample}.grep_hisat2.log",
         grep_core_hisat2 =  local_path + "logs/samtools_filter/{sample}.grep_core_hisat2.log",
@@ -318,22 +316,35 @@ rule samtools_filter:
         XM_filter_bowtie2 = local_path + "logs/samtools_filter/{sample}.XM_filter_bowtie2.log",
         view_bam = local_path + "logs/samtools_filter/{sample}.view_bam.log",
         sort_bam = local_path + "logs/samtools_filter/{sample}.sort_bam.log",
-        index_bam = local_path + "logs/samtools_filter/{sample}.index_bam.log"
+        rm = local_path + "logs/samtools_filter/{sample}.rm.log"
     benchmark:
-        local_path + "benchmarks/samtools_filter-bowtie2/{sample}.benchmark.txt"
-    threads:
-        multi_threads_nbr
+        local_path + "benchmarks/samtools_filter/{sample}.benchmark.txt"
+    resources:
+        mem_mb = round(mem_mb_resources / 3)
     params:
         sam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".sam"
+    threads:
+        multi_threads_nbr
     shell:
-        # samtools 1.12
-        "set +o pipefail;"
-        "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} 1> {params.sam};"
-        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam};"
-        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam};"
-        "samtools view -@ {threads} -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ {threads} -o {output.bam} 2> {log.sort_bam};"
-        "rm -f {params.sam};"
-        "samtools index {output.bam} 2> {log.index_bam};"
+        "set +o pipefail ;"
+        "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} 1> {params.sam} ;"
+        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
+        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
+        "samtools view -@ {threads} -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ {threads} -o {output.bam} 2> {log.sort_bam} ;"
+        "rm -r {params.sam};"
+
+# Index BAMs
+rule index_bam:
+    input:
+        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam"
+    output:
+        bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai"
+    log:
+        index_bam = local_path + "logs/index_bam/{sample}.index_bam.log"
+    benchmark:
+        local_path + "benchmarks/index_bam/{sample}.benchmark.txt"
+    shell:
+        "samtools index {input.bam} 2> {log.index_bam} ;"
 
 # Counts reads on each transcript
 rule htseqcount:
@@ -761,10 +772,9 @@ rule run_mapping_transcriptome:
 rule samtools_filter_transcriptome:
     input:
         sam_hisat2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".hisat2.sam",
-        sam_bowtie2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bowtie2.sam",
-        fasta = local_path + "database/" + config['fasta']
+        sam_bowtie2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bowtie2.sam"
     output:
-        bam = local_path + "RESULTS/BAM_transcriptome/exons_{sample}" + frag_length_L + ".bam"
+        bam = local_path + "RESULTS/BAM_transcriptome/transcriptome_elongated.{sample}" + frag_length_L + ".bam"
     log:
         grep_header_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.grep_hisat2.log",
         uniq_header = local_path + "logs/samtools_filter_transcriptome/{sample}.uniq_header.log",
@@ -772,24 +782,36 @@ rule samtools_filter_transcriptome:
         XM_filter_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_hisat2.log",
         grep_core_bowtie2 =  local_path + "logs/samtools_filter_transcriptome/{sample}.grep_core_bowtie2.log",
         view_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.view_bam.log",
-        sort_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.sort_bam.log",
-        index_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.index_bam.log"
+        sort_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.sort_bam.log"
     benchmark:
         local_path + "benchmarks/samtools_filter_transcriptome/{sample}.benchmark.txt"
-    threads:
-        multi_threads_nbr
+    resources:
+        mem_mb = round(mem_mb_resources / 3)
     params:
         sample = "{sample}",
         sam = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".sam"
+    threads:
+        multi_threads_nbr
     shell:
-        # samtools 1.12
-        "set +o pipefail;"
-        "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} | uniq 2> {log.uniq_header} 1> {params.sam};"
-        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam};"
-        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} 1>> {params.sam};"
-        "samtools view -@ {threads} -F 3588 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ {threads} -o {output.bam} 2> {log.sort_bam};"
-        "rm -f {params.sam};"
-        "samtools index {output.bam} 2> {log.index_bam};"
+        "set +o pipefail ;"
+        "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} | uniq 2> {log.uniq_header} 1> {params.sam} ;"
+        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
+        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} 1>> {params.sam} ;"
+        "samtools view -@ {threads} -F 3588 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ {threads} -o {output.bam} 2> {log.sort_bam} ;"
+        "rm -f {params.sam} ;"
+
+# Index BAMs
+rule index_bam_transcriptome:
+    input:
+        bam = local_path + "RESULTS/BAM_transcriptome/transcriptome_elongated.{sample}" + frag_length_L + ".bam"
+    output:
+        bai = local_path + "RESULTS/BAM_transcriptome/transcriptome_elongated.{sample}" + frag_length_L + ".bam.bai"
+    log:
+        index_bam = local_path + "logs/index_bam_transcriptome/{sample}.index_bam.log"
+    benchmark:
+        local_path + "benchmarks/index_bam_transcriptome/{sample}.benchmark.txt"
+    shell:
+        "samtools index {input.bam} 2> {log.index_bam} ;"
 
 # Performs qualitative analysis with riboWaltz
 rule riboWaltz:
