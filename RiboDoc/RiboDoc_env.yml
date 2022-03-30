@@ -15,6 +15,7 @@ dependencies:
   - argcomplete=2.0.0=pyhd8ed1ab_0
   - argh=0.26.2=pyh9f0ad1d_1002
   - async-timeout=4.0.2=pyhd8ed1ab_0
+  - atk-1.0=2.36.0=h3371d22_4
   - attmap=0.13.2=pyhd8ed1ab_0
   - attrs=21.4.0=pyhd8ed1ab_0
   - backports=1.1=pyhd3eb1b0_0
@@ -53,7 +54,7 @@ dependencies:
   - bioconductor-zlibbioc=1.40.0=r41h5c21468_1
   - biopython=1.79=py39h3811e60_1
   - boto3=1.21.28=pyhd8ed1ab_0
-  - botocore=1.24.28=pyhd8ed1ab_0
+  - botocore=1.24.29=pyhd8ed1ab_0
   - bowtie2=2.4.5=py39hd2f7db1_2
   - brotli=1.0.9=h7f98852_6
   - brotli-bin=1.0.9=h7f98852_6
@@ -86,7 +87,7 @@ dependencies:
   - dnaio=0.8.0=py39hbf8eff0_0
   - docutils=0.18.1=py39hf3d152e_0
   - dropbox=11.28.0=pyhd8ed1ab_0
-  - expat=2.4.7=h27087fc_0
+  - expat=2.4.8=h27087fc_0
   - fastqc=0.11.9=hdfd78af_1
   - filechunkio=1.8=py_2
   - filelock=3.6.0=pyhd8ed1ab_0
@@ -105,6 +106,7 @@ dependencies:
   - gawk=5.1.0=h7f98852_0
   - gcc_impl_linux-64=9.4.0=h03d3576_14
   - gcc_linux-64=9.4.0=h391b98a_9
+  - gdk-pixbuf=2.42.8=hff1cb4f_0
   - gettext=0.21.0=hf68c758_0
   - gffread=0.12.7=hd03093a_1
   - gffutils=0.10.1=pyh864c0ab_1
@@ -125,8 +127,11 @@ dependencies:
   - google-resumable-media=2.1.0=pyh6c4a22f_0
   - googleapis-common-protos=1.56.0=py39hf3d152e_0
   - graphite2=1.3.14=h23475e2_0
+  - graphviz=3.0.0=h5abf519_1
   - grpcio=1.45.0=py39h0f497a6_0
   - gsl=2.7.1=hd82f3ee_0
+  - gtk2=2.24.33=h90689f9_2
+  - gts=0.7.6=h64030ff_2
   - gxx_impl_linux-64=9.4.0=h03d3576_14
   - gxx_linux-64=9.4.0=h0316aca_9
   - harfbuzz=4.1.0=h40b6f09_0
@@ -149,7 +154,7 @@ dependencies:
   - jupyter_core=4.9.2=py39hf3d152e_0
   - kernel-headers_linux-64=2.6.32=he073ed8_15
   - keyutils=1.6.1=h166bdaf_0
-  - kiwisolver=1.4.0=py39hf939315_0
+  - kiwisolver=1.4.2=py39hf939315_0
   - krb5=1.19.3=h3790be6_0
   - lcms2=2.12=hddcbb42_0
   - ld_impl_linux-64=2.36.1=hea4e1c9_2
@@ -167,6 +172,7 @@ dependencies:
   - libffi=3.4.2=h7f98852_5
   - libgcc-devel_linux-64=9.4.0=hd854feb_14
   - libgcc-ng=11.2.0=h1d223b6_14
+  - libgd=2.3.3=h283352f_2
   - libgfortran-ng=11.2.0=h69a702a_14
   - libgfortran5=11.2.0=h5c6108e_14
   - libgit2=1.4.2=h6529ace_0
@@ -180,12 +186,14 @@ dependencies:
   - libopenblas=0.3.18=pthreads_h8fe5266_0
   - libpng=1.6.37=h21135ba_2
   - libprotobuf=3.20.0=h6239696_0
+  - librsvg=2.52.5=h0a9e6e8_2
   - libsanitizer=9.4.0=h79bfe98_14
   - libsodium=1.0.18=h36c2ea0_1
   - libssh2=1.10.0=ha56f1ee_2
   - libstdcxx-devel_linux-64=9.4.0=hd854feb_14
   - libstdcxx-ng=11.2.0=he4da1e4_14
   - libtiff=4.3.0=h542a066_3
+  - libtool=2.4.6=h9c3ff4c_1008
   - libuuid=2.32.1=h7f98852_1000
   - libwebp=1.2.2=h3452ae3_0
   - libwebp-base=1.2.2=h7f98852_1
@@ -238,7 +246,7 @@ dependencies:
   - pyopenssl=22.0.0=pyhd8ed1ab_0
   - pyparsing=3.0.7=pyhd8ed1ab_0
   - pyrsistent=0.18.1=py39h3811e60_0
-  - pysam=0.18.0=py39h5030a8b_2
+  - pysam=0.19.0=py39h5030a8b_0
   - pysftp=0.2.9=py_1
   - pysocks=1.7.1=py39hf3d152e_4
   - pytest=7.1.1=py39hf3d152e_0
@@ -359,7 +367,7 @@ dependencies:
   - r-matrixmodels=0.5_0=r41hc72bb7e_0
   - r-matrixstats=0.61.0=r41hcfec24a_0
   - r-memoise=2.0.1=r41hc72bb7e_0
-  - r-mgcv=1.8_39=r41h0154571_0
+  - r-mgcv=1.8_40=r41h0154571_0
   - r-mime=0.12=r41hcfec24a_0
   - r-minqa=1.2.4=r41h5ee154c_1006
   - r-modelmetrics=1.2.2.2=r41h03ef668_1
@@ -431,7 +439,7 @@ dependencies:
   - r-stringr=1.4.0=r41hc72bb7e_2
   - r-survival=3.3_1=r41h06615bd_0
   - r-sys=3.4=r41hcfec24a_0
-  - r-testthat=3.1.2=r41h03ef668_0
+  - r-testthat=3.1.3=r41h7525677_0
   - r-tibble=3.1.6=r41hcfec24a_0
   - r-tidyr=1.2.0=r41h03ef668_0
   - r-tidyselect=1.1.2=r41hc72bb7e_0
@@ -461,14 +469,14 @@ dependencies:
   - s3transfer=0.5.2=pyhd8ed1ab_0
   - samtools=1.14=hb421002_0
   - sed=4.8=he412f7d_0
-  - setuptools=61.2.0=py39hf3d152e_1
+  - setuptools=61.2.0=py39hf3d152e_3
   - simplejson=3.17.6=py39h3811e60_0
   - six=1.16.0=pyh6c4a22f_0
   - slacker=0.14.0=py_0
   - smart_open=5.2.1=pyhd8ed1ab_0
   - smmap=3.0.5=pyh44b312d_0
-  - snakemake=7.3.2=hdfd78af_0
-  - snakemake-minimal=7.3.2=pyhdfd78af_0
+  - snakemake=7.3.3=hdfd78af_0
+  - snakemake-minimal=7.3.3=pyhdfd78af_0
   - sqlite=3.38.0=hc218d9a_0
   - stone=3.3.1=pyhd8ed1ab_0
   - stopit=1.1.2=py_0
