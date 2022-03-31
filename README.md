@@ -2,33 +2,30 @@
 
 Welcome to the RiboDoc tool tutorial !  
 
->RiboDoc is designed to perform all classical steps of **ribosome profiling** (RiboSeq) data analysis from the FastQ files to the differential expression analysis.
+>RiboDoc is designed to perform all classical steps of **ribosome profiling** (RiboSeq) data analysis from the FastQ files to the differential expression analysis with necessary quality controls.
 
 
-## 1) Install Docker  
-First of all, Docker must be present in version 19 or higher.  
-If you don’t already have it, now is the time to fix it !  
+## 1) Install Docker or Singularity  
+First of all, Docker or Singularity must be installed. Singularity might be prefered as it does not need super user rights, especially interesting for the use of RiboDoc on a cluster.  
 Docker Engine is available on different OS like macOS and Windows 10 through Docker Desktop and as a static binary installation for a variety of Linux platforms. All are available here : https://docs.docker.com/engine/install/   
 
 >Tips:  
 >&emsp;&emsp;&emsp;For Windows, WSL2 and Ubuntu from Microsoft store applications are needed too.  
 
 ## 2) Directory preparation  
-RiboDoc does not need installation (yipee) but a precise folder architecture is required (boo).  
-The first step is the project folder creation. It is named as your project and will be the volume linked to Docker.  
-Then, two sub-folders and a file have to be created and completed respectively.   
+RiboDoc does not need installation but a precise architecture in your project folder is required.  
+The first step is the project folder creation. It is named as your project and will be the volume linked to the container.  
+Then, two sub-folders and a file have to be created and filled.   
 
-> **Caution, those steps are majors for the good course of the analysis**  
-> **Subfolders don’t have uppercase**    
+> **Caution, those steps are majors for the good course of the analysis.**  
+> **The subfolders names do not have uppercase letters.**    
 
-Folder architecture at this step:  
-Project_name  
-
-### a) *fastq* subfolder  
-This subfolder, as its name suggests, should contain your FastQs. These must be compressed in .gz.  
-**Format of file name must be as following:**  
-&emsp;&emsp;&emsp;biological_condition_name.replicat.fastq.gz     
-For example, for the first replicate of the wild-type condition the sample can be named *Wild_Type.1.fastq.gz* and *Wild_Type.2.fastq.gz* for the second replicate.   
+Subfolders :
+### a) *fastq*  
+This subfolder, as its name suggests, should contain your FastQ files compressed in *.gz*.  
+**Format of file names must be as following:**  
+&emsp;&emsp;&emsp;***biological_condition_name.replicat_number.fastq.gz***     
+For example, for the first replicate of the wild-type condition the sample can be named *Wild_Type.1.fastq.gz* and the name of the second replicate for the mutant samples would be *Mutant.2.fastq.gz*.   
 
 >Caution, for **Windows**, extensions can be hidden.    
 
@@ -42,18 +39,19 @@ Project_name
 
 If you want to try RiboDoc on an example dataset, you can find our data with on GEO : [GEO GSE173856](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE173856)
 
-### b) *database* subfolder  
+### b) *database*  
 In this subfolder, you must put at least the following three files:  
-- Your genome fasta file: Whether it's the genome or the transcriptome, it must be your reference fasta file where reads will be aligned. It must, like the other files, be downloaded from the [Ensembl](https://www.ensembl.org/index.html) database.  
+- Your reference genome fasta file: Whether it's the genome or the transcriptome, it must be your reference fasta file to wich the reads will be aligned. We advise you to download it from the [Ensembl](https://www.ensembl.org/index.html) database, as the files are maintained up to date and following the standard GFF format.  
 For example, for an entire human genome, you can look for [Human genome](https://www.ensembl.org/Homo_sapiens/Info/Index) and download the *Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz* file in the genome assembly list of fasta files, unzip it and place it in the *database* subfolder of your project directory.  
 
 > Note:  
->&emsp;&emsp; If the transcriptome is used, the computer needs less RAM capacity than for a genome.    
+>&emsp;&emsp; If the transcriptome is used, the computer needs less RAM capacity than for a genome but specific files and formats can be needed.    
 
 
-- A GFF format annotation file corresponding to the reference genome dropped.  
+- A GFF format annotation file corresponding to the reference genome.  
 For example, for the human genome annotations, you can look for [Human genome](https://www.ensembl.org/Homo_sapiens/Info/Index) and download the *Homo_sapiens.GRCh38.103.gff3.gz* file in the genome annotation list of gff files, unzip it and place it in the *database* subfolder of your project directory.  
-- out-RNA fasta file: This file must gather together RNA sequences you want to remove from the analysis. As a rule, these are at least rRNA. You can also add mitochondrial RNA, non-chromosomal dna or any other fasta sequence of your choice. You can find the fasta files associated to non-chromosomal dna in the [Ensembl](https://www.ensembl.org/index.html) database in the genome assembly list of fasta files. If you want to remove some specific sequences, you just have to create a file with, for each sequence, one line starting with a ">" where you can add a name for your sequence followed by one line containing the sequence to remove. It gives you this format :  
+
+- out-RNA fasta file: This file must gather together DNA sequences you want to remove from the analysis. As a rule, these are at least ribosomal sequences (rRNA). You can also add mitochondrial DNA, non-chromosomal DNA or any other fasta sequence of your choice which you want to be discarded in the analysis. You can find the fasta files associated to non-chromosomal DNA in the [Ensembl](https://www.ensembl.org/index.html) database in the genome assembly list of fasta files. If you want to remove some specific sequences, you just have to create a file with, for each sequence, one line starting with a ">" where you can add a name for your sequence followed by one line containing the sequence to remove. It gives you this format :  
 >&emsp; > Sequence_X
 >&emsp; GCTGACACGCTGTCCTCTGGCGACCTGTCGTCGGAGAGGTTGGGCCTCCGGATGCGCGCGGGGCTCTGGC
 >&emsp; CTCACGGTGACCGGCTAGCCGGCCGCGCTCCTGCCTTGAGCCGCCTGCCGCGGCCCGCGGGCCTGCTGTT  
@@ -61,9 +59,9 @@ For example, for the human genome annotations, you can look for [Human genome](h
 >&emsp; CTCTCGCGCGTCCGAGCGTCCCGACTCCCGGTGCCGGCCCGGGTCCGGGTCTCTGACCCACCCGGGGGCG  
 
 If you look for specific sequences, you can find them on the [NCBI website](https://www.ncbi.nlm.nih.gov/). For example, you can find the rRNA fasta file sequences [here](https://www.ncbi.nlm.nih.gov/nuccore/U13369.1?report=fasta).  
-You need to have a file, even if it's empty. So, if you want everything to be used in the analysis, just put an empty file.
+***You _need_ to have a file, even if it's empty***. So, if you want everything to be used in the analysis, just put an empty file.
 
-If you have them, files containing each annotation length (see next paragraph) are also be dropped into this folder.  
+If you need them, files containing each annotation length (see next paragraph) are also to be dropped into this folder.  
 
 Folder architecture at this step:  
 Project_name  
@@ -79,50 +77,56 @@ Project_name
 &emsp;&emsp;&emsp;└── annotation_length.txt (if needed/provided)  
 
 ### c) [config.yaml](https://raw.githubusercontent.com/equipeGST/RiboDoc/main/config.yaml) file  
-Config.yaml file is used to define parameters to tell RiboDoc how to process your data.  
-You must download it [here](https://raw.githubusercontent.com/equipeGST/RiboDoc/main/config.yaml) and open it with a text editor.    
-It must be carefully completed and be present in the project directory everytime you want to run RiboDoc.  
+The *config.yaml* file allows you to define some parameters to tell RiboDoc which data you want to process and how.  
+You must download it [here](https://raw.githubusercontent.com/equipeGST/RiboDoc/main/config.yaml) and open it with a text editor as a text file.    
+It must be carefully completed and be present in the project directory everytime you want to run RiboDoc. A copy of this file will be made in the *RESULTS/* folder to keep a trace of the parameters you chose for a specific analysis.   
 
 >Caution  
->&emsp;&emsp;&emsp;Spaces and quotation marks **must not be changed** ! Your information must be entered in quotes and should not have spaces     
+>&emsp;&emsp;&emsp;Spaces and quotation marks **must not be changed** ! Your information must be entered between quotes and should not have spaces     
 
-#### Project name  
+####How to fill the configuration file :
+##### Project name  
 First and easy step, the project name ! You can use the same as your folder.  
-*project_name*: principal_directory_name  
-#### Name of database subfolder file  
-You must enter the full name (**with extensions**) without the path of files added in the database subfolder previously created.   
-*fasta*: reference_genome_fasta_file.fa  
-*gff*: corresponding_gff_annotation_file.gff3  
-*fasta_outRNA*: unwanted_sequences_fasta_file.fa  
-#### Pipeline option selection  
+*project_name*: "Project_title"  
+##### Name of database files  
+You must enter the full name **with extensions** without the path of files added in the database subfolder previously created.   
+*fasta*: "reference_genome_fasta_file.fa"  
+*gff*: "corresponding_GFF_annotation_file.gff3"  
+*fasta_outRNA*: "unwanted_DNA_sequences_fasta_file.fa"  
+##### Pipeline option selection  
 During the RiboDoc process, data is trimmed and selected depending on their length.   
-*already_trimmed*: If your data contains already trimmed reads, you can set this option on “yes”.   
-*adapt_sequence*: If they are not trimmed, you must specify the sequence adapters in quotes on the line here.
+*already_trimmed*: If your data contains reads already trimmed of their adapter, you can set this option on “yes”. Else, set it on "no".   
+*adapt_sequence*: If they are not trimmed, you should specify the sequence of the adapter in quotes on the line here like "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA". If you do not put anything between the quotes, RiboDoc will try to fond the adapter itself but this can sometimes lead to a wrong adapter sequence.
 
-You also have to define the range for read length selection. Default values select reads from 25 to 35 bases long.  
+You also have to define the range for read length selection. Default values select reads from 25 to 35 nucleotides long.  
 *readsLength_min*: minimum read length.   
 *readsLength_max*: maximum read length.   
 
-You can also parameter alignments:   
-*gff_element_cds*: feature corresponding to CDS in the annotation file. 'CDS' is the default value (can sometimes be ORF).     
-*gff_attribut*: attribut to regroup reads during counting. 'ID' is the default value.     
-#### Statistical settings  
+You might also need to specify features keywords in the GFF file to fit your GFF file format :   
+*gff_element_cds*: feature corresponding to CDS in the annotation file. "CDS" is the default value (can sometimes be "ORF").     
+*gff_attribut*: attribut to regroup reads during counting. "Parent" is the default value to regroup counts by transcripts (Parent of CDS features) for the differential analysis. You can also put "ID" if you want to count each CDS independently.
+*gff_name_attribut*: Name of the genes features in the GFF. Default is "Name" but it can sometimes be "gene_name" or else.     
+##### Statistical settings  
 To be able to perform statistical analyzes, you must define a reference condition as well as your thresholds.   
-*reference_condition*: it correspond to the reference biological_condition_name
+*reference_condition*: it correspond to the reference biological_condition_name in your FastQ files name. Ex : "Wild_Type" (as in *Wild_Type.1.fastq.gz*).
 *transcript_or_gene*: choose whether to perfom the differential analysis on features grouped by "transcripts" or by "gene"  
-*p-val*: p-value threshold for the differential analysis. Defaut value is 0.01.  
+*p-val*: p-value threshold for the differential analysis. Default value is 0.01.  
 *logFC*: logFC threshold for the differential analysis. Defaut value is 0 to keep all the genes without logFC filtering.  
-#### Window for qualitative test  
-During the quality analysis, the periodicity is observed on bases around start and stop.     
+##### Window for qualitative test  
+During the quality analysis, the periodicity is observed on nucleotides around start and stop codons.     
 
->The periodicity must be calculated using a metagene profile. It provides the amount of footprints relative to all annotated start and stop codons in a selected window.   
+>The periodicity must be calculated using a metagene profile (metaprofile). It provides the amount of footprints relative to all annotated start and stop codons.   
 
 2 pipelines dedicated to quality controls are available in RiboDoc. The first one uses the [riboWaltz tool](https://github.com/LabTranslationalArchitectomics/riboWaltz) which can need high RAM resources depending on your data. The second pipeline is a series of scripts called TRiP which use a specific gff file format as annotation file. For more details on this format, please check the RiboDoc article.
-*qualitative_analysis*: Choose between the 2 qualitative analysis pipeline. Default value is "ribowaltz".  
-##############################################################
-##### Optional and only for qualitative_analysis: "trip" #####
-##############################################################
-#### UTR covering option  
+*qualitative_analysis*: Choose between the 2 qualitative analysis pipeline. Default value is "ribowaltz" as it is more precise and does not need files with specific formats. "trip" is more complicated to use but asks for less resources.  
+The window selected by default is -50/+100 nts and -100/+50 nts around start and stop codons respectively.   
+*window_utr*: Define your window before start and after stop. Default is "50"  
+*window_cds*: Define your window after start and before stop. Default is "100"  
+
+################################################################
+###### Optional and only for qualitative_analysis: "trip" ######
+################################################################
+##### UTR covering option  
 *UTR*: This option has to be turned on if you want to compare UTRs coverage against CDS. However, to be realized, this option requires a file with the name of each gene and the length of the associated annotation (one file by annotation: CDS, 3’-UTR and 5’-UTR).  
 
 The full name (**with extensions**) without the path of each file has to be report in the configfile.  
@@ -133,14 +137,10 @@ The full name (**with extensions**) without the path of each file has to be repo
 Elements for UTRs have to be specified only if you put 'yes' for the 'UTR' option  
 *gff_element_three_prime_utr*: feature corresponding to 3'UTR in the annotation file. Default value is "three_prime_UTR"  
 *gff_element_five_prime_utr*: feature corresponding to 5'UTR in the annotation file. Default value is "five_prime_UTR"  
-##############################################################  
-The window selected by default is -50/+100 nts and -100/+50 nts around start and stop codons respectively.   
-*window_bf*: define your window before start and after stop  
-*window_af*: define your window after star and before stop  
-#### Number of threads  
+################################################################  
+##### Number of threads  
 Thanks to the use of Snakemake, RiboDoc can analyse multiple samples at the same time. We define that ¼ of available CPUs are necessarily requisitioned for these multiple parallele tasks.  
 As some tools used in the analysis pipeline have a multithreaded option (like cutadapt, hisat2, bowtie2 or htseq-count), you can choose the number of threads you allow.    
-*threads*: threads factor you allow. Default value is "2" to enable 50% of your CPUs to be used in the analysis.    
 
 >Caution:  
 >&emsp;&emsp;&emsp;You can attribute 3 threads maximum.  
@@ -165,18 +165,17 @@ Project_name
 
 
 ## 3) Pull RiboDoc  
-When the folder architecture is ready, it’s time to start RiboDoc !  
-First, open a terminal (this can look scary for some but don't worry, there are only 2 lines to write).  
+To get RiboDoc, open a terminal. We know this can look scary for some but do not worry, there are only 2 easy lines to write.  
 If you never used RiboDoc on your workstation, you must pull it from Docker hub.  
-Copy and past the following command line:    
+Copy and paste the following command line:    
 &emsp;&emsp;&emsp;`docker pull equipegst/ribodoc`  
 If you have any error, it might come from a rights problem so you should try to copy and paste this command:    
 &emsp;&emsp;&emsp;`sudo docker pull equipegst/ribodoc`     
 
 ## 4) Run RiboDoc  
-Then, or if you already have used RiboDoc, you can run it thanks to the following command:  
-&emsp;&emsp;&emsp;`docker run --rm -v /path/to/working/directory/:/data/ equipegst/ribodoc`  
-*/path/to/working/directory/* corresponds to the project_name directory's **full path** (usually starting with a "/").   
+Now that your folder's architecture is ready, it's time to start ! If you have pulled RiboDoc, you can run it with the following command:  
+&emsp;&emsp;&emsp;`docker run --rm -v /path/to/your/project/folder/:/data/ equipegst/ribodoc`  
+*/path/to/your/project/folder/* corresponds to the **full path** of the directory with all the files you prepared for the analysis (usually starting with a "/"). To get this full path, you can usually drag and drop your folder to the terminal or find it in the properties.    
 *:/data/* **must not be modified in any way** as it corresponds to the path to the project directory inside the container.   
 
 >Caution:   
