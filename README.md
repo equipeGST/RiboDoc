@@ -74,7 +74,7 @@ Project_name
 &emsp;&emsp;&emsp;├── reference_genome_sequences.fa  
 &emsp;&emsp;&emsp;├── reference_genome_annotations.gff3  
 &emsp;&emsp;&emsp;├── RNA_to_remove.fa  
-&emsp;&emsp;&emsp;└── annotation_length.txt (if needed/provided)  
+&emsp;&emsp;&emsp;└── annotation_length.txt (if needed and provided)  
 
 ### c) [config.yaml](https://raw.githubusercontent.com/equipeGST/RiboDoc/main/config.yaml) file  
 The *config.yaml* file allows you to define some parameters to tell RiboDoc which data you want to process and how.  
@@ -160,7 +160,7 @@ Project_name
 │&emsp;&emsp;├── reference_genome_sequences.fa  
 │&emsp;&emsp;├── reference_genome_annotations.gff3  
 │&emsp;&emsp;├── RNA_to_remove.fa  
-│&emsp;&emsp;└── annotation_length.txt (if needed/provided)  
+│&emsp;&emsp;└── annotation_length.txt (if needed and provided)  
 └── config.yaml  
 
 
@@ -173,10 +173,12 @@ If you have any error, it might come from a rights problem so you should try to 
 &emsp;&emsp;&emsp;`sudo docker pull equipegst/ribodoc`     
 
 ## 4) Run RiboDoc  
-Now that your folder's architecture is ready, it's time to start ! If you have pulled RiboDoc, you can run it with the following command:  
-&emsp;&emsp;&emsp;`docker run --rm -v /path/to/your/project/folder/:/data/ equipegst/ribodoc`  
-*/path/to/your/project/folder/* corresponds to the **full path** of the directory with all the files you prepared for the analysis (usually starting with a "/"). To get this full path, you can usually drag and drop your folder to the terminal or find it in the properties.    
+Now that your folder's architecture is ready, it is time to start ! If you have pulled RiboDoc, you can run it with the following command:  
+&emsp;&emsp;&emsp;`docker run --rm -v /path/to/your/project/folder/:/data/ equipegst/ribodoc CPU_NBR MEMORY_AMNT`  
+*/path/to/your/project/folder/* corresponds to the **full path** of the directory with all the files you prepared for the analysis (usually starting with a "/"). To get this full path, you can usually drag and drop your folder to the terminal to display the path in the terminal or you can find it in the properties of your folder.    
 *:/data/* **must not be modified in any way** as it corresponds to the path to the project directory inside the container.   
+*CPU_NBR* is the number of CPU (threads) you want to use for your analysis (Ex : 8).   
+*MEMORY_AMNT* is the amount of memory (RAM) you want to use for your analysis in GB (Ex : 16).   
 
 >Caution:   
 >&emsp;&emsp;&emsp;The path to your project folder and the "/data/" path must start and finish with a slash "/"   
@@ -223,11 +225,13 @@ Initial folders and files are still present and highligth in bold in the tree ar
 │&emsp;&emsp;├── BAM/  
 │&emsp;&emsp;│&emsp;&emsp;├── *one_bam_by_sample.bam*  
 │&emsp;&emsp;│&emsp;&emsp;└── *one_bai_by_bam.bai*  
-│&emsp;&emsp;├── DESeq2/  
+│&emsp;&emsp;├── DESeq2_by_gene or DESeq2_by_transcript/  
 │&emsp;&emsp;│&emsp;&emsp;├── count_matrix.txt  
+│&emsp;&emsp;│&emsp;&emsp;├── count_matrix_by_gene.txt  
 │&emsp;&emsp;│&emsp;&emsp;├── complete.txt  
 │&emsp;&emsp;│&emsp;&emsp;├── up.txt  
 │&emsp;&emsp;│&emsp;&emsp;├── down.txt  
+│&emsp;&emsp;│&emsp;&emsp;├── project_name.Final_report.html  
 │&emsp;&emsp;│&emsp;&emsp;├── Images/  
 │&emsp;&emsp;│&emsp;&emsp;│&emsp;&emsp;├── *all_quantitative_analysis_graphs*  
 │&emsp;&emsp;├── fastqc/  
@@ -255,7 +259,7 @@ It contains also two files:
 - The *dag files* which represents the analysis steps with your samples.  
 
 >Last big tip:  
-In case that a sample is too variable against other replicats or if new samples sequencing are added to your study, you can delete/move or add them in the *fastq* subfolder, delete/move/rename the subfolder *RESULTS/DESeq2*. Run again RiboDoc on the same *project_name* folder and it only creates missing files to complete the analysis (complete analysis for added samples, new differential analysis with all samples available in the *fastq* subfolder).  
+In case a sample is too variable against other replicats or if new sequenced samples are to be added to your study, you can delete/move or add them in the *fastq* subfolder. RiboDoc will only process necessary steps based on the fastq files list. If you want to keep the previous results of your differential analysis, delete/move/rename the subfolder *RESULTS/DESeq2*. Run again RiboDoc on the same *project_name* folder and it only creates missing files to complete the analysis.  
 
 Thank you for using RiboDoc !   
-We wish you the best results for your analyzes !  
+We wish you the best results for your analysis !  
