@@ -138,16 +138,7 @@ Elements for UTRs have to be specified only if you put 'yes' for the 'UTR' optio
 *gff_element_three_prime_utr*: feature corresponding to 3'UTR in the annotation file. Default value is "three_prime_UTR"  
 *gff_element_five_prime_utr*: feature corresponding to 5'UTR in the annotation file. Default value is "five_prime_UTR"  
 ################################################################  
-##### Number of threads  
-Thanks to the use of Snakemake, RiboDoc can analyse multiple samples at the same time. We define that ¼ of available CPUs are necessarily requisitioned for these multiple parallele tasks.  
-As some tools used in the analysis pipeline have a multithreaded option (like cutadapt, hisat2, bowtie2 or htseq-count), you can choose the number of threads you allow.    
 
->Caution:  
->&emsp;&emsp;&emsp;You can attribute 3 threads maximum.  
->&emsp;&emsp;&emsp;Indeed:  
->&emsp;&emsp;&emsp;Allow 1 thread = Remain on a ¼ of threads used  
->&emsp;&emsp;&emsp;Allow 2 threads = Each sample will have 2 threads at its disposal. 2/4 of the CPUs will therefore be used.   
->&emsp;&emsp;&emsp;Allow 3 threads = ¾ of CPUs are used. You should never go beyond so as not to saturate the computer.     
 
 Folder architecture at this step:  
 Project_name  
@@ -171,17 +162,25 @@ Copy and paste the following command line:
 &emsp;&emsp;&emsp;`docker pull equipegst/ribodoc`  
 If you have any error, it might come from a rights problem so you should try to copy and paste this command:    
 &emsp;&emsp;&emsp;`sudo docker pull equipegst/ribodoc`     
+### Use of singularity    
+If you want to use a singularity image instead of a docker image (for the use on a cluster for example), you must pull it from dockerhub. You can name the image as you want but the extension should be *.sif* :    
+&emsp;&emsp;&emsp;`singularity pull /path/to/your/singularity/image.sif docker://equipegst/ribodoc`    
+
 
 ## 4) Run RiboDoc  
-Now that your folder's architecture is ready, it is time to start ! If you have pulled RiboDoc, you can run it with the following command:  
-&emsp;&emsp;&emsp;`docker run --rm -v /path/to/your/project/folder/:/data/ equipegst/ribodoc CPU_NBR MEMORY_AMNT`  
-*/path/to/your/project/folder/* corresponds to the **full path** of the directory with all the files you prepared for the analysis (usually starting with a "/"). To get this full path, you can usually drag and drop your folder to the terminal to display the path in the terminal or you can find it in the properties of your folder.    
+Now that your folder's architecture is ready and the image is on your computer, it's time to start ! If you have pulled RiboDoc, you can run it with the following command:  
+### Use of docker  
+&emsp;&emsp;&emsp;`docker run --rm -v /path/to/your/project/folder/:/data/ equipegst/ribodoc CPU_NUMBER MEMORY_AMOUNT`  
+### Use of singularity  
+&emsp;&emsp;&emsp;`singularity run --disable-cache --bind /path/to/your/project/folder/:/data/ equipegst/ribodoc CPU_NUMBER MEMORY_AMOUNT`  
+*/path/to/your/project/folder/* corresponds to the **full path** of the directory with all the files you prepared for the analysis (usually starting with a "/"). To get this full path, you can usually drag and drop your folder to the terminal or find it in the properties.    
 *:/data/* **must not be modified in any way** as it corresponds to the path to the project directory inside the container.   
-*CPU_NBR* is the number of CPU (threads) you want to use for your analysis (Ex : 8).   
-*MEMORY_AMNT* is the amount of memory (RAM) you want to use for your analysis in GB (Ex : 16).   
+*CPU_NUMBER* is an integer corresponding to the total number of threads you want to use for your analysis (Ex : 4).   
+*MEMORY_AMOUNT* is an integer corresponding to the maximum amount of memory in Gigabytes (RAM) you want to use for your analysis (Ex : 30). Be careful to have enough memory available for alignment steps or the pipeline will be stopped without a specific error written in the "logs" folder.   
+
 
 >Caution:   
->&emsp;&emsp;&emsp;The path to your project folder and the "/data/" path must start and finish with a slash "/"   
+>&emsp;&emsp;&emsp;The path to your project folder and the "/data/" path must start and finish with a slash "/" if you are using docker.   
 
 
 >For Windows users  
