@@ -24,7 +24,7 @@ annotation_db_transcript <- annotation_db_transcript_with_cds0l[annotation_db_tr
 bam_folder <- paste0(local_path, "RESULTS/BAM_transcriptome/")
 
 bam_list <- list.files(bam_folder)
-bam_list <- bam_list[seq(1, length(bam_list), 2)]
+bam_list <- bam_list[str_detect(bam_list, ".bam$")]
 
 samples <- str_replace(bam_list, ".[0-9]{1,3}-[0-9]{1,3}.bam", "")
 names(samples) <- str_remove(bam_list, ".bam")
