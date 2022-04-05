@@ -85,8 +85,8 @@ pdf(file=paste0(local_path, "RESULTS/riboWaltz/frame_psite.pdf"))
 frames[["plot"]]
 dev.off()
 
-window_utr <- gsub(" ", "", params[which(params=="window_bf")+1], fixed = TRUE)
-window_cds <- gsub(" ", "", params[which(params=="window_af")+1], fixed = TRUE)
+window_utr <- as.integer(gsub(" ", "", params[which(params=="window_utr")+1], fixed = TRUE))
+window_cds <- as.integer(gsub(" ", "", params[which(params=="window_cds")+1], fixed = TRUE))
 metaprofile <- metaprofile_psite(reads_psite_list,
                                  annotation_db_transcript,
                                  sample = samples,
