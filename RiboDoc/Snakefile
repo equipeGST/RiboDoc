@@ -717,7 +717,7 @@ rule riboWaltz_transcriptome:
         local_path + "benchmarks/riboWaltz_transcriptome/riboWaltz.benchmark.txt"
     shell:
         "touch {output.psite_table};"
-        "Rscript " + ribodoc_tools + "periodicity_riboWaltz.R {input.transcriptome_gtf} 2> {log} ;"
+        "Rscript " + ribodoc_tools + "periodicity_riboWaltz_transcriptome.R {input.transcriptome_gtf} 2> {log} ;"
         "rm -f " + local_path + "Rplots.pdf ;"
 
 
