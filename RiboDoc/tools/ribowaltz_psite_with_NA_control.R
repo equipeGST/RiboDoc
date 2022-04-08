@@ -1,3 +1,5 @@
+library(ggplot2)
+
 # psite() function from ribowaltz package
 # Control of NAs added in case there is not enough material to find best_offset
 psite_ribowaltz <- function(data, flanking = 6, start = TRUE, extremity = "auto",
