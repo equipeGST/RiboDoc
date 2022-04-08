@@ -9,7 +9,6 @@ output: "html_document"
 #Sys.getenv("RSTUDIO_PANDOC")
 # Sys.setenv(RSTUDIO_PANDOC="/root/miniconda3/envs/RiboDoc_env/bin/pandoc")
 Sys.setenv(RSTUDIO_PANDOC="/RiboDoc/miniconda3/envs/RiboDoc_env/bin/pandoc")
-local_path <- "/data/"
 ```
 
 ```{r rm Global environment, include=FALSE}
@@ -23,6 +22,7 @@ library(FactoMineR)
 ```
 
 ```{r scan_and_paths, echo=FALSE, include=FALSE}
+local_path <- "/data/"
 params <- scan(file = paste0(local_path, "config.yaml"),
                    what = "character",
                    sep = ":"
