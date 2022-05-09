@@ -146,13 +146,14 @@ rule name_CDS:
                 for feature in db.all_features():
                     if feature.featuretype == config['gff_element_cds'] or feature.featuretype == "exon":
                         parent = list(db.parents(feature, level=1))
-                        parent = parent[0]
-                        if parent.attributes.get(config['gff_name_attribut']) and not feature.attributes.get(config['gff_name_attribut']):
-                            feature.attributes[config['gff_name_attribut']] = [i.replace("mRNA","cds") for i in parent.attributes.get(config['gff_name_attribut'])]
-                            feature.attributes[config['gff_name_attribut']][0] + "_name"
-                        if parent.attributes.get('ID') and not feature.attributes.get('ID'):
-                            feature.attributes["ID"] = parent.attributes["ID"]
-                            feature.attributes['ID'] = feature.attributes['ID'][0] + "_CDS"
+                        if len(parent) > 0:
+                            parent = parent[0]
+                            if parent.attributes.get(config['gff_name_attribut']) and not feature.attributes.get(config['gff_name_attribut']):
+                                feature.attributes[config['gff_name_attribut']] = [i.replace("mRNA","cds") for i in parent.attributes.get(config['gff_name_attribut'])]
+                                feature.attributes[config['gff_name_attribut']][0] + "_name"
+                            if parent.attributes.get('ID') and not feature.attributes.get('ID'):
+                                feature.attributes["ID"] = parent.attributes["ID"]
+                                feature.attributes['ID'] = feature.attributes['ID'][0] + "_CDS"
                     fout.write(str(feature) + '\n')
         else:
             shell("cp {input.gff} {output.gff_namedCDS} ;")
