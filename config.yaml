@@ -65,10 +65,10 @@ UTR: "no"
 # File with CDS lengths
 CDSlength: ""
 
-# File with 5' UTR lengths
+# File with 5-prime UTR lengths
 5primelength: ""
 
-# File with 3' UTR lengths
+# File with 3-prime UTR lengths
 3primelength: ""
 
 # Elements for UTRs have to be specified only if you put 'yes' for the 'UTR' option
