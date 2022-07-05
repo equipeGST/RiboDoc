@@ -43,28 +43,22 @@ else:
 
 
 # Check if attributes specified by the user are present in the gff file
-ID_or_Parent = "ID"
 htseq_additional = ""
 htseq_header = 'ID\t'
 fields = "1,2"
+
 f = open(local_path + "database/" + config['gff'],"r")
 for l in f:
-    if config['gff_attribut'] == "Parent":
-        id_or_parent = re.search("^([^\t]+\t){8}.*" + config['gff_attribut'],l)
-        if id_or_parent:
-            ID_or_Parent = "Parent"
-
     is_name = re.search("^([^\t]+\t){8}.*" + config['gff_name_attribut'],l)
     if is_name:
         name_in_gff = True
         htseq_additional = "--additional-attr " + config['gff_name_attribut']
         htseq_header = 'ID\tName\t'
         fields = "1,3"
+        break
     else:
         name_in_gff = False
 
-    if ID_or_Parent == config['gff_attribut'] and is_name:
-        break
 f.close()
 
 
@@ -413,7 +407,7 @@ rule htseqcount:
         "set +o pipefail;"
         "echo -e '" + htseq_header + "' 2> {log.echo} > {output.htseq_table};"
         "sed -i '1s/$/{wildcards.sample}/' {output.htseq_table} 2> {log.sed};"
-        "htseq-count -n {threads} -f bam -t " + config['gff_element_cds'] + " -i " + ID_or_Parent + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount} > {params.tmp_file};"
+        "htseq-count -n {threads} -f bam -t " + config['gff_element_cds'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount} > {params.tmp_file};"
         """head -n -5 {params.tmp_file} 2> {log.head} | awk -F '\t+' '{{if($3 >= 0) {{print($0)}} else {{printf("%s\\tNA\\t%s\\n",$1,$2)}}}}' 2> {log.awk} >> {output.htseq_table};"""
         "rm -f {params.tmp_file};"
 
