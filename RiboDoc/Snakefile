@@ -37,7 +37,7 @@ frag_length_L = "." + LENGTHS[0] + "-" + LENGTHS[len(LENGTHS)-1]
 
 # Change names for snakemake workflow, depending on data given
 if config['UTR'] == "yes":
-    counts = "htseqcount" + config['gff_element_cds']
+    counts = "htseqcount" + config['gff_cds_feature']
 else:
     counts = "htseqcount"
 
@@ -68,11 +68,11 @@ rule all:
         expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
 
         # Call of htseqcount_transcript_utr or htseqcount_transcript rule (depends on UTR="True"|"False" in config file)
-        expand(local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA." + counts + ".txt", sample=SAMPLES),
+        expand(local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA." + counts + ".txt", sample=SAMPLES),
 
         # Call for qualitative analysis
         local_path + "RESULTS/riboWaltz/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
-        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg", sample=SAMPLES, taille=LENGTHS) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg", sample=SAMPLES, taille=LENGTHS) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg", sample=SAMPLES) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
 
         # Alignment statistics report
@@ -141,7 +141,7 @@ rule name_CDS:
                 for d in db.directives:
                     fout.write('##{0}\n'.format(d))
                 for feature in db.all_features():
-                    if feature.featuretype == config['gff_element_cds'] or feature.featuretype == "exon":
+                    if feature.featuretype == config['gff_cds_feature'] or feature.featuretype == "exon":
                         parent = list(db.parents(feature, level=1))
                         if len(parent) > 0:
                             parent = parent[0]
@@ -390,7 +390,7 @@ rule htseqcount:
         bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai",
         gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
     output:
-        htseq_table = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount.txt"
+        htseq_table = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount.txt"
     log:
         echo = local_path + "logs/htseqcount/{sample}.echo.log",
         sed = local_path + "logs/htseqcount/{sample}.sed.log",
@@ -400,14 +400,14 @@ rule htseqcount:
     benchmark:
         local_path + "benchmarks/htseqcount/{sample}.benchmark.txt"
     params:
-        tmp_file = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}_tmp.txt"
+        tmp_file = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}_tmp.txt"
     threads:
         multi_threads_nbr
     shell:
         "set +o pipefail;"
         "echo -e '" + htseq_header + "' 2> {log.echo} > {output.htseq_table};"
         "sed -i '1s/$/{wildcards.sample}/' {output.htseq_table} 2> {log.sed};"
-        "htseq-count -n {threads} -f bam -t " + config['gff_element_cds'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount} > {params.tmp_file};"
+        "htseq-count -n {threads} -f bam -t " + config['gff_cds_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount} > {params.tmp_file};"
         """head -n -5 {params.tmp_file} 2> {log.head} | awk -F '\t+' '{{if($3 >= 0) {{print($0)}} else {{printf("%s\\tNA\\t%s\\n",$1,$2)}}}}' 2> {log.awk} >> {output.htseq_table};"""
         "rm -f {params.tmp_file};"
 
@@ -421,12 +421,12 @@ rule htseqcount_utr:
         five_prime = local_path + "database/" + config['5primelength'],
         three_prime = local_path + "database/" + config['3primelength']
     output:
-        counts_CDS = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount" + config['gff_element_cds'] + ".txt",
+        counts_CDS = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount" + config['gff_cds_feature'] + ".txt",
         counts_threeprime = local_path + "RESULTS/htseqcount_" + config['gff_element_three_prime_utr'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcountUTR.txt",
         counts_fiveprime = local_path + "RESULTS/htseqcount_" + config['gff_element_five_prime_utr'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcountUTR.txt"
     log:
         view = local_path + "logs/htseqcount_utr/{sample}.view.log",
-        htseqcount_CDS = local_path + "logs/htseqcount_utr/{sample}.htseqcount_" + config['gff_element_cds'] + ".log",
+        htseqcount_CDS = local_path + "logs/htseqcount_utr/{sample}.htseqcount_" + config['gff_cds_feature'] + ".log",
         join_CDS = local_path + "logs/htseqcount_utr/{sample}.join_CDS.log",
         awk_CDS = local_path + "logs/htseqcount_utr/{sample}.awk_CDS.log",
         htseqcount_3prime = local_path + "logs/htseqcount_utr/{sample}.htseqcount_3prime.log",
@@ -448,9 +448,9 @@ rule htseqcount_utr:
         "totalReads=`samtools view -c {input.bam} 2> {log.view}`;"
 
         "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_CDS};"
-        "htseq-count -n {threads} -f bam -t '" + config['gff_element_cds'] + "' -i '" + config['gff_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt;"
-        "mean_RPKM_CDS=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.CDS} " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt 2> {log.join_CDS} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_CDS}`;"
-        "cat " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt >> {output.counts_CDS};"
+        "htseq-count -n {threads} -f bam -t '" + config['gff_cds_feature'] + "' -i '" + config['gff_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt;"
+        "mean_RPKM_CDS=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.CDS} " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt 2> {log.join_CDS} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_CDS}`;"
+        "cat " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt >> {output.counts_CDS};"
 
         "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_threeprime};"
         "htseq-count -n {threads} -f bam -t '" + config['gff_element_three_prime_utr'] + "' -i '" + config['gff_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_3prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt;"
@@ -462,12 +462,12 @@ rule htseqcount_utr:
         "mean_RPKM_5prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.five_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_5prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_5prime}`;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_fiveprime};"
 
-        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_cds'] + ".{wildcards.sample}.txt;"
+        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt;"
         "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt;"
         "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt;"
 
         "echo 'Mean RPKM' 1>> {log.rpkm_out} 2> {log.rpkm};"
-        "echo '" + config['gff_element_cds'] + " : '$mean_RPKM_CDS 1>> {log.rpkm_out} 2>> {log.rpkm};"
+        "echo '" + config['gff_cds_feature'] + " : '$mean_RPKM_CDS 1>> {log.rpkm_out} 2>> {log.rpkm};"
         "echo '5prime : '$mean_RPKM_5prime 1>> {log.rpkm_out} 2>> {log.rpkm};"
         "echo '3prime : '$mean_RPKM_3prime 1>> {log.rpkm_out} 2>> {log.rpkm};"
 
@@ -475,7 +475,7 @@ rule htseqcount_utr:
 rule count_matrix_initialization:
     input:
         ready = expand(rules.htseqcount_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount.output, sample=SAMPLES),
-        counts = local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA." + counts + ".txt"
+        counts = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA." + counts + ".txt"
     output:
         transcript_list = local_path + "RESULTS/DESeq2_by_" + config['transcript_or_gene'] + "/transcript_list.txt"
     log:
@@ -518,7 +518,7 @@ rule count_matrix_creation:
                 fields = "1,3"
             else:
                 fields = "1,2"
-            shell("cut -f " + fields + " " + local_path + "RESULTS/htseqcount_" + config['gff_element_cds'] + "/" + sample + frag_length_L + ".no-outRNA." + counts + ".txt | LC_COLLATE=C join --header -t $'\t' {output.counts_matrix} - > {params.tmp_file} 2>> {log};")
+            shell("cut -f " + fields + " " + local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/" + sample + frag_length_L + ".no-outRNA." + counts + ".txt | LC_COLLATE=C join --header -t $'\t' {output.counts_matrix} - > {params.tmp_file} 2>> {log};")
             shell("cat {params.tmp_file} > {output.counts_matrix};")
             shell("rm -f {params.tmp_file};")
 
@@ -564,7 +564,7 @@ rule ORFelongate:
     params:
         path = local_path + "RESULTS/annex_database/transcriptome_elongated"
     shell:
-        "python3 " + ribodoc_tools + "ORFelongate.py -fna {input.fasta} -gff {input.gff} -features_include " + config['gff_element_cds'] + " -type nucl -o {params.path};"
+        "python3 " + ribodoc_tools + "ORFelongate.py -fna {input.fasta} -gff {input.gff} -features_include " + config['gff_cds_feature'] + " -type nucl -o {params.path};"
         "mv {output.gff} {output.gff_with_genes};"
         """awk '$3 !~ "gene"' {output.gff_with_genes} > {output.gff};"""
 
@@ -787,8 +787,8 @@ rule quality_controls_periodicity:
         bed = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed",
         gff = local_path + "database/NamedCDS_" + config['gff']
     output:
-        start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".txt",
-        stop = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_element_cds'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".txt"
+        start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".txt",
+        stop = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".txt"
     params:
         sample_names = "{sample}",
         read_length = "{taille}"
@@ -798,8 +798,8 @@ rule quality_controls_periodicity:
     benchmark:
         local_path + "benchmarks/quality_controls_periodicity/{sample}.{taille}.benchmark.txt"
     shell:
-        "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'start' -t '" + config['gff_element_cds'] + "' -m " + config['window_utr'] + " -M " + config['window_cds'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.start};"
-        "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'stop' -t '" + config['gff_element_cds'] + "' -m " + config['window_cds'] + " -M " + config['window_utr'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.stop};"
+        "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'start' -t '" + config['gff_cds_feature'] + "' -m " + config['window_utr'] + " -M " + config['window_cds'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.start};"
+        "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'stop' -t '" + config['gff_cds_feature'] + "' -m " + config['window_cds'] + " -M " + config['window_utr'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.stop};"
 
 # Creates graphs of reads length repartition
 rule graphs_length:
@@ -821,8 +821,8 @@ rule graphs_periodicity:
     input:
         perio = rules.quality_controls_periodicity.output
     output:
-        perioStart = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_element_cds'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg",
-        perioStop = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_element_cds'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".jpeg"
+        perioStart = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg",
+        perioStop = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".jpeg"
     params:
         sample_name = "{sample}",
         read_length = "{taille}"
@@ -831,4 +831,4 @@ rule graphs_periodicity:
     benchmark:
         local_path + "benchmarks/graphs_periodicity/{sample}.{taille}.benchmark.txt"
     shell:
-        "bash " + ribodoc_tools + "generationGraph_perio.sh -N {params.sample_name} -l {params.read_length} -t '" + config['gff_element_cds'] + "' -m " + config['window_utr'] + " -M " + config['window_cds'] + " 2> {log.bash};"
+        "bash " + ribodoc_tools + "generationGraph_perio.sh -N {params.sample_name} -l {params.read_length} -t '" + config['gff_cds_feature'] + "' -m " + config['window_utr'] + " -M " + config['window_cds'] + " 2> {log.bash};"
