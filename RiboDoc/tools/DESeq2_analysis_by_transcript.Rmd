@@ -1,0 +1,228 @@
+---
+title: "Differential analysis report"
+author: "GST team"
+date: "`r format (Sys.time(), '%B %d, %Y')`"
+output: "html_document"
+---
+
+```{r Sys, echo=FALSE}
+#Sys.getenv("RSTUDIO_PANDOC")
+# Sys.setenv(RSTUDIO_PANDOC="/root/miniconda3/envs/RiboDoc_env/bin/pandoc")
+Sys.setenv(RSTUDIO_PANDOC="/RiboDoc/miniconda3/envs/RiboDoc_env/bin/pandoc")
+```
+
+```{r rm Global environment, include=FALSE}
+rm(list=ls())
+local_path <- "/data/"
+```
+
+```{r packages, echo=FALSE, include=FALSE}
+library(DESeq2)
+library(stringr)
+library(FactoMineR)
+```
+
+```{r Load functions, echo=FALSE, include=FALSE}
+# source(paste0(local_path, "tools/DESeq2_analysis_functions.R"))
+source("/work/RiboDoc/tools/DESeq2_analysis_functions.R")
+```
+
+```{r Scan config file and determine paths, echo=FALSE, include=FALSE}
+# Read the config file
+params <- scan(file = paste0(local_path, "config.yaml"),
+                   what = "character",
+                   sep = ":"
+                   )
+
+paths_list <- DESeq2_folder_paths(local_path)
+```
+
+```{r Arguments, echo=FALSE, include=FALSE}
+refCond <- gsub(" ", "", params[which(params=="reference_condition")+1], fixed = TRUE)
+Var_log2FC <- as.numeric(gsub(" ", "", params[which(params=="logFC")+1], fixed = TRUE))
+Var_padj <- as.numeric(gsub(" ", "", params[which(params=="p-val")+1], fixed = TRUE))
+```
+\
+##### *`r paste0("Reference condition : ", refCond)`*
+\
+
+```{r mkdir, echo = FALSE, include = FALSE}
+dir.create(paste0(paths_list$DESeq2_transcript,"Images/"))
+```
+
+```{r setup, echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(include = TRUE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(fig.path = paste0(paths_list$DESeq2_transcript,"Images/"), dev=c('png','tiff'))
+```
+
+
+```{r data , echo=FALSE}
+expData = round(read.table(paths_list$pathway_matrix, header = T, row.names = 1, check.names = FALSE, sep="\t"))
+
+names_list = read.table(paths_list$pathway_names, header = T, row.names = 1, check.names = FALSE, sep="\t")
+```
+
+```{r Merge by gene, echo=FALSE}
+expData_transcript <- transcript_or_gene(data=expData, list_of_names=names_list, gene_transcript="transcript")
+```
+
+The present analysis report is part of RiboDoc tool, developed by the GST team, Université Paris-Saclay, CEA, CNRS, Institute for Integrative Biology of the Cell (I2BC), 91198, Gif-sur-Yvette, France.
+
+**OVERVIEW** :  
+This report presents the quantitative analysis realized thanks to R software and bioconductor packages including DESeq2, stringr and FactomineR.
+First of all the raw data are summarized, then the analysis of the variations between and within biological conditions is carried out. After data normalization, the main results of the differential analysis is presented. 
+
+**RAW DATA** :  
+First of all, the count matrix obtained with RiboDoc tool is loaded in R. It contains one column per sample and one row per feature.
+\
+`r nrow(expData_transcript)` features are compared in this study.
+
+\
+
+
+```{r Determination of the number of samples , include=FALSE}
+expData_sorted_transcript <- sort_columns_by_sample(expData_transcript, refCond)
+```
+
+*Table 1 : Header of the count matrix*
+```{r Tables heads, results = 'asis', echo = FALSE}
+knitr::kable(head(expData_sorted_transcript$expData_Sorted))
+```
+##### *`r paste0("Samples : ",expData_sorted_transcript$nb_col_condB," ",expData_sorted_transcript$Cond[1]," vs ",expData_sorted_transcript$nb_col_condA," ",expData_sorted_transcript$Cond[expData_sorted_transcript$nb_col_condB+1])`*
+ \
+ \
+Figure 1 shows the library sizes. That is the total number of reads count in each sample. Size must be as similar as possible within conditions.  
+\
+*Figure 1 : Number of raw reads counts per sample. One color by biological condition.*
+```{r Library sizes by transcript, fig.height = 3, fig.width = 4, echo=FALSE, dev=c('png','tiff')}
+library_size_plot(expData_sorted_transcript)
+```
+\
+\
+**VARIATION BETWEEN AND WITHIN BIOLOGICAL CONDITIONS** :  
+Quantitative analysis is realized in order to highlight the variability between two (or more) biological conditions. To assess this variability, replicats have to be as close as possible. To check this, a pairwise scatter plot (figure 2), a Spearman correlation (figure 2) and a PCA (figure 3) are produced. The first one shows the number of counts for each gene between two samples. Here these plots are associated with Spearman correlation coefficients, which measure the statistical relationship between two samples. The value must be as close as possible to 1 between replicates and move towards 0 between biological conditions. In the same way, the PCA allows us to visualize variability. The first component (figure 3, x-axe) is expected to clearly separate samples between the different biological conditions and bring together replicats.  
+\
+*Figure 2 : Pairwise scatter plot for variation analysis*
+```{r Pairwise Scatter plot by transcript, echo = FALSE ,dev=c('png', 'tiff')}
+pairs(log10(expData_sorted_transcript$expData_Sorted), 
+      lower.panel= panel.cor,
+      upper.panel = upper.panel
+      )
+```
+\
+*Figure 3 : PCA for variation analysis*  
+```{r PCA by transcript,  echo=FALSE}
+make_PCA(expData_sorted_transcript$expData_Sorted)
+```
+\
+\
+**DATA NORMALIZATION** :  
+A DESeqDataSet (DDS) object is created from raw data in terms of conditions. 
+Thanks to the “counts” function from DESeq2, we normalize data through the DDS object. It is necessary to erase technical biases and make read counts comparable between samples.  
+The DESeq2 normalization uses the median of ratios method. For each feature, a pseudo-reference sample is created (ref=sqrt(featureCount_sampleA*featureCount_sampleB)). Then the ratio of each sample to the reference is calculated (ratio=sample/ref). The normalization factor (or size factor) for each sample corresponds to the median value of all ratios for a given sample (normalization_factor_bySample=median(all_feature_ratio)). One sample raw counts are then divided by its size factor to determine the normalized counts. The median of ratios method is based on the hypothesis that not all features are differentially expressed. So, median is not influenced by outliers which correspond to differentially expressed genes without biological conditions distinction.  
+To check that normalization went well, we realized two graphs. The first one (figure 4) shows the library size as figure 1 but after normalization. All samples must have the same size. Boxplots are also generated (figure 5) to show how counts distributions changed between before and after normalization. We expect that normalized counts are nearly the same between all samples unlike raw data.  
+
+
+*Figure 4 : Number of normalized reads counts per sample.*  
+
+
+```{r DESeq2 matrix creation by transcript, echo=FALSE}
+dds_object_transcript <- deseq_object(expData_sorted_transcript)
+```
+\
+
+
+```{r Library Size Normalization by transcript, fig.height = 3, fig.width =4, echo=FALSE}
+library_size_barplot(dds_object_transcript, expData_sorted_transcript)
+```
+\
+*Figure 5 : Boxplots of reads distribution. Raw (left) vs normalized (right).*
+```{r Library Size Boxplot by transcript, echo=FALSE}
+library_size_boxplot(dds_object_transcript, expData_sorted_transcript)
+```
+
+\
+
+
+**DIFFERENTIAL ANALYSIS** :  
+The DESeq2 function can be run now on the DDS object. First, the estimateSizeFactors sub-function calculates the relative library depth of each sample. Then, estimateDispersions sub-function estimates the dispersion of counts for each feature. Finally nbinomWaldTest sub-function calculates the significance of coefficients in a Negative Binomial GLM using the size and dispersion outputs.
+Results are presented in seven graphs. Figure 6 represented the dispersion estimate with the mean of normalized counts by the estimated dispersion. Dots can have three colors : i) black which shows the dispersion estimates by feature. ii) red for representing the fitted dispersion value estimated by model (i.e. the mean-variance relationship function) iii) Blue exhibits the final estimates retained for the statistical test. Outliers are shown with a black dot with a blue circle.  
+\
+*Figure 6 : Dispersion estimates*
+```{r Dispersion by transcript, echo=FALSE, include = FALSE}
+resDESeq_transcript <- dispersion_estimation(dds_object_transcript)
+```
+
+
+  
+*Figure 7 : shows the distribution of logFC frequency. The highest frequency is expected on 0. In fact, the large majority of features must not be differentially expressed.*
+```{r Determine means by transcript,  echo=FALSE, include = FALSE}
+means_transcript <- find_means(dds_object_transcript, expData_sorted_transcript)
+```
+
+```{r logFC frequency by transcript, fig.height = 3, fig.width =4, echo=FALSE}
+frequency_histogram(resDESeq_transcript)
+```
+\
+Figures 8 and 9 represent the raw and adjusted p-values distribution respectively. The peak around 0 corresponds to the differentially expressed genes. Graphs are expected to be a uniform distribution between 0 to 1.  
+
+*Figure 8 : Distribution of raw p-values*
+
+```{r p-value by transcript, fig.height = 4, fig.width =4, echo=FALSE}
+pval_distribution(resDESeq_transcript)
+```
+
+*Figure 9 : Distribution of adjusted p-values*  
+
+```{r adjusted p-value by transcript, fig.height = 4, fig.width =4, echo=FALSE}
+padj_distribution(resDESeq_transcript)
+```
+\
+Figure 10 is the MA-plot which shows the mean of normalized counts for each feature by the log ratio of differential expression. Differentially expressed features are represented by red dots. Triangles correspond to features with a too high/low log2FC to be shown on graph.    
+   
+*Figure 10 : MA-plot*   
+```{r MA-plot by transcript, fig.height = 4, fig.width =4, echo=FALSE}
+ma_plot(resDESeq_transcript)
+```
+
+
+Figures 11 and 12 are the volcano-plot and its zoom respectively. They represent each feature by its log2FC and its adjusted p-value. Differentially expressed features are still red dots and triangles correspond to outliers features.   
+*Figure 11 : Volcano-plot*
+
+```{r Volcano plot global by transcript, fig.height = 4, fig.width =4, echo=FALSE}
+volcano_plot(resDESeq_transcript, expData_sorted_transcript)
+```
+
+*Figure 12 : Zoom of the previous volcano-plot*  
+
+```{r ZOOM Volcano plot by transcript, fig.height = 4, fig.width =4, echo=FALSE}
+volcano_plot_zoom(resDESeq_transcript, expData_sorted_transcript)
+```
+\
+
+```{r Final tables creation by transcript, include = FALSE}
+tables_transcript <- tables_creation(dds_object_transcript, resDESeq_transcript, expData_sorted_transcript, means_transcript, refCond, "transcript")
+```
+
+
+```{r Write tables by transcript, echo = FALSE}
+write_DE_tables(tables_transcript, "transcript")
+```
+\
+**OUTPUT FILES** :  
+All the output files can be found in the directory "RESULTS/DESeq2/DESeq2_by_transcript/”  
+`r paste0("RESULTS/DESeq2/DESeq2_by_transcript/transcript_complete.txt")`  
+`r paste0("RESULTS/DESeq2/DESeq2_by_transcript/transcript_up.txt")  `  
+`r paste0("RESULTS/DESeq2/DESeq2_by_transcript/transcript_down.txt")  `   
+\
+*Explanation of each column* :  
+
+* Genes: unique feature identifier  
+* sampleName: raw counts per sample  
+* norm.sampleName: rounded normalized counts per sample  
+* Mean.sampleName: mean over all samples  
+* baseMean: base mean over all samples  
+* log2FoldChange: log^2^(FC) reflects the differential expression between Test and Ref
+* pvalue: raw p-value from the statistical test  
+* padj: adjusted p-value on which the cut-off α is applied  
