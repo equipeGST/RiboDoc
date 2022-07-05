@@ -23,8 +23,7 @@ annotation_db_transcript <- annotation_db_transcript_with_cds0l[annotation_db_tr
 # Bam files to be computed
 bam_folder <- paste0(local_path, "RESULTS/BAM_transcriptome/")
 
-bam_list <- list.files(bam_folder)
-bam_list <- bam_list[str_detect(bam_list, ".bam$")]
+bam_list <- list.files(bam_folder, pattern = "\\.bam$")
 
 samples <- str_replace(bam_list, ".[0-9]{1,3}-[0-9]{1,3}.bam", "")
 names(samples) <- str_remove(bam_list, ".bam")
@@ -35,7 +34,6 @@ reads_list <- riboWaltz::bamtolist(bamfolder = bam_folder, annotation = annotati
 
 
 # p-site calculation
-source(paste0("/RiboDoc/RiboDoc/tools/ribowaltz_psite_with_NA_control.R"))
 psite_offset <- psite_ribowaltz(reads_list,
                                  flanking = 6,
                                  start = TRUE,
