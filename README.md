@@ -92,19 +92,19 @@ First and easy step, the project name ! You can use the same as your folder.
 You must enter the full name **with extensions** without the path of files added in the database subfolder previously created.   
 *fasta*: "reference_genome_fasta_file.fa"  
 *gff*: "corresponding_GFF_annotation_file.gff3"  
-*fasta_outRNA*: "unwanted_DNA_sequences_fasta_file.fa"  
+*fasta_outRNA*: "unwanted_DNA_sequences_fasta_file.fa" (can be empty but is necessary)  
 ##### Pipeline option selection  
 During the RiboDoc process, data is trimmed and selected depending on their length.   
 *already_trimmed*: If your data contains reads already trimmed of their adapter, you can set this option on “yes”. Else, set it on "no".   
 *adapt_sequence*: If they are not trimmed, you should specify the sequence of the adapter in quotes on the line here like "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA". If you do not put anything between the quotes, RiboDoc will try to fond the adapter itself but this can sometimes lead to a wrong adapter sequence.
 
 You also have to define the range for read length selection. Default values select reads from 25 to 35 nucleotides long.  
-*readsLength_min*: minimum read length.   
-*readsLength_max*: maximum read length.   
+*readsLength_min*: minimum reads length.   
+*readsLength_max*: maximum reads length.   
 
 You might also need to specify features keywords in the GFF file to fit your GFF file format :   
-*gff_element_cds*: feature corresponding to CDS in the annotation file. "CDS" is the default value (can sometimes be "ORF").     
-*gff_attribut*: attribut to regroup reads during counting. "Parent" is the default value to regroup counts by transcripts (Parent of CDS features) for the differential analysis. You can also put "ID" if you want to count each CDS independently.
+*gff_cds_feature*: feature corresponding to CDS in the annotation file. "CDS" is the default value (can sometimes be "ORF").     
+*gff_parent_attribut*: attribut to regroup reads during counting. "Parent" is the default value to regroup counts by transcripts (Parent of CDS features) for the differential analysis.
 *gff_name_attribut*: Name of the genes features in the GFF. Default is "Name" but it can sometimes be "gene_name" or else.     
 ##### Statistical settings  
 To be able to perform statistical analyzes, you must define a reference condition as well as your thresholds.   
@@ -120,8 +120,8 @@ During the quality analysis, the periodicity is observed on nucleotides around s
 2 pipelines dedicated to quality controls are available in RiboDoc. The first one uses the [riboWaltz tool](https://github.com/LabTranslationalArchitectomics/riboWaltz) which can need high RAM resources depending on your data. The second pipeline is a series of scripts called TRiP which use a specific gff file format as annotation file. For more details on this format, please check the RiboDoc article.
 *qualitative_analysis*: Choose between the 2 qualitative analysis pipeline. Default value is "ribowaltz" as it is more precise and does not need files with specific formats. "trip" is more complicated to use but asks for less resources.  
 The window selected by default is -50/+100 nts and -100/+50 nts around start and stop codons respectively.   
-*window_utr*: Define your window before start and after stop. Default is "50"  
-*window_cds*: Define your window after start and before stop. Default is "100"  
+*window_utr*: Define your window before start and after stop. Default is "25"  
+*window_cds*: Define your window after start and before stop. Default is "50"  
 
 ################################################################
 ###### Optional and only for qualitative_analysis: "trip" ######
