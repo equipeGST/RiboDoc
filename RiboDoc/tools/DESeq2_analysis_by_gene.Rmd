@@ -24,7 +24,7 @@ library(FactoMineR)
 
 ```{r Load functions, echo=FALSE, include=FALSE}
 # source(paste0(local_path, "tools/DESeq2_analysis_functions.R"))
-source("/work/RiboDoc/tools/DESeq2_analysis_functions.R")
+source("/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R")
 ```
 
 ```{r Scan config file and determine paths, echo=FALSE, include=FALSE}

@@ -254,7 +254,7 @@ tables_creation <- function(dds_object, deseq_results, data_list, means, referen
   {
     allGenes <- Table_Complete
   } else {
-    allGenes <- merge(Table_Complete, names_list, by = "row.names")
+    allGenes <- merge(Table_Complete, names_list, by = 1)
   }
   
   inducedGenes = allGenes[which((allGenes[, "log2FoldChange"] > Var_log2FC) & (allGenes[, "padj"] < Var_padj)),]
