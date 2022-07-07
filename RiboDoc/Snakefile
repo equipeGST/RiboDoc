@@ -1,7 +1,7 @@
 configfile: "/data/config.yaml"
 
 
-ribodoc_version = "0.7.2"
+ribodoc_version = "0.8.0"
 
 
 # Imports
