@@ -29,4 +29,3 @@ used_memory="--resources mem_mb=${available_memory_mb}"
 snakemake -s /RiboDoc/RiboDoc/Snakefile -j --dag -np | dot -Tsvg > /data/dag_last-run.svg;
 snakemake -s /RiboDoc/RiboDoc/Snakefile -j --dag -np --forceall | dot -Tsvg > /data/dag_all.svg;
 snakemake -s /RiboDoc/RiboDoc/Snakefile -j ${cpu_use} -k ${used_memory};
-# snakemake -s /ORFribo_RiboDoc/RiboDoc_BAM2Reads/Snakefile -j ${cpu_use} -k --resources mem_mb=${used_memory};
