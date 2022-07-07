@@ -20,7 +20,7 @@ mem_mb_resources = 10000
 # Sets paths for inside the container
 local_path = "/data/"
 ribodoc_tools = "/RiboDoc/RiboDoc/tools/"
-snakemake_log_path = "/.snakemake/log/"
+snakemake_log_path = local_path + ".snakemake/log/"
 
 
 # Wildcards definition
