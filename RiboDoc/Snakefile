@@ -87,8 +87,8 @@ rule all:
 # When RiboDoc starts
 onstart:
     # In case the user is using a Macintosh computer, hidden files are removed
-    shell("find . -depth -name '.DS_Store' -exec rm -f {{}} \;")
-    shell("find . -depth -name '.AppleDouble' -exec rm -Rf {{}} \;")
+    shell("find " + local_path + " -depth -name '.DS_Store' -exec rm -f {{}} \;")
+    shell("find " + local_path + " -depth -name '.AppleDouble' -exec rm -Rf {{}} \;")
     shell("mkdir -p " + local_path + "logs/;")
     shell("echo 'RiboDoc version : " + ribodoc_version + "' > " + local_path + "logs/RiboDoc_package_versions.txt;")
     shell("conda list >> " + local_path + "logs/RiboDoc_package_versions.txt;")
