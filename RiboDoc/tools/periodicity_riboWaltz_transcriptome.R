@@ -96,7 +96,7 @@ metaprofile <- metaprofile_psite(reads_psite_list,
 
 for(i in 1:length(samples))
 {
-  pdf(file=paste0(local_path, "RESULTS/riboWaltz/",samples[i],"/metaprofile_psite_",samples[i],".pdf"))
+  pdf(file=paste0(local_path, "RESULTS/riboWaltz/",samples[i],"/metaprofile_psite_-", window_utr, "+", window_cds, ".pdf"))
   plot(metaprofile[[paste0("plot_",samples[i])]])
   dev.off()
 }
