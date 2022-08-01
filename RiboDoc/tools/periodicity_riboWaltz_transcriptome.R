@@ -47,14 +47,13 @@ psite_offset <- psite_ribowaltz(reads_list,
                                  txt_file = paste0(local_path, "RESULTS/riboWaltz/best_offset.txt")
 )
 
+
 reads_psite_list <- riboWaltz::psite_info(reads_list,
                                           psite_offset
 )
 
-
 codon_coverage <- codon_coverage(reads_psite_list, annotation_db_transcript, psite = TRUE)
 cds_coverage <- cds_coverage(reads_psite_list, annotation_db_transcript)
-
 
 length_dist <- rlength_distr(reads_list, sample = samples)
 
@@ -65,6 +64,7 @@ for(i in 1:length(samples))
   plot(length_dist[[paste0("plot_",samples[i])]])
   dev.off()
 }
+
 
 psite_region <- region_psite(reads_psite_list, annotation_db_transcript, sample = samples)
 
@@ -79,11 +79,13 @@ pdf(file=paste0(local_path, "RESULTS/riboWaltz/frame_psite_length.pdf"))
 frames_stratified[["plot"]]
 dev.off()
 
+
 frames <- frame_psite(reads_psite_list, sample = samples, region = "all")
 
 pdf(file=paste0(local_path, "RESULTS/riboWaltz/frame_psite.pdf"))
 frames[["plot"]]
 dev.off()
+
 
 window_utr <- as.integer(gsub(" ", "", params[which(params=="window_utr")+1], fixed = TRUE))
 window_cds <- as.integer(gsub(" ", "", params[which(params=="window_cds")+1], fixed = TRUE))
@@ -94,11 +96,38 @@ metaprofile <- metaprofile_psite(reads_psite_list,
                                  cdsl = window_cds,
                                  plot_title = "sample.transcript")
 
-for(i in 1:length(samples))
+readsLength_min <- as.integer(gsub(" ", "", params[which(params=="readsLength_min")+1], fixed = TRUE))
+readsLength_max <- as.integer(gsub(" ", "", params[which(params=="readsLength_max")+1], fixed = TRUE))
+for(i in samples[1:length(samples)])
 {
-  pdf(file=paste0(local_path, "RESULTS/riboWaltz/",samples[i],"/metaprofile_psite_-", window_utr, "+", window_cds, ".pdf"))
-  plot(metaprofile[[paste0("plot_",samples[i])]])
+  dir.create(paste0(local_path, "RESULTS/riboWaltz/", i,"/results_by_length/"), showWarnings = F)
+  pdf(file=paste0(local_path, "RESULTS/riboWaltz/",i,"/metaprofile_psite_-", window_utr, "+", window_cds, ".pdf"))
+  plot(metaprofile[[paste0("plot_",i)]])
   dev.off()
+  
+  for(len in readsLength_min:readsLength_max) {
+    reads_psite_list_specific_length <- setNames(list(reads_psite_list[[i]][length==len]),i)
+      
+    metaprofile_specific <- metaprofile_psite(reads_psite_list_specific_length,
+                                                annotation_db_transcript,
+                                                sample = i,
+                                                utr5l = window_utr, utr3l = window_utr,
+                                                cdsl = window_cds,
+                                                plot_title = "sample.transcript")
+    # metaprofile_specific <- metaprofile_psite(reads_psite_list,
+    #                                             annotation_db_transcript,
+    #                                             sample = i,
+    #                                             length_range = len,
+    #                                             utr5l = window_utr, utr3l = window_utr,
+    #                                             cdsl = window_cds,
+    #                                             plot_title = "sample.transcript")
+      
+    pdf(file=paste0(local_path, "RESULTS/riboWaltz/", i,"/results_by_length/metaprofile_psite_length", len, "_-", window_utr, "+", window_cds, ".pdf"))
+    plot(metaprofile_specific[[paste0("plot_",i)]])
+    dev.off()
+    
+    write.table(metaprofile_specific$dt, paste0(local_path, "RESULTS/riboWaltz/", i,"/results_by_length/metaprofile_psite_length", len, ".csv"), quote = F, row.names = F, sep ="\t")
+  }
 }
 
 write.table(psite_offset, paste0(local_path, "RESULTS/riboWaltz/psite_offset.csv"), quote = F, row.names = F, sep ="\t")
