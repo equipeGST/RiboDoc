@@ -41,7 +41,7 @@ psite_offset <- psite_ribowaltz(reads_list,
                                  extremity = "auto",
                                  plot = TRUE,
                                  plot_dir = paste0(local_path, "RESULTS/riboWaltz/"),
-                                 plot_format = "png",
+                                 plot_format = "tiff",
                                  cl = 100,
                                  txt = TRUE,
                                  txt_file = paste0(local_path, "RESULTS/riboWaltz/best_offset.txt")
@@ -60,7 +60,7 @@ length_dist <- rlength_distr(reads_list, sample = samples)
 for(i in 1:length(samples))
 {
   dir.create(paste0(local_path, "RESULTS/riboWaltz/",samples[i],"/"), showWarnings = F)
-  pdf(file=paste0(local_path, "RESULTS/riboWaltz/",samples[i],"/reads_distribution_",samples[i],".pdf"))
+  tiff(file=paste0(local_path, "RESULTS/riboWaltz/",samples[i],"/reads_distribution_",samples[i],".tiff"))
   plot(length_dist[[paste0("plot_",samples[i])]])
   dev.off()
 }
@@ -68,21 +68,21 @@ for(i in 1:length(samples))
 
 psite_region <- region_psite(reads_psite_list, annotation_db_transcript, sample = samples)
 
-pdf(file=paste0(local_path, "RESULTS/riboWaltz/region_psite.pdf"))
+tiff(file=paste0(local_path, "RESULTS/riboWaltz/region_psite.tiff"))
 psite_region[["plot"]]
 dev.off()
 
 
 frames_stratified <- frame_psite_length(reads_psite_list, sample = samples, region = "all")
 
-pdf(file=paste0(local_path, "RESULTS/riboWaltz/frame_psite_length.pdf"))
+tiff(file=paste0(local_path, "RESULTS/riboWaltz/frame_psite_length.tiff"))
 frames_stratified[["plot"]]
 dev.off()
 
 
 frames <- frame_psite(reads_psite_list, sample = samples, region = "all")
 
-pdf(file=paste0(local_path, "RESULTS/riboWaltz/frame_psite.pdf"))
+tiff(file=paste0(local_path, "RESULTS/riboWaltz/frame_psite.tiff"))
 frames[["plot"]]
 dev.off()
 
@@ -101,7 +101,7 @@ readsLength_max <- as.integer(gsub(" ", "", params[which(params=="readsLength_ma
 for(i in samples[1:length(samples)])
 {
   dir.create(paste0(local_path, "RESULTS/riboWaltz/", i,"/results_by_length/"), showWarnings = F)
-  pdf(file=paste0(local_path, "RESULTS/riboWaltz/",i,"/metaprofile_psite_-", window_utr, "+", window_cds, ".pdf"))
+  tiff(file=paste0(local_path, "RESULTS/riboWaltz/",i,"/metaprofile_psite_-", window_utr, "+", window_cds, ".tiff"))
   plot(metaprofile[[paste0("plot_",i)]])
   dev.off()
   
@@ -114,15 +114,8 @@ for(i in samples[1:length(samples)])
                                                 utr5l = window_utr, utr3l = window_utr,
                                                 cdsl = window_cds,
                                                 plot_title = "sample.transcript")
-    # metaprofile_specific <- metaprofile_psite(reads_psite_list,
-    #                                             annotation_db_transcript,
-    #                                             sample = i,
-    #                                             length_range = len,
-    #                                             utr5l = window_utr, utr3l = window_utr,
-    #                                             cdsl = window_cds,
-    #                                             plot_title = "sample.transcript")
       
-    pdf(file=paste0(local_path, "RESULTS/riboWaltz/", i,"/results_by_length/metaprofile_psite_length", len, "_-", window_utr, "+", window_cds, ".pdf"))
+    tiff(file=paste0(local_path, "RESULTS/riboWaltz/", i,"/results_by_length/metaprofile_psite_length", len, "_-", window_utr, "+", window_cds, ".tiff"))
     plot(metaprofile_specific[[paste0("plot_",i)]])
     dev.off()
     

@@ -72,7 +72,7 @@ rule all:
 
         # Call for qualitative analysis
         local_path + "RESULTS/riboWaltz/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
-        local_path + "RESULTS/riboWaltz/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".pdf" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+        local_path + "RESULTS/riboWaltz/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg", sample=SAMPLES, taille=LENGTHS) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg", sample=SAMPLES) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
 
@@ -731,7 +731,7 @@ rule riboWaltz_transcriptome:
         transcriptome_bam = expand(rules.samtools_filter_transcriptome.output, sample=SAMPLES)
     output:
         psite_table = local_path + "RESULTS/riboWaltz/psite_offset.csv",
-        metaprofile = local_path + "RESULTS/riboWaltz/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".pdf"
+        metaprofile = local_path + "RESULTS/riboWaltz/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff"
     log:
         periodicity = local_path + "logs/riboWaltz_transcriptome/riboWaltz.log"
     resources:
