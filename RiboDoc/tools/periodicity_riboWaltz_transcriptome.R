@@ -119,7 +119,7 @@ for(i in samples[1:length(samples)])
     plot(metaprofile_specific[[paste0("plot_",i)]])
     dev.off()
     
-    write.table(metaprofile_specific$dt, paste0(local_path, "RESULTS/riboWaltz/", i,"/results_by_length/metaprofile_psite_length", len, ".csv"), quote = F, row.names = F, sep ="\t")
+    write.table(metaprofile_specific$dt, paste0(local_path, "RESULTS/riboWaltz/", i,"/results_by_length/metaprofile_psite_length", len, "_-", window_utr, "+", window_cds, ".csv"), quote = F, row.names = F, sep ="\t")
   }
 }
 
