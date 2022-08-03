@@ -48,10 +48,10 @@ logFC: "0"
 qualitative_analysis: "ribowaltz"
 
 # Number of bases to look before the start and after the stop for periodicity (relative positions)
-window_utr: "25"
+window_utr: "15"
 
 # Number of bases to look after the start and before the stop for periodicity (relative positions)
-window_cds: "50"
+window_cds: "30"
 
 
 ########## Optional and only for qualitative_analysis: "trip" ##########
