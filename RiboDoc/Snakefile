@@ -541,7 +541,7 @@ rule DESeq2_analysis_gene:
         local_path + "benchmarks/DESeq2_analysis_gene/DESeq2_analysis.benchmark.txt"
     params:
         reportPath = local_path + "RESULTS/DESeq2/DESeq2_by_gene/",
-        reportName = config['project_name'] + ".Final_report"
+        reportName = config['project_name'] + ".Final_report.html"
     shell:
         "set +o pipefail;"
         "[ `head -2 {input.counts_matrix} | cut -f 1 | uniq | wc -l` == 1 ] && sed -i -e '2d' {input.counts_matrix};"
