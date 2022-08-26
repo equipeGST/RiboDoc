@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-LABEL version="0.8.1"
+LABEL version="0.8.2"
 
 ENV LC_ALL=C
 
