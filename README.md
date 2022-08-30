@@ -24,7 +24,7 @@ Subfolders :
 ### a) *fastq*  
 This subfolder, as its name suggests, should contain your FastQ files compressed in *.gz*.  
 **Format of file names must be as following:**  
-&emsp;&emsp;&emsp;***biological_condition_name.replicat_number.fastq.gz***     
+&emsp;&emsp;&emsp;***biological_condition_name.replicate_number.fastq.gz***     
 For example, for the first replicate of the wild-type condition the sample can be named *Wild_Type.1.fastq.gz* and the name of the second replicate for the mutant samples would be *Mutant.2.fastq.gz*.   
 
 >Caution, for **Windows**, extensions can be hidden.    
@@ -37,7 +37,7 @@ Project_name
 &emsp;&emsp;&emsp;├── Mutant.1.fastq.gz   
 &emsp;&emsp;&emsp;└── Mutant.2.fastq.gz   
 
-If you want to try RiboDoc on an example dataset, you can find our data with on GEO : [GEO GSE173856](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE173856)
+If you want to try RiboDoc on an example dataset, you can find example data on GEO : [GEO GSE173856](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE173856)
 
 ### b) *database*  
 In this subfolder, you must put at least the following three files:  
@@ -58,8 +58,8 @@ For example, for the human genome annotations, you can look for [Human genome](h
 >&emsp; > Sequence_Y
 >&emsp; CTCTCGCGCGTCCGAGCGTCCCGACTCCCGGTGCCGGCCCGGGTCCGGGTCTCTGACCCACCCGGGGGCG  
 
-If you look for specific sequences, you can find them on the [NCBI website](https://www.ncbi.nlm.nih.gov/). For example, you can find the rRNA fasta file sequences [here](https://www.ncbi.nlm.nih.gov/nuccore/U13369.1?report=fasta).  
-***You _need_ to have a file, even if it's empty***. So, if you want everything to be used in the analysis, just put an empty file.
+If you look for specific sequences, you can find them on the [NCBI website](https://www.ncbi.nlm.nih.gov/). For example, you can find a fasta file with some rRNA sequences [here](https://www.ncbi.nlm.nih.gov/nuccore/U13369.1?report=fasta).  
+***You _need_ to have an outRNA file, even if it's empty***. So, if you want everything to be used in the analysis, just put an empty file.
 
 If you need them, files containing each annotation length (see next paragraph) are also to be dropped into this folder.  
 
@@ -79,10 +79,10 @@ Project_name
 ### c) [config.yaml](https://raw.githubusercontent.com/equipeGST/RiboDoc/main/config.yaml) file  
 The *config.yaml* file allows you to define some parameters to tell RiboDoc which data you want to process and how.  
 You must download it [here](https://raw.githubusercontent.com/equipeGST/RiboDoc/main/config.yaml) and open it with a text editor as a text file.    
-It must be carefully completed and be present in the project directory everytime you want to run RiboDoc. A copy of this file will be made in the *RESULTS/* folder to keep a trace of the parameters you chose for a specific analysis.   
+It must be carefully completed and be present in the project directory everytime you want to run RiboDoc. A copy of this file will be made in the *RESULTS/* folder to keep a trace of the parameters you chose for your last analysis.   
 
 >Caution  
->&emsp;&emsp;&emsp;Spaces and quotation marks **must not be changed** ! Your information must be entered between quotes and should not have spaces     
+>&emsp;&emsp;&emsp;Spaces and quotation marks **must not be changed** ! Your information must be entered between quotes and should NOT have spaces     
 
 ####How to fill the configuration file :
 ##### Project name  
@@ -99,17 +99,17 @@ During the RiboDoc process, data is trimmed and selected depending on their leng
 *adapt_sequence*: If they are not trimmed, you should specify the sequence of the adapter in quotes on the line here like "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA". If you do not put anything between the quotes, RiboDoc will try to fond the adapter itself but this can sometimes lead to a wrong adapter sequence.
 
 You also have to define the range for read length selection. Default values select reads from 25 to 35 nucleotides long.  
-*readsLength_min*: minimum reads length.   
-*readsLength_max*: maximum reads length.   
+*readsLength_min*: Minimum reads length.   
+*readsLength_max*: Maximum reads length.   
 
 You might also need to specify features keywords in the GFF file to fit your GFF file format :   
-*gff_cds_feature*: feature corresponding to CDS in the annotation file. "CDS" is the default value (can sometimes be "ORF").     
-*gff_parent_attribut*: attribut to regroup reads during counting. "Parent" is the default value to regroup counts by transcripts (Parent of CDS features) for the differential analysis.
+*gff_cds_feature*: Feature corresponding to CDS in the annotation file. "CDS" is the default value (can sometimes be "ORF").     
+*gff_parent_attribut*: Attribut to regroup reads during counting. "Parent" is the default value to regroup counts by transcripts (Parent of CDS features) for the differential analysis.
 *gff_name_attribut*: Name of the genes features in the GFF. Default is "Name" but it can sometimes be "gene_name" or else.     
 ##### Statistical settings  
 To be able to perform statistical analyzes, you must define a reference condition as well as your thresholds.   
-*reference_condition*: it correspond to the reference biological_condition_name in your FastQ files name. Ex : "Wild_Type" (as in *Wild_Type.1.fastq.gz*).
-*transcript_or_gene*: choose whether to perfom the differential analysis on features grouped by "transcripts" or by "gene"  
+*reference_condition*: Corresponds to the reference biological_condition_name in your FastQ files name. Ex : "Wild_Type" (as in *Wild_Type.1.fastq.gz*).
+*transcript_or_gene*: Choose whether to perfom the differential analysis on features grouped by "transcripts" or by "gene"  
 *p-val*: p-value threshold for the differential analysis. Default value is 0.01.  
 *logFC*: logFC threshold for the differential analysis. Defaut value is 0 to keep all the genes without logFC filtering.  
 ##### Window for qualitative test  
@@ -197,7 +197,9 @@ Which provides you the container's ID (*e.g.* 9989909f047d), then :
 Where "ID" is the id obtained with the previous command
 
 If you have issues with the use of Docker, you must refer to their [website](https://docs.docker.com/).     
-If the error happens during the use of RiboDoc, the rule (job) which failed is indicated in your terminal. You can then find the error output in the *logs* folder. Each rule have a precise name and a folder related to it with files corresponding to the different steps of this rule. If you can not solve the problem by exploring those files, you can contact us through the ["issues"](https://github.com/equipeGST/RiboDoc/issues) part of our github.
+If the error happens during the use of RiboDoc, the rule (job) which failed is indicated in your terminal. You can then find the error output in the *logs* folder. Each rule have a precise name and a folder related to it with files corresponding to the different steps of this rule.  
+In most cases, a problem occurs because the memory provided is insufficient and no precise error message is shown in the *logs* folder. This usually happens during the index builds (for the alignement tools), the alignments or the riboWaltz tool script, as they are the steps asking for the more resources in RiboDoc pipeline. If you cannot find why the pipeline stopped, try resuming it with more memory available.   
+If you can not solve the problem by yourself, you can contact us through the ["issues"](https://github.com/equipeGST/RiboDoc/issues) part of our github or by mail.
 >If you want to send us a request because of an error, the easiest way for us to help you is if you send us an archive named after the rule which failed in your analysis with your config.yaml, logs folder and logsTmp folder to it so we can help you finding what happened and why.
 
 ## 6) Understand the results  
@@ -221,39 +223,55 @@ Initial folders and files are still present and highligth in bold in the tree ar
 │&emsp;&emsp;└── *one_file_by_steps_of_interest_for_alignment_stats*  
 ├── RESULTS/  
 │&emsp;&emsp;├── config.yaml     
+│&emsp;&emsp;├── adapter_lists/  
+│&emsp;&emsp;│&emsp;&emsp;└── *one_file_by_sample.txt*     
+│&emsp;&emsp;├── annex_database/  
+│&emsp;&emsp;│&emsp;&emsp;├── *intermediate_fasta_files.fa*     
+│&emsp;&emsp;│&emsp;&emsp;├── *intermediate_gff_files.gff*     
+│&emsp;&emsp;│&emsp;&emsp;├── *intermediate_gtf_file_for_riboWaltz.gtf*     
+│&emsp;&emsp;│&emsp;&emsp;├── *indexes_for_bowtie2_alignments.bt2*     
+│&emsp;&emsp;│&emsp;&emsp;└── *indexes_for_hisat2_alignments.ht2*     
 │&emsp;&emsp;├── BAM/  
 │&emsp;&emsp;│&emsp;&emsp;├── *one_bam_by_sample.bam*  
 │&emsp;&emsp;│&emsp;&emsp;└── *one_bai_by_bam.bai*  
-│&emsp;&emsp;├── DESeq2_by_gene or DESeq2_by_transcript/  
-│&emsp;&emsp;│&emsp;&emsp;├── count_matrix.txt  
-│&emsp;&emsp;│&emsp;&emsp;├── count_matrix_by_gene.txt  
-│&emsp;&emsp;│&emsp;&emsp;├── complete.txt  
-│&emsp;&emsp;│&emsp;&emsp;├── up.txt  
-│&emsp;&emsp;│&emsp;&emsp;├── down.txt  
-│&emsp;&emsp;│&emsp;&emsp;├── project_name.Final_report.html  
-│&emsp;&emsp;│&emsp;&emsp;├── Images/  
-│&emsp;&emsp;│&emsp;&emsp;│&emsp;&emsp;├── *all_quantitative_analysis_graphs*  
+│&emsp;&emsp;├── BAM_transcriptome/ (if riboWaltz pipeline is selected)  
+│&emsp;&emsp;│&emsp;&emsp;├── *one_bam_by_sample.bam*  
+│&emsp;&emsp;│&emsp;&emsp;└── *one_bai_by_bam.bai*  
+│&emsp;&emsp;├── DESeq2/  
+│&emsp;&emsp;│&emsp;&emsp;├── count_matrix_by_transcript_unnamed.txt  
+│&emsp;&emsp;│&emsp;&emsp;├── names_correspondence_list.txt  
+│&emsp;&emsp;│&emsp;&emsp;├── DESeq2_by_gene/ and DESeq2_by_transcript/  
+│&emsp;&emsp;│&emsp;&emsp;│&emsp;&emsp;├── count_matrix.txt  
+│&emsp;&emsp;│&emsp;&emsp;│&emsp;&emsp;├── complete.txt  
+│&emsp;&emsp;│&emsp;&emsp;│&emsp;&emsp;├── up.txt  
+│&emsp;&emsp;│&emsp;&emsp;│&emsp;&emsp;├── down.txt  
+│&emsp;&emsp;│&emsp;&emsp;│&emsp;&emsp;├── project_name.Final_report.html  
+│&emsp;&emsp;│&emsp;&emsp;│&emsp;&emsp;├── Images/  
+│&emsp;&emsp;│&emsp;&emsp;│&emsp;&emsp;│&emsp;&emsp;└── *all_quantitative_analysis_graphs*  
 │&emsp;&emsp;├── fastqc/  
 │&emsp;&emsp;│&emsp;&emsp;├── *one_html_by_sample.html*  
 │&emsp;&emsp;│&emsp;&emsp;└── *one_zip_by_sample.zip*  
 │&emsp;&emsp;├── htseqcount_CDS/  
 │&emsp;&emsp;│&emsp;&emsp;└── *one_file_by_sample.txt*  
 │&emsp;&emsp;├── riboWaltz/  # If you chose *qualitative_analysis: "ribowaltz"* in the config.yaml file  
-│&emsp;&emsp;│&emsp;&emsp;├── *riboWaltz's qualitative analysis results*  
+│&emsp;&emsp;│&emsp;&emsp;└── *riboWaltz's qualitative analysis results*  
 │&emsp;&emsp;├── qualitativeAnalysis/  # If you chose *qualitative_analysis: "trip"* in the config.yaml file  
-│&emsp;&emsp;│&emsp;&emsp;├── *TRiP's qualitative analysis results*  
+│&emsp;&emsp;│&emsp;&emsp;└── *TRiP's qualitative analysis results*  
 ├── dag_all.svg    
 └── dag_last_run.svg    
 - The *logs/* folder groups together all the error output messages from tools used in RiboDoc analysis pipeline. Thus, in the event of an error, it allows you to identify the problematic step to give us feedback.   
 - *RESULTS/* folder contains 5 subfolders:   
-&emsp;&emsp;i) *BAM/*: it contains a BAM file for each sample (allows visualization on tools such as IGV).  
-&emsp;&emsp;ii) *DESeq2/*: it contains the differential analysis html report (*PROJECT_NAME.Final_report.txt*), the count_matrix, the tables and the images related to the DESeq2 analysis.   
-&emsp;&emsp;iii) *fastqc/*: it contains raw data quality controls.   
-&emsp;&emsp;iv) *htseqcount_CDS/*: it contains htseq output for CDS counts.    
+&emsp;&emsp;i) *adapter_lists/*: it contains a text file with the adapters list for each sample that were found in the config.yaml file or determined from data is the user did not provide any adapter sequence in the configuration file.  
+&emsp;&emsp;ii) *annex_database/*: it contains the indexes for the alignments, the re-formatted fasta and gff for the analysis and the gtf for the riboWaltz pipeline (if selected in the config.yaml file).  
+&emsp;&emsp;iii) *BAM/*: it contains a BAM file for each sample (allows visualization on tools such as IGV).  
+&emsp;&emsp;iiib) *BAM_transcriptome/*: it contains a BAM file for each sample generated from the transcriptome/exome gtf and fasta files generated for riboWaltz (if selected).  
+&emsp;&emsp;iv) *DESeq2/*: it contains the differential analysis html report (*PROJECT_NAME.Final_report.txt*), the count_matrix, the tables and the images related to the DESeq2 analysis, regrouped by gene or by transcript.   
+&emsp;&emsp;v) *fastqc/*: it contains data quality controls.   
+&emsp;&emsp;vi) *htseqcount_CDS/*: it contains htseq output for CDS counts.    
 &emsp;&emsp;vii) *qualitativeAnalysis/* or *riboWatlz/*: it contains all files related to qualitative test like periodicity and reads length repartition   
 It contains also two files:  
 &emsp;&emsp;i) *PROJECT_NAME.Analysis_report.html* gathers standard output of each analysis pipeline tool. It allows to know numbers of reads at each step a)raw reads b)reads after trimming and length selection c)after out RNA depletion d)after double alignment on the reference genome.  
-&emsp;&emsp;iii) *config.yaml* to have a parameters backup.     
+&emsp;&emsp;ii) *config.yaml* to have a parameters backup.     
 
 - The *dag files* which represents the analysis steps with your samples.  
 
