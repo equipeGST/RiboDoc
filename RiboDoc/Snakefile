@@ -749,7 +749,7 @@ rule riboWaltz_transcriptome:
 rule quality_controls_bamDivision:
     input:
         bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
-        gff = local_path + "database/NamedCDS_" + config['gff']
+        gff = local_path + "RESULTS/annex_database/NamedCDS_" + config['gff']
     output:
         bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
         bai = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam.bai"
@@ -810,7 +810,7 @@ rule quality_controls_readsLengthRepartition:
 rule quality_controls_periodicity:
     input:
         bed = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed",
-        gff = local_path + "database/NamedCDS_" + config['gff']
+        gff = local_path + "RESULTS/annex_database/NamedCDS_" + config['gff']
     output:
         start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".txt",
         stop = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".txt"
