@@ -183,7 +183,7 @@ Figure 10 is the MA-plot which shows the mean of normalized counts for each feat
    
 *Figure 10 : MA-plot*   
 ```{r MA-plot by gene, fig.height = 4, fig.width =4, echo=FALSE}
-ma_plot(resDESeq_gene)
+ma_plot(resDESeq_gene, padj_threshold=Var_padj, logFC_threshold=Var_log2FC)
 ```
 
 
