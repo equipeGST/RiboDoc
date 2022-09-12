@@ -153,7 +153,10 @@ rule name_CDS:
                             if parent.attributes.get('ID') and not feature.attributes.get('ID'):
                                 feature.attributes["ID"] = parent.attributes["ID"]
                                 feature.attributes['ID'] = feature.attributes['ID'][0] + "_CDS"
-                    fout.write(str(feature) + '\n')
+                        if feature.attributes.get(config['gff_name_attribut']):
+                            fout.write(str(feature) + '\n')
+                    else:
+                        fout.write(str(feature) + '\n')
         else:
             shell("cp {input.gff} {output.gff_namedCDS} ;")
         if gene_id_bool:
@@ -573,7 +576,7 @@ rule DESeq2_analysis_transcript:
 # Quality controls :
 # riboWaltz pipeline
 # In case there are no UTRs in the original GFF, call for ORFelongate functions
-rule ORFelongate:
+rule ORFget:
     input:
         fasta = local_path + "database/" + os.path.basename(config['fasta']),
         gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
@@ -582,15 +585,17 @@ rule ORFelongate:
         gff = local_path + "RESULTS/annex_database/transcriptome_elongated.gff",
         gff_with_genes = local_path + "RESULTS/annex_database/transcriptome_elongated_with_gene_features.gff"
     log:
-        orf_elongate = local_path + "logs/ORFelongate/orf_elongate.log"
+        orf_get = local_path + "logs/ORFget/orf_get.log",
+        mv = local_path + "logs/ORFget/mv.log",
+        awk = local_path + "logs/ORFget/awk.log"
     benchmark:
-        local_path + "benchmarks/ORFelongate/ORFelongate.benchmark.txt"
+        local_path + "benchmarks/ORFget/ORFget.benchmark.txt"
     params:
-        path = local_path + "RESULTS/annex_database/transcriptome_elongated"
+        path = local_path + "RESULTS/annex_database/transcriptome"
     shell:
-        "python3 " + ribodoc_tools + "ORFelongate.py -fna {input.fasta} -gff {input.gff} -features_include " + config['gff_cds_feature'] + " -type nucl -o {params.path};"
-        "mv {output.gff} {output.gff_with_genes};"
-        """awk '$3 !~ "gene"' {output.gff_with_genes} > {output.gff};"""
+        "python3 " + ribodoc_tools + "ORFget.py -fna {input.fasta} -gff {input.gff} -features_include " + config['gff_cds_feature'] + " -name_attribute " + config['gff_name_attribut'] + " -o {params.path} -type nucl -elongate 50 -check 2> {log.orf_get};"
+        "mv {output.gff} {output.gff_with_genes} 2> {log.mv};"
+        "awk '$3 !~ /gene/' {output.gff_with_genes} > {output.gff} 2> {log.awk};"
 
 # Create GTF file for riboWaltz
 rule transcriptome_construction_gtf:
