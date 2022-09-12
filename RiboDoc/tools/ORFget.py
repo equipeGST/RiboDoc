@@ -108,10 +108,10 @@ class GFF_element:
     '''
 
     '''
-    def __init__(self,gff_line,genome=None,genetic_code=1):
+    def __init__(self,gff_line,genome=None,name_attribute="Name",genetic_code=1):
         self.chromosome = gff_line.split("\t")[0]
         self.info       = self.__organize_info__(gff_line.split("\t")[-1])
-        self.identity   = self.__get_feature_identity__(self.info)
+        self.identity   = self.__get_feature_identity__(self.info, name_attribute)
         self.phase      = gff_line.split("\t")[-2]
         self.strand     = gff_line.split("\t")[-3]
         self.end        = int(gff_line.split("\t")[-5])
@@ -136,15 +136,15 @@ class GFF_element:
         #return({i.split("=")[0]:i.split("=")[1] for i in info.split(";")})
         return dico
 
-    def __get_feature_identity__(self,info_organized):
+    def __get_feature_identity__(self,info_organized, name_attribute):
         if "ID" in info_organized:
             return(info_organized["ID"])
         elif "Name" in info_organized:
             return(info_organized["Name"])
         elif "Parent" in info_organized:
             return(info_organized["Parent"])
-        elif self.name_attribute in info_organized:
-            return(info_organized["Parent"])
+        elif name_attribute in info_organized:
+            return(info_organized[name_attribute])
         else:
             return(None)
 
@@ -235,7 +235,7 @@ class GFF_iterator:
             for line in gff:
                 if not line.startswith("#"):
                     # For every line we create a feature class
-                    feature = GFF_element(line,genome)
+                    feature = GFF_element(line,genome,name_attribute)
 
                     # We check if the filter is in the list of features wanted
                     if feature.feature in gff_types and feature.chromosome not in chr_exclude or gff_types == ["all"]:
@@ -381,14 +381,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-'''
-    TO DO:
-        1. To make the function of writing the fasta outputs
-        2. To make a function for correctly writing a new GFF file
-        3. To make a function that will get N features randomly
-'''
