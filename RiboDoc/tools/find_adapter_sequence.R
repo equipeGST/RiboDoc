@@ -54,6 +54,7 @@ for(Ligne in 1 : lines_check)
     break
   }
   df <- as.data.frame(table(List_adapters))
+  df <- df[order(df$Freq, decreasing = T),]
   
   # If more than half the checked lines (arbitrary) have been used to make patterns
   # and if the best checked sequence appears in more than 70% (0.7 : arbitrary) of the fastq lines
