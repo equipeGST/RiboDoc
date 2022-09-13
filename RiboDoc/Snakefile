@@ -88,7 +88,7 @@ rule all:
 onstart:
     # In case the user is using a Macintosh computer, hidden files are removed
     shell("find " + local_path + " -depth -name '.DS_Store' -exec rm -f {{}} \;")
-    shell("find " + local_path + " -depth -name '.AppleDouble' -exec rm -Rf {{}} \;")
+    shell("find " + local_path + " -depth -name '.AppleDouble' -exec rm -rf {{}} \;")
     shell("mkdir -p " + local_path + "logs/;")
     shell("echo 'RiboDoc version : " + ribodoc_version + "' > " + local_path + "logs/RiboDoc_package_versions.txt;")
     shell("conda list >> " + local_path + "logs/RiboDoc_package_versions.txt;")
@@ -334,7 +334,7 @@ rule samtools_filter:
         "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
         "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
         "samtools view -@ {threads} -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ {threads} -o {output.bam} 2> {log.sort_bam} ;"
-        "rm -r {params.sam};"
+        "rm -rf {params.sam} 2> {log.rm};"
 
 # Index BAMs
 rule index_bam:
