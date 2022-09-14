@@ -65,16 +65,17 @@ f.close()
 rule all:
     input:
         # Call of make_fastqc rule
-        expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}_fastqc.html", sample=SAMPLES),
 
         # Call of htseqcount_transcript_utr or htseqcount_transcript rule (depends on UTR="True"|"False" in config file)
         expand(local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA." + counts + ".txt", sample=SAMPLES),
 
         # Call for qualitative analysis
-        local_path + "RESULTS/riboWaltz/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
-        local_path + "RESULTS/riboWaltz/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
-        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg", sample=SAMPLES, taille=LENGTHS) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
-        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg", sample=SAMPLES) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+        local_path + "RESULTS/riboWaltz/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
+        local_path + "RESULTS/riboWaltz/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg", sample=SAMPLES, taille=LENGTHS) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg", sample=SAMPLES) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
 
         # Alignment statistics report
         local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report.txt",
@@ -166,18 +167,18 @@ rule name_CDS:
         shell("sed -i -E 's/\\s/\\t/8' {output.gff_namedCDS} ;")
 
 # Quality control of data : build of the fastqc
-rule make_fastqc:
+rule make_fastqc_before_trimming:
     input:
         local_path + "fastq/{sample}.fastq.gz"
     output:
-        local_path + "RESULTS/fastqc/{sample}_fastqc.zip",
-        local_path + "RESULTS/fastqc/{sample}_fastqc.html"
+        local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.zip",
+        local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html"
     log:
-        local_path + "logs/make_fastqc/{sample}.log"
+        local_path + "logs/make_fastqc_before_trimming/{sample}.log"
     benchmark:
-        local_path + "benchmarks/make_fastqc/{sample}.benchmark.txt"
+        local_path + "benchmarks/make_fastqc_before_trimming/{sample}.benchmark.txt"
     params:
-       outdir = local_path + "RESULTS/fastqc/"
+       outdir = local_path + "RESULTS/fastqc/fastqc_before_trimming/"
     shell:
         # fastqc 0.11.9
         "fastqc {input} --outdir {params.outdir} 2> {log};"
@@ -188,7 +189,7 @@ rule adapt_trimming:
         fastq = local_path + "fastq/{sample}.fastq.gz",
         adapt_seq = local_path + "RESULTS/adapter_lists/{sample}.txt"
     output:
-        cut_fastq = temp(local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz")
+        cut_fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
     log:
         trim_value = local_path + "logs/adapt_trimming/{sample}_trim_value.log",
         cutadapt = local_path + "logs/adapt_trimming/{sample}_cutadapt.log",
@@ -203,6 +204,23 @@ rule adapt_trimming:
         "adapter_sequence=`cat {input.adapt_seq}` ;"
         "if [ '" + config['already_trimmed'] + "' = 'no' ]; then trim=\"-a ${{adapter_sequence}} --trimmed-only\"; else trim=''; fi 2> {log.trim_value};"
         "cutadapt ${{trim}} -e 0.125 -j {threads} --max-n=1 -m " + config['readsLength_min'] + " -M " + config['readsLength_max'] + " -o {output.cut_fastq} {input.fastq} 1>> {log.cutadapt_out} 2> {log.cutadapt} ;"
+
+# Quality control of data : build of the fastqc
+rule make_fastqc_after_trimming:
+    input:
+        local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
+    output:
+        local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}_fastqc.zip",
+        local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}_fastqc.html"
+    log:
+        local_path + "logs/make_fastqc_after_trimming/{sample}.log"
+    benchmark:
+        local_path + "benchmarks/make_fastqc_after_trimming/{sample}.benchmark.txt"
+    params:
+       outdir = local_path + "RESULTS/fastqc/fastqc_after_trimming/"
+    shell:
+        # fastqc 0.11.9
+        "fastqc {input} --outdir {params.outdir} 2> {log};"
 
 # Builds the index of bowtie2 mapping on sequences for reads remove
 rule bowtie2_build_outRNA:
