@@ -66,7 +66,7 @@ rule all:
     input:
         # Call of make_fastqc rule
         expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
-        expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
 
         # Call of htseqcount_transcript_utr or htseqcount_transcript rule (depends on UTR="True"|"False" in config file)
         expand(local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA." + counts + ".txt", sample=SAMPLES),
@@ -210,8 +210,8 @@ rule make_fastqc_after_trimming:
     input:
         local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
     output:
-        local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}_fastqc.zip",
-        local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}_fastqc.html"
+        local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.zip",
+        local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html"
     log:
         local_path + "logs/make_fastqc_after_trimming/{sample}.log"
     benchmark:
