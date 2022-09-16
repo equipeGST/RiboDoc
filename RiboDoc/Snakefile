@@ -67,6 +67,7 @@ rule all:
         # Call of make_fastqc rule
         expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html", sample=SAMPLES),
 
         # Call of htseqcount_transcript_utr or htseqcount_transcript rule (depends on UTR="True"|"False" in config file)
         expand(local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA." + counts + ".txt", sample=SAMPLES),
@@ -166,7 +167,7 @@ rule name_CDS:
             print("Missing at least some 'gene_id' attribute in this gff.")
         shell("sed -i -E 's/\\s/\\t/8' {output.gff_namedCDS} ;")
 
-# Quality control of data : build of the fastqc
+# Quality control of data : build of the fastqc on raw data
 rule make_fastqc_before_trimming:
     input:
         local_path + "fastq/{sample}.fastq.gz"
@@ -205,7 +206,7 @@ rule adapt_trimming:
         "if [ '" + config['already_trimmed'] + "' = 'no' ]; then trim=\"-a ${{adapter_sequence}} --trimmed-only\"; else trim=''; fi 2> {log.trim_value};"
         "cutadapt ${{trim}} -e 0.125 -j {threads} --max-n=1 -m " + config['readsLength_min'] + " -M " + config['readsLength_max'] + " -o {output.cut_fastq} {input.fastq} 1>> {log.cutadapt_out} 2> {log.cutadapt} ;"
 
-# Quality control of data : build of the fastqc
+# Quality control of data : build of the fastqc after adapter trimming
 rule make_fastqc_after_trimming:
     input:
         local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
@@ -258,6 +259,23 @@ rule bowtie2_run_outRNA:
         multi_threads_nbr
     shell:
         "bowtie2 -x " + local_path + "RESULTS/annex_database/outRNA_bowtie2 --threads {threads} -U {input.fastq} --un-gz {output} > /dev/null 2>> {log.bt2} ;"
+
+# Quality control of data : build of the fastqc after depletin rRNA as ribosomal RNA can have an impact on the data's profiles (ATGC content)
+rule make_fastqc_after_outRNA_depletion:
+    input:
+        locaocal_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
+    output:
+        local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.zip",
+        local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html"
+    log:
+        local_path + "logs/make_fastqc_after_outRNA_depletion/{sample}.log"
+    benchmark:
+        local_path + "benchmarks/make_fastqc_after_outRNA_depletion/{sample}.benchmark.txt"
+    params:
+       outdir = local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/"
+    shell:
+        # fastqc 0.11.9
+        "fastqc {input} --outdir {params.outdir} 2> {log};"
 
 # Builds the index of bowtie2 mapping for all RNA
 rule bowtie2_build:
@@ -593,7 +611,7 @@ rule DESeq2_analysis_transcript:
 
 # Quality controls :
 # riboWaltz pipeline
-# In case there are no UTRs in the original GFF, call for ORFelongate functions
+# In case there are no UTRs in the original GFF, call for ORFget functions
 rule ORFget:
     input:
         fasta = local_path + "database/" + os.path.basename(config['fasta']),
