@@ -177,6 +177,9 @@ class GFF_element:
             self.seq_nucl = self.seq_nucl.reverse_complement()
             self.seq_prot = self.seq_nucl.translate(table=genetic_code)
 
+        if len(self.seq_nucl) % 3 != 0:
+            self.seq_nucl = self.seq_nucl + Seq('N' * (3 - (len(self.seq_nucl) % 3)))
+
     def __elongate__(self,genome,elongate = 50):
         '''
         Elongates the nucleotide sequence towards the 5 and 3 UTRs
@@ -261,7 +264,6 @@ class GFF_iterator:
                                 del features[0]
                                 continue
 
-
                             # If the elongation option is activate, we elongate the feture sequence:
                             if elongate != False:
                                 # We elongate the sequence of the feature
@@ -320,10 +322,13 @@ class GFF_iterator:
         # And if elongate is not False, then write the last feature elongated
         if elongate != False:
             features[0].__elongate__(genome=genome,elongate=elongate)
+
             fasta_elongate.write(">{}\n{}\n".format(features[0].identity+"_mRNA",str(features[0].seq_nucl_elongated.seq)))
+
             gene_end  = len(features[0].seq_nucl_elongated.seq)
             cds_start = elongate+1
             cds_end   = elongate+len(str(features[0].seq_nucl.seq))
+
             # We write the GENE feature in the GFF : ID=identity
             gff_elongate.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(features[0].identity+"_mRNA","elongated","gene","1",gene_end,".","+",".","ID=" + features[0].identity))
             # We write the mRNA feature in the GFF : ID=identity_mRNA
