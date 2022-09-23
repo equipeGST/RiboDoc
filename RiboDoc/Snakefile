@@ -263,7 +263,7 @@ rule bowtie2_run_outRNA:
 # Quality control of data : build of the fastqc after depletin rRNA as ribosomal RNA can have an impact on the data's profiles (ATGC content)
 rule make_fastqc_after_outRNA_depletion:
     input:
-        locaocal_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
+        local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
         local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.zip",
         local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html"
