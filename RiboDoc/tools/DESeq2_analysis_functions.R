@@ -160,10 +160,17 @@ dispersion_estimation <- function(ddsObjet) {
 find_means <- function(dds_object,data_list) {
   normalized_couts <- counts(dds_object, normalized = TRUE)
   # Control mean
-  CT_Mean <- data.frame(apply(normalized_couts[,1:(data_list$nb_col_condA)],1,mean))
-  
+  if(data_list$nb_col_condA > 1) {
+    CT_Mean <- data.frame(apply(normalized_couts[,1:(data_list$nb_col_condA)],1,mean))
+  } else {
+    CT_Mean <- data.frame(normalized_couts[,1])
+  }
   # Tested condition mean
-  Mut_Mean <- data.frame(apply(normalized_couts[,(data_list$nb_col_condA+1):dim(normalized_couts)[2]],1,mean))
+  if(data_list$nb_col_condB > 1) {
+    Mut_Mean <- data.frame(apply(normalized_couts[,(data_list$nb_col_condA+1):dim(normalized_couts)[2]],1,mean))
+  } else {
+    Mut_Mean <- data.frame(normalized_couts[,(data_list$nb_col_condA+1)])
+  }
   
   return(list(CT_Mean = CT_Mean, Mut_Mean = Mut_Mean))
 }
