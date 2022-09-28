@@ -177,8 +177,9 @@ class GFF_element:
             self.seq_nucl = self.seq_nucl.reverse_complement()
             self.seq_prot = self.seq_nucl.translate(table=genetic_code)
 
-        if len(self.seq_nucl) % 3 != 0:
-            self.seq_nucl = self.seq_nucl + Seq('N' * (3 - (len(self.seq_nucl) % 3)))
+        # # If the sequence is not a multiple of 3, add 1 or 2 'N' at the end
+        # if len(self.seq_nucl) % 3 != 0:
+        #     self.seq_nucl = self.seq_nucl + Seq('N' * (3 - (len(self.seq_nucl) % 3)))
 
     def __elongate__(self,genome,elongate = 50):
         '''
@@ -187,14 +188,13 @@ class GFF_element:
         # We get the nucl seq of the elongations
         elongate_5UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.start - elongate),(self.start-1),genome)
         elongate_3UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.end+1),(self.end + elongate),genome)
+
         # We construct the elongated nucl seq
+        # If is in the - strand we get the REV-COMP of the sequence
         if self.strand == "-":
             self.seq_nucl_elongated = elongate_3UTR_nucl.reverse_complement() + self.seq_nucl + elongate_5UTR_nucl.reverse_complement()
         else:
             self.seq_nucl_elongated = elongate_5UTR_nucl + self.seq_nucl + elongate_3UTR_nucl
-        ####self.seq_nucl_elongated = elongate_5UTR_nucl + self.seq_nucl + elongate_3UTR_nucl
-        ###self.seq_nucl_elongated = self.__get_nucletide_seq__(self.chromosome,(self.start - elongate),(self.end + elongate),genome)
-        # If is in the - strand we get the REV-COMP of the sequence
 
         # And we keep the indexes of the elongations
         self.UTR5_start = 1
@@ -248,7 +248,7 @@ class GFF_iterator:
                             previous_feature = feature.identity
                             features.append(feature)
                             continue
-                        # If the feature is not already in the list we add it (I check only the last feature)
+                        # If the feature is not already in the list we add it (We check only the last feature)
                         if feature.identity != previous_feature:
                             previous_feature = feature.identity
                             # We append the new feature in the list
@@ -258,7 +258,7 @@ class GFF_iterator:
                             features[0].__correct_feature_sequences__(genetic_code=genetic_code)
 
                             # If the check option is active then we check if the
-                            # protein sequence ends to a STOP codon (*). If NO we
+                            # protein sequence ends with a STOP codon (*). If not, we
                             # skip this feature and do not write it in the output:
                             if not features[0].seq_prot.seq.endswith("*") and check == True:
                                 del features[0]
@@ -273,7 +273,8 @@ class GFF_iterator:
 
                                 gene_end  = len(features[0].seq_nucl_elongated.seq)
                                 cds_start = elongate+1
-                                cds_end   = elongate+len(str(features[0].seq_nucl.seq))
+                                cds_end   = elongate+len(features[0].seq_nucl.seq)
+                                gff_elongate.write("{}\n".format(gene_end))
 
                                 # We write the GENE feature in the GFF : ID=identity
                                 gff_elongate.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(features[0].identity+"_mRNA","elongated","gene","1",gene_end,".","+",".","ID=" + features[0].identity))
@@ -305,11 +306,8 @@ class GFF_iterator:
                             features[-1].__update_feature__(feature)
 
         ## Final correction of the sequences:
-        ##for feature in features:
-        ##    feature.__correct_feature_sequences__(genetic_code=genetic_code)
-
-        # Write the last feature left in the list
         features[0].__correct_feature_sequences__(genetic_code=genetic_code)
+        # Write the last feature left in the list
         try:
             fwn.write(">{}\n{}\n".format(features[0].identity,str(features[0].seq_nucl.seq)))
         except:
@@ -321,13 +319,15 @@ class GFF_iterator:
 
         # And if elongate is not False, then write the last feature elongated
         if elongate != False:
+
             features[0].__elongate__(genome=genome,elongate=elongate)
 
             fasta_elongate.write(">{}\n{}\n".format(features[0].identity+"_mRNA",str(features[0].seq_nucl_elongated.seq)))
 
             gene_end  = len(features[0].seq_nucl_elongated.seq)
             cds_start = elongate+1
-            cds_end   = elongate+len(str(features[0].seq_nucl.seq))
+            cds_end   = elongate+len(features[0].seq_nucl.seq)
+            gff_elongate.write("{}\n".format(gene_end))
 
             # We write the GENE feature in the GFF : ID=identity
             gff_elongate.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(features[0].identity+"_mRNA","elongated","gene","1",gene_end,".","+",".","ID=" + features[0].identity))
@@ -367,7 +367,6 @@ def main():
     parameters     = get_args()
     genome_file    = parameters.fna
 
-    #genome_file =  "/Users/christospapadopoulos/Documents/de_novo/Fungi_BLASTs/Scer/Scer.fna"
     print("Started\t:\t",time.ctime())
     my_fasta = SeqIO.to_dict(SeqIO.parse(open(genome_file),'fasta'))
     my_gff = GFF_iterator(gff_file      = parameters.gff,
