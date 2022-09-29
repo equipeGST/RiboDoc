@@ -19,12 +19,12 @@ transcript_or_gene <- function(data, list_of_names, gene_transcript="gene") {
     expData_named_gene <- expData_named[,-(dim(expData_named)[2]-1)]
     expData_counts_by_gene <- aggregate(expData_named_gene[,-dim(expData_named_gene)[2]], expData_named_gene["Gene_name"], sum)
     new_expData <- data.frame(expData_counts_by_gene, row.names = 1)
-    write.table(new_expData, paste0(paths_list$DESeq2_gene,"count_matrix_by_gene.txt"), sep = "\t")
+    write.table(new_expData, paste0(paths_list$DESeq2_gene,"count_matrix_by_gene.txt"), sep = "\t", col.names = NA, row.names = T)
   } else {
     expData_named_transcript <- expData_named[,-(dim(expData_named)[2])]
     expData_counts_by_transcript <- aggregate(expData_named_transcript[,-dim(expData_named_transcript)[2]], expData_named_transcript["Transcript_name"], sum)
     new_expData <- data.frame(expData_counts_by_transcript, row.names = 1)
-    write.table(new_expData, paste0(paths_list$DESeq2_transcript,"count_matrix_by_transcript.txt"), sep = "\t")
+    write.table(new_expData, paste0(paths_list$DESeq2_transcript,"count_matrix_by_transcript.txt"), sep = "\t", col.names = NA, row.names = T)
   }
   return(new_expData)
 }
