@@ -172,12 +172,12 @@ Now that your folder's architecture is ready and the image is on your computer, 
 ### Use of docker  
 &emsp;&emsp;&emsp;`docker run --rm -v /path/to/your/project/folder/:/data/ equipegst/ribodoc CPU_NUMBER MEMORY_AMOUNT`  
 ### Use of singularity  
-&emsp;&emsp;&emsp;`singularity run --disable-cache --bind /path/to/your/project/folder/:/data/ equipegst/ribodoc CPU_NUMBER MEMORY_AMOUNT`  
+&emsp;&emsp;&emsp;`singularity run --bind /path/to/your/project/folder/:/data/ equipegst/ribodoc CPU_NUMBER MEMORY_AMOUNT`  
 */path/to/your/project/folder/* corresponds to the **full path** of the directory with all the files you prepared for the analysis (usually starting with a "/"). To get this full path, you can usually drag and drop your folder to the terminal or find it in the properties.    
 *:/data/* **must not be modified in any way** as it corresponds to the path to the project directory inside the container.   
 *CPU_NUMBER* is an integer corresponding to the total number of threads you want to use for your analysis (Ex : 4).   
 *MEMORY_AMOUNT* is an integer corresponding to the maximum amount of memory in Gigabytes (RAM) you want to use for your analysis (Ex : 30). Be careful to have enough memory available for alignment steps or the pipeline will be stopped without a specific error written in the "logs" folder.   
-
+>You can also add the "--disable-cache" option after "singularity run" in order to delete singularity image and cache after the run is done.  
 
 >Caution:   
 >&emsp;&emsp;&emsp;The path to your project folder and the "/data/" path must start and finish with a slash "/" if you are using docker.   
@@ -189,13 +189,14 @@ Now that your folder's architecture is ready and the image is on your computer, 
 >&emsp;&emsp;&emsp;/data/ path does not change in any way !   
 
 ## 5) In case of any error   
-Managed by snakemake, the pipeline will finish all jobs unrelated to the rule/job that failed before exiting. You can still force the container to stop with Docker Desktop or with the following command lines (might need the "sudo" keyword at the beginning) :   
+Managed by snakemake, the pipeline will finish all jobs unrelated to the rule/job that failed before exiting. You can still force the container to stop with Docker Desktop or with the following command lines (might need the "sudo" keyword at the beginning for docker) :  
 >&emsp;> docker container ls   
 
 Which provides you the container's ID (*e.g.* 9989909f047d), then :   
 >&emsp;> docker stop ID  
 Where "ID" is the id obtained with the previous command
 
+With singularity you can just terminate the job by pressing Ctrl+C **once** and snakemake will delete all files wich might be corrupted before stopping.
 If you have issues with the use of Docker, you must refer to their [website](https://docs.docker.com/).     
 If the error happens during the use of RiboDoc, the rule (job) which failed is indicated in your terminal. You can then find the error output in the *logs* folder. Each rule have a precise name and a folder related to it with files corresponding to the different steps of this rule.  
 In most cases, a problem occurs because the memory provided is insufficient and no precise error message is shown in the *logs* folder. This usually happens during the index builds (for the alignement tools), the alignments or the riboWaltz tool script, as they are the steps asking for the more resources in RiboDoc pipeline. If you cannot find why the pipeline stopped, try resuming it with more memory available.   
