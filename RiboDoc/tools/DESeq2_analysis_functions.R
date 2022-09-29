@@ -198,10 +198,10 @@ padj_distribution <- function(deseq_results) {
 }
 
 # MA-plot
-ma_plot <- function(deseq_results, padj_threshold, logFC_threshold) {
+ma_plot <- function(deseq_results) {
   deseq_results_modified <- deseq_results
-  deseq_results_modified$padj[which(abs(deseq_results_modified$log2FoldChange) <= abs(logFC_threshold))] <- 1
-  plotMA(deseq_results_modified, alpha = padj_threshold, ylab = "log2FC", colSig = rgb(1,0,0,0.5))
+  deseq_results_modified$padj[which(abs(deseq_results_modified$log2FoldChange) <= abs(Var_log2FC))] <- 1
+  plotMA(deseq_results_modified, alpha = Var_padj, ylab = "log2FC", colSig = rgb(1,0,0,0.5))
 }
 
 # Volcano plot global
