@@ -154,7 +154,7 @@ for(i in 1:length(samples_renamed))
   
   # Metaprofiles by length
   for(len in readsLength_min:readsLength_max) {
-    dir.create(paste0(local_path, "RESULTS/riboWaltz/", samples[i],"/results_by_length/metaprofiles/"), showWarnings = F)
+    dir.create(paste0(local_path, "RESULTS/riboWaltz/", samples[i],"/results_by_length/metaprofiles_-", window_utr, "+", window_cds, "/"), showWarnings = F)
     dir.create(paste0(local_path, "RESULTS/riboWaltz/", samples[i],"/results_by_length/reads_psite/"), showWarnings = F)
     reads_psite_list_specific_length <- setNames(list(reads_psite_list[[samples_renamed[i]]][length==len]),samples_renamed[i])
     
@@ -165,12 +165,12 @@ for(i in 1:length(samples_renamed))
                                               cdsl = window_cds,
                                               plot_title = "sample.transcript")
     
-    tiff(file=paste0(local_path, "RESULTS/riboWaltz/", samples[i],"/results_by_length/metaprofiles/metaprofile_psite_length", len, "_-", window_utr, "+", window_cds, ".tiff"))
+    tiff(file=paste0(local_path, "RESULTS/riboWaltz/", samples[i],"/results_by_length/metaprofiles_-", window_utr, "+", window_cds, "/metaprofile_psite_length", len, "_-", window_utr, "+", window_cds, ".tiff"))
     plot(metaprofile_specific[[paste0("plot_",samples_renamed[i])]])
     dev.off()
     
     write.table(metaprofile_specific$dt,
-                paste0(local_path, "RESULTS/riboWaltz/", samples[i], "/results_by_length/metaprofiles/metaprofile_psite_length", len, "_-", window_utr, "+", window_cds, ".csv"),
+                paste0(local_path, "RESULTS/riboWaltz/", samples[i], "/results_by_length/metaprofiles_-", window_utr, "+", window_cds, "/metaprofile_psite_length", len, "_-", window_utr, "+", window_cds, ".csv"),
                 quote = F, row.names = F, sep ="\t")
 
     write.table(reads_psite_list_specific_length[[samples_renamed[i]]],
