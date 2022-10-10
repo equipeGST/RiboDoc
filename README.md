@@ -172,7 +172,7 @@ Now that your folder's architecture is ready and the image is on your computer, 
 ### Use of docker  
 &emsp;&emsp;&emsp;`docker run --rm -v /path/to/your/project/folder/:/data/ equipegst/ribodoc CPU_NUMBER MEMORY_AMOUNT`  
 ### Use of singularity  
-&emsp;&emsp;&emsp;`singularity run --bind /path/to/your/project/folder/:/data/ equipegst/ribodoc CPU_NUMBER MEMORY_AMOUNT`  
+&emsp;&emsp;&emsp;`singularity run --bind /path/to/your/project/folder/:/data/ /path/to/your/singularity/image.sif CPU_NUMBER MEMORY_AMOUNT`  
 */path/to/your/project/folder/* corresponds to the **full path** of the directory with all the files you prepared for the analysis (usually starting with a "/"). To get this full path, you can usually drag and drop your folder to the terminal or find it in the properties.    
 *:/data/* **must not be modified in any way** as it corresponds to the path to the project directory inside the container.   
 *CPU_NUMBER* is an integer corresponding to the total number of threads you want to use for your analysis (Ex : 4).   
