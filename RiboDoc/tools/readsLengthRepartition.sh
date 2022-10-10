@@ -1,6 +1,6 @@
 #!/bin/bash
 
-usage() { echo "Usage: $0 -l <Read length> -D <path to BAM by length> -N <Sample name> -F <Fasta file> -O <output dir>" 1>&2 ; echo "\n -N\tsample name\n -D\tpath to directory with uniq and sort BAM files\n -l\tRead length\n -F\tGenome sequence in fasta format\n -O\tOutput directory" ; exit 1; }
+usage() { echo "Usage: $0 -l <Read length> -D <path to BAM by length> -N <Sample name> -F <Fasta file> -O <output dir>" 1>&2 ; echo -e "\n -N\tsample name\n -D\tpath to directory with uniq and sort BAM files\n -l\tRead length\n -F\tGenome sequence in fasta format\n -O\tOutput directory" ; exit 1; }
 
 while getopts ":D:N:l:F:O:" option; do
     case "${option}" in
