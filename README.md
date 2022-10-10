@@ -276,9 +276,11 @@ It contains also two files:
 
 - The *dag files* which represents the analysis steps with your samples.  
 
->Last big tip:  
+>Last big tips:
 In case a sample is too variable against other replicates or if new sequenced samples are to be added to your study, you can delete/move or add them in the *fastq* subfolder. RiboDoc will only process necessary steps based on the fastq files list. If you want to keep the previous results of your differential analysis, delete/move/rename the subfolder *RESULTS/DESeq2*. Run again RiboDoc on the same *project_name* folder and it only creates missing files to complete the analysis.  
 Also, if the pipeline crashes but you cannot fin any obvious reason why, it usually means that it is due to a lack of memory. Re-run the pipeline with more resources before breaking your computer ;-)  
+Containers state saves and cache can take more and more space if you do not use the "--rm" option for docker. To clean everything related to containers, just right in your terminal :
+>&emsp;> docker system prune -af
 
 Thank you for using RiboDoc !   
 We wish you the best results for your analysis !  
