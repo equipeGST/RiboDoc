@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-LABEL version="0.8.3"
+LABEL version="0.8.4"
 
 ENV LC_ALL=C
 
@@ -36,5 +36,7 @@ RUN echo "conda activate RiboDoc_env" >> /bin/.bashrc \
     && conda list --name RiboDoc_env
 
 RUN R -e "library('devtools');devtools::install_github('LabTranslationalArchitectomics/riboWaltz@v1.2.0', dependencies = FALSE);"
+
+WORKDIR /data/
 
 ENTRYPOINT ["bash","/RiboDoc/RiboDoc/RiboDoc.sh"]
