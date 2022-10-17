@@ -37,4 +37,6 @@ RUN echo "conda activate RiboDoc_env" >> /bin/.bashrc \
 
 RUN R -e "library('devtools');devtools::install_github('LabTranslationalArchitectomics/riboWaltz@v1.2.0', dependencies = FALSE);"
 
+WORKDIR /data/
+
 ENTRYPOINT ["bash","/RiboDoc/RiboDoc/RiboDoc.sh"]
