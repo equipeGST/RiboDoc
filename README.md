@@ -6,7 +6,7 @@ Welcome to the RiboDoc tool tutorial !
 
 
 ## 1) Install Docker or Singularity  
-First of all, Docker or Singularity must be installed. Singularity might be prefered as it does not need super user rights, especially interesting for the use of RiboDoc on a cluster.  
+First of all, Docker must be installed but needs super user rights.
 Docker Engine is available on different OS like macOS and Windows 10 through Docker Desktop and as a static binary installation for a variety of Linux platforms. All are available here : https://docs.docker.com/engine/install/   
 
 >Tips:  
