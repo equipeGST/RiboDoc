@@ -6,7 +6,7 @@ Welcome to the RiboDoc tool tutorial !
 
 
 ## 1) Install Docker or Singularity  
-First of all, Docker must be installed but needs super user rights.
+First of all, Docker or Singularity must be installed. Singularity might be prefered as it does not need super user rights, especially interesting for the use of RiboDoc on a cluster.  
 Docker Engine is available on different OS like macOS and Windows 10 through Docker Desktop and as a static binary installation for a variety of Linux platforms. All are available here : https://docs.docker.com/engine/install/   
 
 >Tips:  
@@ -261,7 +261,7 @@ Initial folders and files are still present and highligth in bold in the tree ar
 ├── dag_all.svg    
 └── dag_last_run.svg    
 - The *logs/* folder groups together all the error output messages from tools used in RiboDoc analysis pipeline. Thus, in the event of an error, it allows you to identify the problematic step to give us feedback.   
-- *RESULTS/* folder contains 5 subfolders:   
+- The *RESULTS/* folder contains these subfolders:   
 &emsp;&emsp;i) *adapter_lists/*: it contains a text file with the adapters list for each sample that were found in the config.yaml file or determined from data is the user did not provide any adapter sequence in the configuration file.  
 &emsp;&emsp;ii) *annex_database/*: it contains the indexes for the alignments, the re-formatted fasta and gff for the analysis and the gtf for the riboWaltz pipeline (if selected in the config.yaml file).  
 &emsp;&emsp;iii) *BAM/*: it contains a BAM file for each sample (allows visualization on tools such as IGV).  
