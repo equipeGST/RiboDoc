@@ -118,7 +118,7 @@ class GFF_element:
         self.start      = int(gff_line.split("\t")[-6])
         self.feature    = gff_line.split("\t")[-7]
         if genome:
-            self.seq_nucl = self.__get_nucletide_seq__(self.chromosome,self.start,self.end,genome)
+            self.seq_nucl = self.__get_nucleotide_seq__(self.chromosome,self.start,self.end,genome)
             self.seq_nucl_elongated = None
             self.UTR5_start = None
             self.UTR5_end   = None
@@ -148,7 +148,7 @@ class GFF_element:
         else:
             return(None)
 
-    def __get_nucletide_seq__(self,chromosome,start,end,genome):
+    def __get_nucleotide_seq__(self,chromosome,start,end,genome):
         return(genome[chromosome][start-1:end])
 
     def __update_feature__(self,gff_element):
@@ -186,8 +186,8 @@ class GFF_element:
         Elongates the nucleotide sequence towards the 5 and 3 UTRs
         '''
         # We get the nucl seq of the elongations
-        elongate_5UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.start - elongate),(self.start-1),genome)
-        elongate_3UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.end+1),(self.end + elongate),genome)
+        elongate_5UTR_nucl = self.__get_nucleotide_seq__(self.chromosome,(self.start - elongate),(self.start-1),genome)
+        elongate_3UTR_nucl = self.__get_nucleotide_seq__(self.chromosome,(self.end+1),(self.end + elongate),genome)
 
         # We construct the elongated nucl seq
         # If is in the - strand we get the REV-COMP of the sequence
