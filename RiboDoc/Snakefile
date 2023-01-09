@@ -1,7 +1,7 @@
 configfile: "/data/config.yaml"
 
 
-ribodoc_version = "0.8.4"
+ribodoc_version = "0.8.5"
 
 
 # Imports
@@ -335,8 +335,8 @@ rule run_mapping:
     threads:
         multi_threads_nbr
     shell:
-        "hisat2 -x {params.index_names_hisat2} --threads {threads} -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
-        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
+        "hisat2 -x {params.index_names_hisat2} --threads {threads} --no-softclip -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
+        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} --end-to-end -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
 
 # Creates bam and sam files
 rule samtools_filter:
@@ -717,8 +717,8 @@ rule run_mapping_transcriptome:
     threads:
         multi_threads_nbr
     shell:
-        "hisat2 -x {params.index_names_hisat2} --threads {threads} -k 10 -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
-        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} -k 10 -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
+        "hisat2 -x {params.index_names_hisat2} --threads {threads} -k 10 --no-softclip -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
+        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} -k 10 --end-to-end -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
 
 # Creates bam and sam files
 rule samtools_filter_transcriptome:
