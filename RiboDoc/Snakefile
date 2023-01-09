@@ -319,8 +319,8 @@ rule run_mapping:
         fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
         fastq = temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.fastq.gz"),
-        sam_hisat2 = temp(local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".hisat2.sam"),
-        sam_bowtie2 = temp(local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bowtie2.sam")
+        sam_hisat2 = temp(local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".hisat2.sam"),
+        sam_bowtie2 = temp(local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".bowtie2.sam")
     log:
         hisat2_out = local_path + "logsTmp/{sample}_run_mapping_hisat2.log",
         bowtie2_out = local_path + "logsTmp/{sample}_run_mapping_bowtie2.log"
@@ -341,10 +341,10 @@ rule run_mapping:
 # Creates bam and sam files
 rule samtools_filter:
     input:
-        sam_hisat2 = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".hisat2.sam",
-        sam_bowtie2 = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bowtie2.sam"
+        sam_hisat2 = local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".hisat2.sam",
+        sam_bowtie2 = local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".bowtie2.sam"
     output:
-        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam"
+        bam = local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".bam"
     log:
         grep_header_hisat2 = local_path + "logs/samtools_filter/{sample}.grep_hisat2.log",
         grep_core_hisat2 =  local_path + "logs/samtools_filter/{sample}.grep_core_hisat2.log",
@@ -361,7 +361,7 @@ rule samtools_filter:
     resources:
         mem_mb = round(mem_mb_resources / 3)
     params:
-        sam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".sam"
+        sam = local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".sam"
     threads:
         multi_threads_nbr
     shell:
@@ -375,9 +375,9 @@ rule samtools_filter:
 # Index BAMs
 rule index_bam:
     input:
-        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam"
+        bam = local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".bam"
     output:
-        bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai"
+        bai = local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".bam.bai"
     log:
         index_bam = local_path + "logs/index_bam/{sample}.index_bam.log"
     benchmark:
@@ -427,8 +427,8 @@ rule stats_report:
 # Counts reads on each transcript
 rule htseqcount:
     input:
-        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
-        bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai",
+        bam = local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".bam",
+        bai = local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".bam.bai",
         gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
     output:
         htseq_table = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount.txt"
@@ -455,8 +455,8 @@ rule htseqcount:
 # Counts reads on each 5prime, 3prime or CDS part of each transcript
 rule htseqcount_utr:
     input:
-        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
-        bai = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam.bai",
+        bam = local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".bam",
+        bai = local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".bam.bai",
         gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff']),
         CDS = local_path + "database/" + config['CDSlength'],
         five_prime = local_path + "database/" + config['5primelength'],
@@ -700,8 +700,8 @@ rule run_mapping_transcriptome:
         expand(local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2),
         fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
-        sam_hisat2 = temp(local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".hisat2.sam"),
-        sam_bowtie2 = temp(local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bowtie2.sam"),
+        sam_hisat2 = temp(local_path + "RESULTS/BAM_transcriptome_" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam"),
+        sam_bowtie2 = temp(local_path + "RESULTS/BAM_transcriptome_" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam"),
         fastq = temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.transcriptome.fastq.gz")
     log:
         hisat2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_transcriptome_hisat2.log",
@@ -723,10 +723,10 @@ rule run_mapping_transcriptome:
 # Creates bam and sam files
 rule samtools_filter_transcriptome:
     input:
-        sam_hisat2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".hisat2.sam",
-        sam_bowtie2 = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".bowtie2.sam"
+        sam_hisat2 = local_path + "RESULTS/BAM_transcriptome_" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam",
+        sam_bowtie2 = local_path + "RESULTS/BAM_transcriptome_" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam"
     output:
-        bam = local_path + "RESULTS/BAM_transcriptome/transcriptome_elongated.{sample}" + frag_length_L + ".bam"
+        bam = local_path + "RESULTS/BAM_transcriptome_" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam"
     log:
         grep_header_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.grep_hisat2.log",
         uniq_header = local_path + "logs/samtools_filter_transcriptome/{sample}.uniq_header.log",
@@ -742,7 +742,7 @@ rule samtools_filter_transcriptome:
         mem_mb = round(mem_mb_resources / 3)
     params:
         sample = "{sample}",
-        sam = local_path + "RESULTS/BAM_transcriptome/{sample}" + frag_length_L + ".sam"
+        sam = local_path + "RESULTS/BAM_transcriptome_" + frag_length_L + "/{sample}" + frag_length_L + ".sam"
     threads:
         multi_threads_nbr
     shell:
@@ -756,9 +756,9 @@ rule samtools_filter_transcriptome:
 # Index BAMs
 rule index_bam_transcriptome:
     input:
-        bam = local_path + "RESULTS/BAM_transcriptome/transcriptome_elongated.{sample}" + frag_length_L + ".bam"
+        bam = local_path + "RESULTS/BAM_transcriptome_" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam"
     output:
-        bai = local_path + "RESULTS/BAM_transcriptome/transcriptome_elongated.{sample}" + frag_length_L + ".bam.bai"
+        bai = local_path + "RESULTS/BAM_transcriptome_" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam.bai"
     log:
         index_bam = local_path + "logs/index_bam_transcriptome/{sample}.index_bam.log"
     benchmark:
@@ -790,7 +790,7 @@ rule riboWaltz_transcriptome:
 # Divisions of SAM file according to read length and turns it into BAM
 rule quality_controls_bamDivision:
     input:
-        bam = local_path + "RESULTS/BAM/{sample}" + frag_length_L + ".bam",
+        bam = local_path + "RESULTS/BAM_" + frag_length_L + "{sample}" + frag_length_L + ".bam",
         gff = local_path + "RESULTS/annex_database/NamedCDS_" + config['gff']
     output:
         bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
