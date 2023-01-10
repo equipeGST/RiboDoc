@@ -42,7 +42,7 @@ else:
     counts = "htseqcount"
 
 # Mean number of isoforms (for transcriptome multi-alignment)
-isoform_nbr = 10
+isoform_nbr = "10"
 
 # Check if attributes specified by the user are present in the gff file
 htseq_additional = ""
