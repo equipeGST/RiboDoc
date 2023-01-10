@@ -41,7 +41,7 @@ if config['UTR'] == "yes":
 else:
     counts = "htseqcount"
 
-# Mean number of isoforms (for transcriptome multi-alignment)
+# Mean number of isoforms in the genome (for transcriptome multi-alignment parameter)
 isoform_nbr = "10"
 
 # Check if attributes specified by the user are present in the gff file
@@ -81,7 +81,7 @@ rule all:
         expand(local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg", sample=SAMPLES) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
 
         # Alignment statistics report
-        local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report.txt",
+        local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report." + frag_length_L + ".txt",
 
         # Call for count matrix creation for DESeq2 dans final report
         local_path + "RESULTS/DESeq2/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html",
@@ -392,7 +392,7 @@ rule stats_report:
     input:
         ready = expand(rules.samtools_filter.output, sample=SAMPLES)
     output:
-        stat_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report.txt"
+        stat_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report." + frag_length_L + ".txt"
     run:
         # List of interesting logs to make the report
         logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2","rpkmMoyen"]
