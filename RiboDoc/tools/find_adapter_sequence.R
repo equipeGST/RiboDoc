@@ -62,7 +62,8 @@ for(Ligne in 1 : lines_check)
     
     # Sequence is saved as a potential adapter
     List_adapters <- rbind(List_adapters, Pattern2)
-    print(paste0("List_adapters : ", List_adapters))
+    
+    # Check next read
     break
   }
   df <- as.data.frame(table(List_adapters))
