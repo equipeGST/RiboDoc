@@ -25,7 +25,12 @@ gc()
 
 
 # Bam files to be computed
-bam_folder <- paste0(local_path, "RESULTS/BAM_transcriptome/")
+bam_folder <- paste0(local_path,
+                     "RESULTS/BAM_transcriptome.",
+                     gsub(" ", "", params[which(params=="readsLength_min")+1], fixed = TRUE),
+                     "-",
+                     gsub(" ", "", params[which(params=="readsLength_max")+1], fixed = TRUE),
+                     "/")
 
 bam_list <- list.files(bam_folder, pattern = "\\.bam$")
 
