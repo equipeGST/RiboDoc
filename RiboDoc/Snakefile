@@ -84,8 +84,8 @@ rule all:
         local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
 
         # Call for count matrix creation for DESeq2 dans final report
-        local_path + "RESULTS/DESeq2/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html",
-        local_path + "RESULTS/DESeq2/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html"
+        local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html",
+        local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html"
 
 
 # When RiboDoc starts
@@ -520,7 +520,7 @@ rule count_matrix_initialization:
         ready = expand(rules.htseqcount_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount.output, sample=SAMPLES),
         counts = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA." + counts + ".txt"
     output:
-        transcript_list = local_path + "RESULTS/DESeq2/names_correspondence_list.txt"
+        transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt"
     log:
         header = "logs/count_matrix_initialization/head.log",
         id_name = "logs/count_matrix_initialization/id_name.log",
@@ -545,15 +545,15 @@ rule count_matrix_initialization:
 # Adds the read counts of each sample to the matrix
 rule count_matrix_creation:
     input:
-        transcript_list = local_path + "RESULTS/DESeq2/names_correspondence_list.txt"
+        transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt"
     output:
-        counts_matrix = local_path + "RESULTS/DESeq2/count_matrix_by_transcript_unnamed.txt"
+        counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.txt"
     log:
         local_path + "logs/count_matrix_creation/count_matrix.log"
     benchmark:
         local_path + "benchmarks/count_matrix_creation/count_matrix_creation.benchmark.txt"
     params:
-        tmp_file = local_path + "RESULTS/DESeq2/tmp.txt"
+        tmp_file = local_path + "RESULTS/DESeq2" + frag_length_L + "/tmp.txt"
     run:
         shell("cut -f 1 {input.transcript_list} 2> {log} > {output.counts_matrix};")
         for sample in SAMPLES:
@@ -568,20 +568,20 @@ rule count_matrix_creation:
 # Performs differential analysis
 rule DESeq2_analysis_gene:
     input:
-        transcript_list = local_path + "RESULTS/DESeq2/names_correspondence_list.txt",
-        counts_matrix = local_path + "RESULTS/DESeq2/count_matrix_by_transcript_unnamed.txt"
+        transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt",
+        counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.txt"
     output:
-        complete = local_path + "RESULTS/DESeq2/DESeq2_by_gene/gene_complete.txt",
-        up = local_path + "RESULTS/DESeq2/DESeq2_by_gene/gene_up.txt",
-        down = local_path + "RESULTS/DESeq2/DESeq2_by_gene/gene_down.txt",
-        report = local_path + "RESULTS/DESeq2/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html"
+        complete = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_complete.txt",
+        up = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_up.txt",
+        down = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_down.txt",
+        report = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html"
     log:
         control = local_path + "logs/DESeq2_analysis_gene/header_control.log",
         deseq2 = local_path + "logs/DESeq2_analysis_gene/DESeq2_analysis.log"
     benchmark:
         local_path + "benchmarks/DESeq2_analysis_gene/DESeq2_analysis.benchmark.txt"
     params:
-        reportPath = local_path + "RESULTS/DESeq2/DESeq2_by_gene/",
+        reportPath = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/",
         reportName = config['project_name'] + ".Final_report.html"
     shell:
         "set +o pipefail;"
@@ -590,20 +590,20 @@ rule DESeq2_analysis_gene:
 
 rule DESeq2_analysis_transcript:
     input:
-        transcript_list = local_path + "RESULTS/DESeq2/names_correspondence_list.txt",
-        counts_matrix = local_path + "RESULTS/DESeq2/count_matrix_by_transcript_unnamed.txt"
+        transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt",
+        counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.txt"
     output:
-        complete = local_path + "RESULTS/DESeq2/DESeq2_by_transcript/transcript_complete.txt",
-        up = local_path + "RESULTS/DESeq2/DESeq2_by_transcript/transcript_up.txt",
-        down = local_path + "RESULTS/DESeq2/DESeq2_by_transcript/transcript_down.txt",
-        report = local_path + "RESULTS/DESeq2/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html"
+        complete = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_complete.txt",
+        up = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_up.txt",
+        down = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_down.txt",
+        report = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html"
     log:
         control = local_path + "logs/DESeq2_analysis_transcript/header_control.log",
         deseq2 = local_path + "logs/DESeq2_analysis_transcript/DESeq2_analysis.log"
     benchmark:
         local_path + "benchmarks/DESeq2_analysis_transcript/DESeq2_analysis.benchmark.txt"
     params:
-        reportPath = local_path + "RESULTS/DESeq2/DESeq2_by_transcript/",
+        reportPath = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/",
         reportName = config['project_name'] + ".Final_report.html"
     shell:
         "set +o pipefail;"
