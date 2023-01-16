@@ -29,11 +29,12 @@ ENV PATH=$PATH:/bin
 
 SHELL ["/bin/bash", "-c"]
 
-RUN conda env create -f /RiboDoc/RiboDoc/RiboDoc_env.yml
-RUN conda init bash
-RUN echo "conda activate RiboDoc_env" >> /bin/.bashrc \
-    && conda info --envs \
-    && conda list --name RiboDoc_env
+RUN conda install mamba -n base -c conda-forge
+RUN mamba env create -f /RiboDoc/RiboDoc/RiboDoc_env.yml
+RUN mamba init bash
+RUN echo "mamba activate RiboDoc_env" >> /bin/.bashrc \
+    && mamba info --envs \
+    && mamba list --name RiboDoc_env
 
 RUN R -e "library('devtools');devtools::install_github('LabTranslationalArchitectomics/riboWaltz@v1.2.0', dependencies = FALSE);"
 
