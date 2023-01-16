@@ -129,7 +129,7 @@ rule find_adapter_sequence:
     shell:
         "touch {output.adapter} 2> {log.touch};"
         "if [ -z " + config['adapt_sequence'] + " ]; then "
-        "Rscript " + ribodoc_tools + "find_adapter_sequence.R {input.fastq} 2> {log.rscript} ;"
+        "Rscript " + ribodoc_tools + "find_adapter_sequence.R {input.fastq} 2> {log.rscript};"
         "elif [ '" + config['already_trimmed'] + "' = 'no' ]; then echo " + config['adapt_sequence'] + " 1> {output.adapter} 2> {log.echo};"
         "fi;"
 
@@ -162,12 +162,12 @@ rule name_CDS:
                     else:
                         fout.write(str(feature) + '\n')
         else:
-            shell("cp {input.gff} {output.gff_namedCDS} ;")
+            shell("cp {input.gff} {output.gff_namedCDS};")
         if gene_id_bool:
             print("'gene_id' attributes are present.")
         else:
             print("Missing at least some 'gene_id' attribute in this gff.")
-        shell("sed -i -E 's/\\s/\\t/8' {output.gff_namedCDS} ;")
+        shell("sed -i -E 's/\\s/\\t/8' {output.gff_namedCDS};")
 
 # Quality control of data : build of the fastqc on raw data
 rule make_fastqc_before_trimming:
@@ -204,9 +204,9 @@ rule adapt_trimming:
     threads:
         multi_threads_nbr
     shell:
-        "adapter_sequence=`cat {input.adapt_seq}` ;"
+        "adapter_sequence=`cat {input.adapt_seq}`;"
         "if [ '" + config['already_trimmed'] + "' = 'no' ]; then trim=\"-a ${{adapter_sequence}} --trimmed-only\"; else trim=''; fi 2> {log.trim_value};"
-        "cutadapt ${{trim}} -e 0.125 -j {threads} --max-n=1 -m " + config['readsLength_min'] + " -M " + config['readsLength_max'] + " -o {output.cut_fastq} {input.fastq} 1>> {log.cutadapt_out} 2> {log.cutadapt} ;"
+        "cutadapt ${{trim}} -e 0.125 -j {threads} --max-n=1 -m " + config['readsLength_min'] + " -M " + config['readsLength_max'] + " -o {output.cut_fastq} {input.fastq} 1>> {log.cutadapt_out} 2> {log.cutadapt};"
 
 # Quality control of data : build of the fastqc after adapter trimming
 rule make_fastqc_after_trimming:
@@ -240,7 +240,7 @@ rule bowtie2_build_outRNA:
     threads:
         multi_threads_nbr
     shell:
-        "bowtie2-build --threads {threads} {input.outRNA} {params.outNames} &> {log} ;"
+        "bowtie2-build --threads {threads} {input.outRNA} {params.outNames} &> {log};"
 
 # Mapping of non-coding RNA
 rule bowtie2_run_outRNA:
@@ -260,7 +260,7 @@ rule bowtie2_run_outRNA:
     threads:
         multi_threads_nbr
     shell:
-        "bowtie2 -x " + local_path + "RESULTS/annex_database/outRNA_bowtie2 --threads {threads} -U {input.fastq} --un-gz {output} > /dev/null 2>> {log.bt2} ;"
+        "bowtie2 -x " + local_path + "RESULTS/annex_database/outRNA_bowtie2 --threads {threads} -U {input.fastq} --un-gz {output} > /dev/null 2>> {log.bt2};"
 
 # Quality control of data : build of the fastqc after depletin rRNA as ribosomal RNA can have an impact on the data's profiles (ATGC content)
 rule make_fastqc_after_outRNA_depletion:
@@ -294,7 +294,7 @@ rule bowtie2_build:
     params:
         outNames = local_path + "RESULTS/annex_database/index_bowtie2"
     shell:
-        "bowtie2-build --threads {threads} {input.fasta} {params.outNames} &> {log} ;"
+        "bowtie2-build --threads {threads} {input.fasta} {params.outNames} &> {log};"
 
 # Builds the index of hisat2 mapping for all RNA
 rule hisat2_build:
@@ -311,7 +311,7 @@ rule hisat2_build:
     params:
         outNames = local_path + "RESULTS/annex_database/index_hisat2"
     shell:
-        "hisat2-build --threads {threads} {input.fasta} {params.outNames} &> {log} ;"
+        "hisat2-build --threads {threads} {input.fasta} {params.outNames} &> {log};"
 
 # Mapping of all RNA by bowtie2 and hisat2
 rule run_mapping:
@@ -337,8 +337,8 @@ rule run_mapping:
     threads:
         multi_threads_nbr
     shell:
-        "hisat2 -x {params.index_names_hisat2} --threads {threads} --no-softclip -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
-        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} --end-to-end -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
+        "hisat2 -x {params.index_names_hisat2} --threads {threads} --no-softclip -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out};"
+        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} --end-to-end -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out};"
 
 # Creates bam and sam files
 rule samtools_filter:
@@ -367,11 +367,11 @@ rule samtools_filter:
     threads:
         multi_threads_nbr
     shell:
-        "set +o pipefail ;"
-        "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} 1> {params.sam} ;"
-        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
-        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
-        "samtools view -@ {threads} -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ {threads} -o {output.bam} 2> {log.sort_bam} ;"
+        "set +o pipefail;"
+        "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} 1> {params.sam};"
+        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam};"
+        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | grep -v 'XS:i:' 2> {log.XS_filter_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam};"
+        "samtools view -@ {threads} -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ {threads} -o {output.bam} 2> {log.sort_bam};"
         "rm -rf {params.sam} 2> {log.rm};"
 
 # Index BAMs
@@ -385,7 +385,7 @@ rule index_bam:
     benchmark:
         local_path + "benchmarks/index_bam/{sample}.benchmark.txt"
     shell:
-        "samtools index {input.bam} 2> {log.index_bam} ;"
+        "samtools index {input.bam} 2> {log.index_bam};"
 
 # Creates an analysis report with trimming and alignment statistics
 rule stats_report:
@@ -653,13 +653,13 @@ rule transcriptome_construction_gtf:
     params:
         tmp_gtf = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_tmp.gtf"
     shell:
-        "samtools faidx {input.fasta} 2> {log.samtools_index} ;"
-        "gffread -F -T -w {output.fasta} -o {params.tmp_gtf} -g {input.fasta} {input.gff_with_genes} 2> {log.gffread_gtf} ;"
-        "sed -i 's/description[^\;]*\;//' {params.tmp_gtf} 2>> {log.sed} ;"
-        "sed -i 's/\\t[A-Z]*[_]*gene_segment\\t/\\ttranscript\\t/' {params.tmp_gtf} 2>> {log.sed} ;"
-        """awk -F '\\t' '{{if(NF<=9) {{print($0);}} else {{for(field=1;field<9;field++) {{printf("%s\\t",$field);}} for(field=9;field<=NF;field++) {{printf("%s ",$field);}} printf("\\n");}}}}' {params.tmp_gtf} > {output.gtf} 2>> {log.awk} ;"""
+        "samtools faidx {input.fasta} 2> {log.samtools_index};"
+        "gffread -F -T -w {output.fasta} -o {params.tmp_gtf} -g {input.fasta} {input.gff_with_genes} 2> {log.gffread_gtf};"
+        "sed -i 's/description[^\;]*\;//' {params.tmp_gtf} 2>> {log.sed};"
+        "sed -i 's/\\t[A-Z]*[_]*gene_segment\\t/\\ttranscript\\t/' {params.tmp_gtf} 2>> {log.sed};"
+        """awk -F '\\t' '{{if(NF<=9) {{print($0);}} else {{for(field=1;field<9;field++) {{printf("%s\\t",$field);}} for(field=9;field<=NF;field++) {{printf("%s ",$field);}} printf("\\n");}}}}' {params.tmp_gtf} > {output.gtf} 2>> {log.awk};"""
         "rm -f {params.tmp_gtf};"
-        "sed -i 's/\\s$//' {output.gtf} 2>> {log.sed} ;"
+        "sed -i 's/\\s$//' {output.gtf} 2>> {log.sed};"
 
 # Builds the index of bowtie2 mapping for all RNA
 rule bowtie2_build_transcriptome:
@@ -676,7 +676,7 @@ rule bowtie2_build_transcriptome:
     threads:
         multi_threads_nbr
     shell:
-        "bowtie2-build --threads {threads} {input.fasta} {params.index_names} &> {log} ;"
+        "bowtie2-build --threads {threads} {input.fasta} {params.index_names} &> {log};"
 
 # Builds the index of hisat2 mapping for all RNA
 rule hisat2_build_transcriptome:
@@ -693,7 +693,7 @@ rule hisat2_build_transcriptome:
     threads:
         multi_threads_nbr
     shell:
-        "hisat2-build --threads {threads} {input.fasta} {params.index_names} &> {log} ;"
+        "hisat2-build --threads {threads} {input.fasta} {params.index_names} &> {log};"
 
 # Performs mapping on transcriptome
 rule run_mapping_transcriptome:
@@ -719,8 +719,8 @@ rule run_mapping_transcriptome:
     threads:
         multi_threads_nbr
     shell:
-        "hisat2 -x {params.index_names_hisat2} --threads {threads} -k " + isoform_nbr + " --no-softclip -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
-        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} -k " + isoform_nbr + " --end-to-end -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out} ;"
+        "hisat2 -x {params.index_names_hisat2} --threads {threads} -k " + isoform_nbr + " --no-softclip -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out};"
+        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} -k " + isoform_nbr + " --end-to-end -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out};"
 
 # Creates bam and sam files
 rule samtools_filter_transcriptome:
@@ -748,12 +748,12 @@ rule samtools_filter_transcriptome:
     threads:
         multi_threads_nbr
     shell:
-        "set +o pipefail ;"
-        "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} | uniq 2> {log.uniq_header} 1> {params.sam} ;"
-        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
-        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
-        "samtools view -@ {threads} -F 3588 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ {threads} -o {output.bam} 2> {log.sort_bam} ;"
-        "rm -f {params.sam} ;"
+        "set +o pipefail;"
+        "grep '^@' {input.sam_hisat2}  2> {log.grep_header_hisat2} | uniq 2> {log.uniq_header} 1> {params.sam};"
+        "grep -v '^@' {input.sam_hisat2} 2> {log.grep_core_hisat2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_hisat2} 1>> {params.sam};"
+        "grep -v '^@' {input.sam_bowtie2} 2> {log.grep_core_bowtie2} | egrep -i 'XM:i:0|XM:i:1' 2> {log.XM_filter_bowtie2} 1>> {params.sam};"
+        "samtools view -@ {threads} -F 3588 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ {threads} -o {output.bam} 2> {log.sort_bam};"
+        "rm -f {params.sam};"
 
 # Index BAMs
 rule index_bam_transcriptome:
@@ -766,7 +766,7 @@ rule index_bam_transcriptome:
     benchmark:
         local_path + "benchmarks/index_bam_transcriptome/{sample}.benchmark.txt"
     shell:
-        "samtools index {input.bam} 2> {log.index_bam} ;"
+        "samtools index {input.bam} 2> {log.index_bam};"
 
 # Performs qualitative analysis with riboWaltz
 rule riboWaltz_transcriptome:
@@ -784,8 +784,8 @@ rule riboWaltz_transcriptome:
         local_path + "benchmarks/riboWaltz_transcriptome/riboWaltz.benchmark.txt"
     shell:
         "touch {output.psite_table};"
-        "Rscript " + ribodoc_tools + "periodicity_riboWaltz_transcriptome.R {input.transcriptome_gtf} 2> {log} ;"
-        "rm -f " + local_path + "Rplots.pdf ;"
+        "Rscript " + ribodoc_tools + "periodicity_riboWaltz_transcriptome.R {input.transcriptome_gtf} 2> {log};"
+        "rm -f " + local_path + "Rplots.pdf;"
 
 
 # TRiP pipeline
