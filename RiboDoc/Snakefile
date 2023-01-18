@@ -168,7 +168,7 @@ rule name_CDS:
         else:
             print("Missing at least some 'gene_id' attribute in this gff.")
         shell("sed -i -E 's/\\s/\\t/8' {output.gff_namedCDS};")
-        shell("sed -i -E 's/\\"//g' {output.gff_namedCDS};")
+        shell('sed -i -E "s/\\"//g" {output.gff_namedCDS};')
 
 # Quality control of data : build of the fastqc on raw data
 rule make_fastqc_before_trimming:
