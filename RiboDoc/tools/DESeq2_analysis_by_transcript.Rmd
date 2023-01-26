@@ -22,18 +22,16 @@ library(stringr)
 library(FactoMineR)
 ```
 
-```{r Load functions, echo=FALSE, include=FALSE}
-# source(paste0(local_path, "tools/DESeq2_analysis_functions.R"))
-source("/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R")
-```
-
 ```{r Scan config file and determine paths, echo=FALSE, include=FALSE}
 # Read the config file
 params <- scan(file = paste0(local_path, "config.yaml"),
                    what = "character",
                    sep = ":"
                    )
+```
 
+```{r Load functions, echo=FALSE, include=FALSE}
+source("/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R")
 paths_list <- DESeq2_folder_paths(local_path)
 ```
 

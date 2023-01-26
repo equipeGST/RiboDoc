@@ -22,18 +22,16 @@ library(stringr)
 library(FactoMineR)
 ```
 
-```{r Load functions, echo=FALSE, include=FALSE}
-# source(paste0(local_path, "tools/DESeq2_analysis_functions.R"))
-source("/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R")
-```
-
-```{r Scan config file and determine paths, echo=FALSE, include=FALSE}
+```{r Scan config file, echo=FALSE, include=FALSE}
 # Read the config file
 params <- scan(file = paste0(local_path, "config.yaml"),
                    what = "character",
                    sep = ":"
                    )
+```
 
+```{r Load functions and determine paths, echo=FALSE, include=FALSE}
+source("/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R")
 paths_list <- DESeq2_folder_paths(local_path)
 ```
 
@@ -64,7 +62,7 @@ names_list = read.table(paths_list$pathway_names, header = T, row.names = 1, che
 ```
 
 ```{r Merge by gene, echo=FALSE}
-expData_gene <- transcript_or_gene(expData, names_list, "gene")
+expData_gene <- transcript_or_gene(data=expData, list_of_names=names_list, gene_transcript="gene")
 ```
 
 The present analysis report is part of RiboDoc tool, developed by the GST team, Université Paris-Saclay, CEA, CNRS, Institute for Integrative Biology of the Cell (I2BC), 91198, Gif-sur-Yvette, France.
