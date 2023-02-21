@@ -210,9 +210,9 @@ write_DE_tables(tables_transcript, "transcript")
 \
 **OUTPUT FILES** :  
 All the output files can be found in the directory "RESULTS/DESeq2/DESeq2_by_transcript/”  
-`r paste0("RESULTS/DESeq2/DESeq2_by_transcript/transcript_complete.txt")`  
-`r paste0("RESULTS/DESeq2/DESeq2_by_transcript/transcript_up.txt")  `  
-`r paste0("RESULTS/DESeq2/DESeq2_by_transcript/transcript_down.txt")  `   
+`r paste0("RESULTS/DESeq2/DESeq2_by_transcript/transcript_complete.csv")`  
+`r paste0("RESULTS/DESeq2/DESeq2_by_transcript/transcript_up.csv")  `  
+`r paste0("RESULTS/DESeq2/DESeq2_by_transcript/transcript_down.csv")  `   
 \
 *Explanation of each column* :  
 

@@ -289,16 +289,16 @@ write_DE_tables <- function(tables_list, gene_transcript = "gene") {
     path_to_tables <- paths_list$DESeq2_transcript
   }
   write.table(tables_list$allGenes,
-              file = paste0(path_to_tables,gene_transcript,"_complete.txt"),
+              file = paste0(path_to_tables,gene_transcript,"_complete.csv"),
               quote = F, sep = "\t", row.names = F)
   
   
   write.table(tables_list$inducedGenes,
-              file = paste0(path_to_tables,gene_transcript,"_up.txt"),
+              file = paste0(path_to_tables,gene_transcript,"_up.csv"),
               quote = F, sep = "\t", row.names = F)
   
   write.table(tables_list$repressedGenes,
-              file = paste0(path_to_tables,gene_transcript,"_down.txt"),
+              file = paste0(path_to_tables,gene_transcript,"_down.csv"),
               quote = F, sep = "\t", row.names = F)
 }
 

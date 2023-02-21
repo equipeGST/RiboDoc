@@ -210,9 +210,9 @@ write_DE_tables(tables_gene, "gene")
 \
 **OUTPUT FILES** :  
 All the output files can be found in the directory “RESULTS/DESeq2/DESeq2_by_gene/”  
-`r paste0("RESULTS/DESeq2/DESeq2_by_gene/gene_complete.txt")`  
-`r paste0("RESULTS/DESeq2/DESeq2_by_gene/gene_up.txt")  `  
-`r paste0("RESULTS/DESeq2/DESeq2_by_gene/gene_down.txt")  `   
+`r paste0("RESULTS/DESeq2/DESeq2_by_gene/gene_complete.csv")`  
+`r paste0("RESULTS/DESeq2/DESeq2_by_gene/gene_up.csv")  `  
+`r paste0("RESULTS/DESeq2/DESeq2_by_gene/gene_down.csv")  `   
 \
 *Explanation of each column* :  
 
