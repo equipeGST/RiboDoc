@@ -75,7 +75,7 @@ psite_offset <- psite_ribowaltz(reads_list,
                                 plot_format = "tiff",
                                 cl = 100,
                                 txt = TRUE,
-                                txt_file = paste0(local_path, "RESULTS/riboWaltz/best_offset.txt")
+                                txt_file = paste0(local_path, "RESULTS/riboWaltz/best_offset.csv")
 )
 
 reads_psite_list <- riboWaltz::psite_info(reads_list, psite_offset)
