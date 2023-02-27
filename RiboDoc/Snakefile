@@ -572,9 +572,9 @@ rule DESeq2_analysis_gene:
         transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt",
         counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.txt"
     output:
-        complete = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_complete.txt",
-        up = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_up.txt",
-        down = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_down.txt",
+        complete = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_complete.csv",
+        up = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_up.csv",
+        down = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_down.csv",
         report = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html"
     log:
         control = local_path + "logs/DESeq2_analysis_gene/header_control.log",
@@ -594,9 +594,9 @@ rule DESeq2_analysis_transcript:
         transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt",
         counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.txt"
     output:
-        complete = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_complete.txt",
-        up = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_up.txt",
-        down = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_down.txt",
+        complete = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_complete.csv",
+        up = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_up.csv",
+        down = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_down.csv",
         report = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html"
     log:
         control = local_path + "logs/DESeq2_analysis_transcript/header_control.log",
