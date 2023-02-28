@@ -548,7 +548,7 @@ rule count_matrix_creation:
     input:
         transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt"
     output:
-        counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.txt"
+        counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.csv"
     log:
         local_path + "logs/count_matrix_creation/count_matrix.log"
     benchmark:
@@ -570,7 +570,7 @@ rule count_matrix_creation:
 rule DESeq2_analysis_gene:
     input:
         transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt",
-        counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.txt"
+        counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.csv"
     output:
         complete = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_complete.csv",
         up = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_up.csv",
@@ -592,7 +592,7 @@ rule DESeq2_analysis_gene:
 rule DESeq2_analysis_transcript:
     input:
         transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt",
-        counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.txt"
+        counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.csv"
     output:
         complete = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_complete.csv",
         up = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_up.csv",
