@@ -75,6 +75,7 @@ rule all:
         expand(local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA." + counts + ".txt", sample=SAMPLES),
 
         # Call for qualitative analysis
+        expand(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam.bai", sample=SAMPLES),
         local_path + "RESULTS/riboWaltz/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
         local_path + "RESULTS/riboWaltz/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg", sample=SAMPLES, taille=LENGTHS) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
@@ -566,11 +567,28 @@ rule count_matrix_creation:
             shell("cat {params.tmp_file} > {output.counts_matrix};")
             shell("rm -f {params.tmp_file};")
 
-# Performs differential analysis
-rule DESeq2_analysis_gene:
+
+# Create a count matrix by transcript and a count matrix by gene
+rule matrices_by_gene_or_transcript:
     input:
         transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt",
         counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.csv"
+    output:
+        by_gene = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/count_matrix_by_gene.csv",
+        by_transcript = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/count_matrix_by_transcript.csv",
+        most_expressed = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/most_expressed_transcripts.txt"
+    log:
+        local_path + "logs/matrices_by_gene_or_transcript/matrices_creation.log"
+    benchmark:
+        local_path + "benchmarks/matrices_by_gene_or_transcript/matrices_creation.benchmark.txt"
+    script:
+        ribodoc_tools + "by_gene_or_trancript_count_matrices.R"
+
+
+# Performs differential analysis
+rule DESeq2_analysis_gene:
+    input:
+        by_gene = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/count_matrix_by_gene.csv"
     output:
         complete = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_complete.csv",
         up = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/gene_up.csv",
@@ -586,13 +604,11 @@ rule DESeq2_analysis_gene:
         reportName = config['project_name'] + ".Final_report.html"
     shell:
         "set +o pipefail;"
-        "[ `head -2 {input.counts_matrix} | cut -f 1 | uniq | wc -l` == 1 ] && sed -i -e '2d' {input.counts_matrix};"
         "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis_by_gene.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2};"
 
 rule DESeq2_analysis_transcript:
     input:
-        transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt",
-        counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.csv"
+        by_transcript = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/count_matrix_by_transcript.csv"
     output:
         complete = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_complete.csv",
         up = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/transcript_up.csv",
@@ -608,7 +624,6 @@ rule DESeq2_analysis_transcript:
         reportName = config['project_name'] + ".Final_report.html"
     shell:
         "set +o pipefail;"
-        "[ `head -2 {input.counts_matrix} | cut -f 1 | uniq | wc -l` == 1 ] && sed -i -e '2d' {input.counts_matrix};"
         "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis_by_transcript.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2};"
 
 
@@ -720,8 +735,8 @@ rule run_mapping_transcriptome:
     threads:
         multi_threads_nbr
     shell:
-        "hisat2 -x {params.index_names_hisat2} --threads {threads} -k " + isoform_nbr + " --no-softclip -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out};"
-        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} -k " + isoform_nbr + " --end-to-end -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out};"
+        "hisat2 -x {params.index_names_hisat2} --threads {threads} --no-softclip -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out};"
+        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} -a " + isoform_nbr + " --end-to-end -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out};"
 
 # Creates bam and sam files
 rule samtools_filter_transcriptome:
