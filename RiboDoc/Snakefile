@@ -860,7 +860,7 @@ rule quality_controls_readsLengthRepartition:
     benchmark:
         local_path + "benchmarks/quality_controls_readsLengthRepartition/{sample}.benchmark.txt"
     params:
-        path = local_path + "RESULTS/quality_controls_readsLengthRepartition/readsLengthRepartition/",
+        path = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/",
         sample_names = "{sample}"
     shell:
         "set +o pipefail;"
@@ -875,14 +875,14 @@ rule quality_controls_periodicity:
     output:
         start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".txt",
         stop = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".txt"
-    params:
-        sample_names = "{sample}",
-        read_length = "{taille}"
     log:
         start = local_path + "logs/quality_controls_periodicity/{sample}.{taille}.log",
         stop = local_path + "logs/quality_controls_periodicity/{sample}.{taille}.log"
     benchmark:
         local_path + "benchmarks/quality_controls_periodicity/{sample}.{taille}.benchmark.txt"
+    params:
+        sample_names = "{sample}",
+        read_length = "{taille}"
     shell:
         "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'start' -t '" + config['gff_cds_feature'] + "' -m " + config['window_utr'] + " -M " + config['window_cds'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.start};"
         "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'stop' -t '" + config['gff_cds_feature'] + "' -m " + config['window_cds'] + " -M " + config['window_utr'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.stop};"
