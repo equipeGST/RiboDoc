@@ -1,9 +1,12 @@
 #! /bin/bash
 
-usage() { echo "Usage: $0 -N <Sample name> -l <Read length> -m <before start position> -M <after start position> -t <feature type in GFF3 annotation>" 1>&2 ; echo "\n -N\tsample name\n -l\tRead length\n -m <int>\tnumber of base before start codon\n -M <int>\tnumber of base after start codon\n -t <string>\tSpecify feature type in GFF3 annotation" ; exit 1; }
+usage() { echo "Usage: $0 -p <Path to working directory> -N <Sample name> -l <Read length> -m <before start position> -M <after start position> -t <feature type in GFF3 annotation>" 1>&2 ; echo -e "\n -p\tPath to working directory\n -N\tsample name\n -l\tRead length\n -m <int>\tnumber of base before start codon\n -M <int>\tnumber of base after start codon\n -t <string>\tSpecify feature type in GFF3 annotation" ; exit 1; }
 
-while getopts ":N:l:m:M:t:" option; do
+while getopts ":p:N:l:m:M:t:" option; do
     case "${option}" in
+        p)
+            p=${OPTARG}
+            ;;
         N)
             N=${OPTARG}
             ;;
@@ -25,11 +28,11 @@ while getopts ":N:l:m:M:t:" option; do
     esac
 done
 shift $((OPTIND-1))
-if [ -z "${N}" ] || [ -z "${l}" ] || [ -z "${m}" ] || [ -z "${M}" ] || [ -z "${t}" ]; then
+if [ -z "${p}" ] || [ -z "${N}" ] || [ -z "${l}" ] || [ -z "${m}" ] || [ -z "${M}" ] || [ -z "${t}" ]; then
     usage
-fi
+fi;
 
-path="/data/RESULTS/qualitativeAnalysis/"
+path="${p}RESULTS/qualitativeAnalysis/"
 
 ########### Periodicity ###########
 for pos in start stop
