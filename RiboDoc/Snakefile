@@ -869,7 +869,8 @@ rule quality_controls_readsLengthRepartition:
 # Looks how many reads start on each base to find if there is a periodicity signal
 rule quality_controls_periodicity:
     input:
-        bed = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed",
+        readsLengthRepartitionBed = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed",
+        bed = local_path + "RESULTS/qualitativeAnalysis/bedCount/{sample}.{taille}.count.bed",
         gff = local_path + "RESULTS/annex_database/NamedCDS_" + config['gff']
     output:
         start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".txt",
