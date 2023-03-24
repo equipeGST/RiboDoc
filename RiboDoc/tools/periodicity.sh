@@ -63,33 +63,33 @@ fi
 ##Soft GFF3 - tempo file
 #depend of option p
 if [ "${p}" = "start" ]; then
-	grep -v "#" ${G} | gawk '{if($3=="'${t}'" && $4>='"${m}"'){if($7=="+"){print $1"\t"$4-'"${m}"'-1"\t"$4+'"${M}"'"\t"$7}else if($7=="-"){print $1"\t"$5+'"${m}"'"\t"$5-'"${M}"'-1"\t"$7}}}' > ${O}${N}.${l}.databaseTempo.periodicity.txt;
+	grep -v "#" ${G} | gawk '{if($3=="'${t}'" && $4>='"${m}"'){if($7=="+"){print $1"\t"$4-'"${m}"'-1"\t"$4+'"${M}"'"\t"$7}else if($7=="-"){print $1"\t"$5+'"${m}"'"\t"$5-'"${M}"'-1"\t"$7}}}' > "${O}${N}.${l}.databaseTempo.periodicity.txt";
 elif [ "${p}" = "stop" ]; then
-    grep -v "#" ${G} | gawk '{if($3=="'${t}'"){if($7=="+"){print $1"\t"$5-'"${m}"'-1"\t"$5+'"${M}"'"\t"$7}else if($7=="-"){print $1"\t"$4+'"${m}"'"\t"$4-'"${M}"'-1"\t"$7}}}' > ${O}${N}.${l}.databaseTempo.periodicity.txt;
+    grep -v "#" ${G} | gawk '{if($3=="'${t}'"){if($7=="+"){print $1"\t"$5-'"${m}"'-1"\t"$5+'"${M}"'"\t"$7}else if($7=="-"){print $1"\t"$4+'"${m}"'"\t"$4-'"${M}"'-1"\t"$7}}}' > "${O}${N}.${l}.databaseTempo.periodicity.txt";
 fi
 
 if [ "${r}" = "metagene" ]; then
-	#Periodicity calcul
+    #Periodicity calcul
 	for samp in `ls ${D} | grep "${N}.${l}" | grep "bed"`;
 	do
 		name="${samp%.*.*}"
 		sample_temp=$(mktemp /tmp/sampleTempo.periodicity.XXX);
 		echo "Sample "${samp}
-		gawk '{if($6=="+"){print $4"\t"$1":"$2":+"}else if($6=="-"){print $4"\t"$1":"$3":-"}}' ${D}${samp} | sort -k2 > ${sample_temp} ;
+		gawk '{if($6=="+"){print $4"\t"$1":"$2":+"}else if($6=="-"){print $4"\t"$1":"$3":-"}}' ${D}${samp} | sort -k2 > "${sample_temp}" ;
 		total=$((${m}+${M})) ;
 		for pos in `seq 0 ${total}`;
 		do
 			data_temp_plus=$(mktemp /tmp/dataplusTempo.periodicity.XXX);
 			data_temp_minus=$(mktemp /tmp/dataminusTempo.periodicity.XXX);
-			gawk -v num=${pos} '{if($4=="+"){print $1":"$2+num":"$4}}' ${O}${N}.${l}.databaseTempo.periodicity.txt | sort > ${data_temp_plus} ;
-			join -1 2 -2 1 -o 1.1 ${sample_temp} ${data_temp_plus} | gawk -v num=${pos} 'BEGIN{SUM=0}{SUM+=$1}END{print num"\t"SUM}' >> ${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.+.txt ;
-			gawk -v num=${pos} '{if($4=="-"){print $1":"$2-num":"$4}}' ${O}${N}.${l}.databaseTempo.periodicity.txt | sort > ${data_temp_minus} ;
-			join -1 2 -2 1 -o 1.1 ${sample_temp} ${data_temp_minus} | gawk -v num=${pos} 'BEGIN{SUM=0}{SUM+=$1}END{print num"\t"SUM}' >> ${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.-.txt ;
+			gawk -v num=${pos} '{if($4=="+"){print $1":"$2+num":"$4}}' "${O}${N}.${l}.databaseTempo.periodicity.txt" | sort > ${data_temp_plus} ;
+			join -1 2 -2 1 -o 1.1 ${sample_temp} ${data_temp_plus} | gawk -v num=${pos} 'BEGIN{SUM=0}{SUM+=$1}END{print num"\t"SUM}' >> "${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.+.txt" ;
+			gawk -v num=${pos} '{if($4=="-"){print $1":"$2-num":"$4}}' "${O}${N}.${l}.databaseTempo.periodicity.txt" | sort > ${data_temp_minus} ;
+			join -1 2 -2 1 -o 1.1 ${sample_temp} ${data_temp_minus} | gawk -v num=${pos} 'BEGIN{SUM=0}{SUM+=$1}END{print num"\t"SUM}' >> "${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.-.txt" ;
 			rm -f ${data_temp_plus} ${data_temp_minus}
-		done
-		join -1 1 -2 1 -o 1.1,1.2,2.2 ${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.+.txt ${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.-.txt | awk 'BEGIN{FS==" "}{print $1"\t"$2+$3}' > ${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.txt;
-		rm -f ${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.+.txt ${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.-.txt
-	done
-fi
+		done;
+		join -1 1 -2 1 -o 1.1,1.2,2.2 "${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.+.txt" "${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.-.txt" | awk 'BEGIN{FS==" "}{print $1"\t"$2+$3}' > "${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.txt";
+		rm -f "${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.+.txt" "${O}periodicity/${name}.periodicity.${p}.${t}.-${m}+${M}.-.txt";
+	done;
+fi;
 
-rm -f ${O}${N}.${l}.databaseTempo.periodicity.txt ${O}${N}.${l}.ligneDatabaseTempo.periodicity.txt ${sample_temp}
+rm -f "${O}${N}.${l}.databaseTempo.periodicity.txt" "${O}${N}.${l}.ligneDatabaseTempo.periodicity.txt" "${sample_temp}";
