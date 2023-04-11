@@ -46,7 +46,7 @@ fi
 
 #Bam Division
 # Division of reads depending of read lengths
-gawk -v l="${l}" '{if($1 !~ /^ *@/){if(length($10)==l){print $0}}else{print $0}}' <<< $(samtools view -@ ${T} -h ${B}) > ${o}bamDivision/${N}.${l}.sam;
+samtools view -@ "${T}" -h "${B}" | gawk -v l="${l}" '{if($1 !~ /^@/){if(length($10)==l) {print $0}} else {print $0}}' > "${o}bamDivision/${N}.${l}.sam";
 
 #Conversion as bam
 samtools view -@ "${T}" -b "${o}bamDivision/${N}.${l}.sam" > "${o}bamDivision/${N}.${l}.uniq.bam";
