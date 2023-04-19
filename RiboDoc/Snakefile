@@ -71,7 +71,7 @@ rule all:
         expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html", sample=SAMPLES),
 
-        # Call of htseqcount_transcript_utr or htseqcount_transcript rule (depends on UTR="True"|"False" in config file)
+        # Call of htseqcount_transcript_utr or htseqcount_transcript rule (depends on UTR="yes"|"no" in config file)
         expand(local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA." + counts + ".txt", sample=SAMPLES),
 
         # Call for qualitative analysis
@@ -185,7 +185,6 @@ rule make_fastqc_before_trimming:
     params:
        outdir = local_path + "RESULTS/fastqc/fastqc_before_trimming/"
     shell:
-        # fastqc 0.11.9
         "fastqc {input} --outdir {params.outdir} 2> {log};"
 
 # Removes/cuts potential adapters on the reads
@@ -397,9 +396,10 @@ rule stats_report:
         stat_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt"
     run:
         # List of interesting logs to make the report
-        logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2","rpkmMoyen"]
-        if config['UTR'] == "no":
-            logs_names = logs_names[:-1]
+        logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2"]
+        # logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2","rpkmMoyen"]
+        # if config['UTR'] == "no":
+        #     logs_names = logs_names[:-1]
 
         # File for the statistical report
         data_report = open(output.stat_report,"w")
@@ -494,7 +494,7 @@ rule htseqcount_utr:
 
         "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_CDS};"
         "htseq-count -n {threads} -f bam -t '" + config['gff_cds_feature'] + "' -i '" + config['gff_parent_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt;"
-        "mean_RPKM_CDS=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.CDS} " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt 2> {log.join_CDS} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_CDS}`;"
+        # "mean_RPKM_CDS=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.CDS} " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt 2> {log.join_CDS} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_CDS}`;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt >> {output.counts_CDS};"
 
         "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_threeprime};"
@@ -504,17 +504,17 @@ rule htseqcount_utr:
 
         "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_fiveprime};"
         "htseq-count -n {threads} -f bam -t '" + config['gff_element_five_prime_utr'] + "' -i '" + config['gff_parent_attribut'] + "' --additional-attr '" + config['gff_name_attribut'] + "' -m intersection-strict  --nonunique 'fraction' {input.bam} {input.gff} 2> {log.htseqcount_5prime} | head -n -5 >> " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt;"
-        "mean_RPKM_5prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.five_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_5prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_5prime}`;"
+        # "mean_RPKM_5prime=`join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.five_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_5prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_5prime}`;"
         "cat " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_fiveprime};"
 
         "rm -f " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt;"
         "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt;"
         "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt;"
 
-        "echo 'Mean RPKM' 1>> {log.rpkm_out} 2> {log.rpkm};"
-        "echo '" + config['gff_cds_feature'] + " : '$mean_RPKM_CDS 1>> {log.rpkm_out} 2>> {log.rpkm};"
-        "echo '5prime : '$mean_RPKM_5prime 1>> {log.rpkm_out} 2>> {log.rpkm};"
-        "echo '3prime : '$mean_RPKM_3prime 1>> {log.rpkm_out} 2>> {log.rpkm};"
+        # "echo 'Mean RPKM' 1>> {log.rpkm_out} 2> {log.rpkm};"
+        # "echo '" + config['gff_cds_feature'] + " : '$mean_RPKM_CDS 1>> {log.rpkm_out} 2>> {log.rpkm};"
+        # "echo '5prime : '$mean_RPKM_5prime 1>> {log.rpkm_out} 2>> {log.rpkm};"
+        # "echo '3prime : '$mean_RPKM_3prime 1>> {log.rpkm_out} 2>> {log.rpkm};"
 
 # Creates the row names (genes/transcript names) of the count matrix
 rule count_matrix_initialization:
@@ -735,8 +735,8 @@ rule run_mapping_transcriptome:
     threads:
         multi_threads_nbr
     shell:
-        "hisat2 -x {params.index_names_hisat2} --threads {threads} --no-softclip -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out};"
-        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} -a " + isoform_nbr + " --end-to-end -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out};"
+        "hisat2 -x {params.index_names_hisat2} --threads {threads} -k " + isoform_nbr + " --no-softclip -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out};"
+        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} -k " + isoform_nbr + " --end-to-end -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out};"
 
 # Creates bam and sam files
 rule samtools_filter_transcriptome:
