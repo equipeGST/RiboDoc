@@ -164,7 +164,7 @@ class GFF_element:
         if gff_element.end < self.start:
             self.seq_nucl = gff_element.seq_nucl + self.seq_nucl
             self.start    = gff_element.start
-        elif gff_element.start > self.end:
+        elif gff_element.start >= self.end:
             self.seq_nucl = self.seq_nucl + gff_element.seq_nucl
             self.end      = gff_element.end
 
@@ -187,7 +187,7 @@ class GFF_element:
         '''
         # We get the nucl seq of the elongations
         elongate_5UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.start - elongate),(self.start-1),genome)
-        elongate_3UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.end+1),(self.end + 1 + elongate),genome)
+        elongate_3UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.end+1),(self.end + elongate),genome)
         # We construct the elongated nucl seq
         if self.strand == "-":
             # If is in the - strand we get the REV-COMP of the sequence
@@ -206,9 +206,6 @@ class GFF_element:
             self.UTR5_end   = int(elongate)
             self.UTR3_start = int(len(self.seq_nucl_elongated) - elongate)
             self.UTR3_end   = int(len(self.seq_nucl_elongated))
-
-            if len(elongate_3UTR_nucl.seq) == 0:
-                self.UTR3_start = int(len(self.seq_nucl_elongated))
 
 
 class GFF_iterator:
@@ -248,7 +245,8 @@ class GFF_iterator:
                     feature = GFF_element(line,genome,name_attribute)
 
                     # We check if the filter is in the list of features wanted
-                    if feature.feature in gff_types and feature.chromosome not in chr_exclude or gff_types == ["all"]:
+                    #if feature.feature in gff_types and feature.chromosome not in chr_exclude or gff_types == ["all"]:
+                    if re.match("(" + ")|(".join(gff_types) + ")",feature.feature) and feature.chromosome not in chr_exclude or gff_types == ["all"]:
                         # If the features list is empty (case of the first feature)
                         # then we add the feature without making any other action
                         if len(features) == 0:
