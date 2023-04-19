@@ -187,7 +187,7 @@ class GFF_element:
         '''
         # We get the nucl seq of the elongations
         elongate_5UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.start - elongate),(self.start-1),genome)
-        elongate_3UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.end + 1),(self.end + 1 + elongate),genome)
+        elongate_3UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.end+1),(self.end + 1 + elongate),genome)
         # We construct the elongated nucl seq
         if self.strand == "-":
             # If is in the - strand we get the REV-COMP of the sequence
@@ -274,20 +274,14 @@ class GFF_iterator:
 
                             # If the elongation option is activate, we elongate the feture sequence:
                             if elongate != False:
-                                # If the elongation is shorter than the start's coordinate
-                                if features[0].start <= elongate:
-                                    elongation = features[0].start - 1
-                                else:
-                                    elongation = elongate
-
                                 # We elongate the sequence of the feature
-                                features[0].__elongate__(genome=genome,elongate=elongation)
+                                features[0].__elongate__(genome=genome,elongate=elongate)
 
                                 fasta_elongate.write(">{}\n{}\n".format(features[0].identity+"_mRNA",str(features[0].seq_nucl_elongated.seq)))
 
                                 gene_end  = len(features[0].seq_nucl_elongated.seq)
-                                cds_start = elongation+1
-                                cds_end   = elongation+len(str(features[0].seq_nucl.seq))
+                                cds_start = elongate+1
+                                cds_end   = elongate+len(str(features[0].seq_nucl.seq))
 
                                 # We write the GENE feature in the GFF : ID=identity
                                 gff_elongate.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(features[0].identity+"_mRNA","elongated","gene","1",gene_end,".","+",".","ID=" + features[0].identity))
@@ -298,7 +292,7 @@ class GFF_iterator:
                                 # We write the 5UTR feature in the GFF  : ID=identity_5UTR
                                 gff_elongate.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(features[0].identity+"_mRNA","elongated","five_prime_UTR",features[0].UTR5_start,features[0].UTR5_end,".","+",".","ID=" + features[0].identity + "_5UTR;Parent="+features[0].identity+"_mRNA"))
                                 # We write the 3UTR feature in the GFF  : ID=identity_5UTR
-                                gff_elongate.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(features[0].identity+"_mRNA","elongated","three_prime_UTR",features[0].UTR3_start,features[0].UTR3_end,".","+",".","ID=" + features[0].identity + "_3UTR;Parent="+features[0].identity+"_mRNA"))
+                                gff_elongate.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(features[0].identity+"_mRNA","elongated","three_prime_UTR",cds_end+1,gene_end,".","+",".","ID=" + features[0].identity + "_3UTR;Parent="+features[0].identity+"_mRNA"))
 
 
                             # If the check option is False or the sequence just passed
@@ -323,7 +317,10 @@ class GFF_iterator:
         ##    feature.__correct_feature_sequences__(genetic_code=genetic_code)
 
         # Write the last feature left in the list
-        features[0].__correct_feature_sequences__(genetic_code=genetic_code)
+        try:
+            features[0].__correct_feature_sequences__(genetic_code=genetic_code)
+        except:
+            print("None of the feature paterns was found in your GFF file")
         try:
             fwn.write(">{}\n{}\n".format(features[0].identity,str(features[0].seq_nucl.seq)))
         except:
@@ -335,21 +332,11 @@ class GFF_iterator:
 
         # And if elongate is not False, then write the last feature elongated
         if elongate != False:
-            # If the elongation is shorter than the start's coordinate
-            if features[0].start <= elongate:
-                elongation = features[0].start - 1
-            else:
-                elongation = elongate
-
-            # We elongate the sequence of the feature
-            features[0].__elongate__(genome=genome,elongate=elongation)
-
+            features[0].__elongate__(genome=genome,elongate=elongate)
             fasta_elongate.write(">{}\n{}\n".format(features[0].identity+"_mRNA",str(features[0].seq_nucl_elongated.seq)))
-
             gene_end  = len(features[0].seq_nucl_elongated.seq)
-            cds_start = elongation+1
-            cds_end   = elongation+len(str(features[0].seq_nucl.seq))
-
+            cds_start = elongate+1
+            cds_end   = elongate+len(str(features[0].seq_nucl.seq))
             # We write the GENE feature in the GFF : ID=identity
             gff_elongate.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(features[0].identity+"_mRNA","elongated","gene","1",gene_end,".","+",".","ID=" + features[0].identity))
             # We write the mRNA feature in the GFF : ID=identity_mRNA
@@ -359,7 +346,7 @@ class GFF_iterator:
             # We write the 5UTR feature in the GFF  : ID=identity_5UTR
             gff_elongate.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(features[0].identity+"_mRNA","elongated","five_prime_UTR",features[0].UTR5_start,features[0].UTR5_end,".","+",".","ID=" + features[0].identity + "_5UTR;Parent="+features[0].identity+"_mRNA"))
             # We write the 3UTR feature in the GFF  : ID=identity_5UTR
-            gff_elongate.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(features[0].identity+"_mRNA","elongated","three_prime_UTR",features[0].UTR3_start,features[0].UTR3_end,".","+",".","ID=" + features[0].identity + "_3UTR;Parent="+features[0].identity+"_mRNA"))
+            gff_elongate.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(features[0].identity+"_mRNA","elongated","three_prime_UTR",cds_end+1,gene_end,".","+",".","ID=" + features[0].identity + "_3UTR;Parent="+features[0].identity+"_mRNA"))
 
 
         # And close the opened fasta files
