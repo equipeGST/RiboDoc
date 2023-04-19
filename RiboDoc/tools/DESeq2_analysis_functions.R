@@ -90,14 +90,9 @@ upper.panel<-function(x, y){
 }
 
 # PCA
-make_PCA <- function(data) {
-  par(mfrow = c(2,1))
+make_PCA <- function(data, axis=2) {
   res.pca <- PCA(t(data) , ncp = 3, graph = FALSE)
-  
-  plot(res.pca, choix ="ind", autoLab = "yes", axes = c(1,2), width=3, height=3)  
-  
-  plot(res.pca, choix ="ind", autoLab = "yes", axes = c(1,3))
-  par(mfrow = c(1,1))
+  plot(res.pca, choix ="ind", autoLab = "yes", axes = c(1,axis), width=3, height=3)
 }
 
 # DESeq2 matrix creation
@@ -269,6 +264,7 @@ tables_creation <- function(dds_object, deseq_results, data_list, means, referen
                                 paste0(data_list$sample_test, "_Mean"),
                                 colnames(deseq_results))
   
+  names_list = read.table(paths_list$pathway_names, header = T, row.names = 1, check.names = FALSE, sep="\t")
   if(gene_transcript == "gene" & ncol(names_list) > 0)
   {
     allGenes <- Table_Complete
@@ -309,4 +305,3 @@ write_DE_tables <- function(tables_list, gene_transcript = "gene") {
               file = paste0(path_to_tables,gene_transcript,"_down.csv"),
               quote = F, sep = "\t", row.names = F)
 }
-

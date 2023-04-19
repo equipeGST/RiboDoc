@@ -55,7 +55,7 @@ knitr::opts_chunk$set(fig.path = paste0(paths_list$DESeq2_transcript,"Images/"),
 ```
 
 
-```{r data , echo=FALSE}
+```{r data by transcript, echo=FALSE}
 expData_transcript <- read.table(paste0(paths_list$DESeq2_transcript,"count_matrix_by_transcript.csv"), header = T, row.names = 1, check.names = FALSE, sep="\t")
 ```
 
@@ -73,7 +73,7 @@ First of all, the count matrix obtained with RiboDoc tool is loaded in R. It con
 \
 
 
-```{r Determination of the number of samples , include=FALSE}
+```{r Determination of the number of samples, include=FALSE}
 expData_sorted_transcript <- sort_columns_by_sample(expData_transcript, refCond)
 ```
 
@@ -103,9 +103,14 @@ pairs(log10(expData_sorted_transcript$expData_Sorted),
       )
 ```
 \
-*Figure 3 : PCA for variation analysis*  
-```{r PCA by transcript,  echo=FALSE}
-make_PCA(expData_sorted_transcript$expData_Sorted)
+*Figure 3a : PCA for variation analysis (axes 1 & 2)*  
+```{r PCA by transcript 1-2, echo=FALSE, dev=c('png', 'tiff')}
+make_PCA(expData_sorted_transcript$expData_Sorted, 2)
+```
+\
+*Figure 3b : PCA for variation analysis (axes 1 & 3)*  
+```{r PCA by transcript 1-3, echo=FALSE, dev=c('png', 'tiff')}
+make_PCA(expData_sorted_transcript$expData_Sorted, 3)
 ```
 \
 \
