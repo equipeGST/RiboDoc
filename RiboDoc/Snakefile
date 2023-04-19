@@ -15,6 +15,7 @@ import os
 multi_threads_nbr = 3
 mem_mb_resources = 10000
 # mem_mb_resources = (workflow.cores/3)*3000
+utr_threshold = "0.25"
 
 
 # Sets paths for inside the container
@@ -595,12 +596,27 @@ rule DESeq2_analysis_transcript:
 
 
 # Quality controls :
-# riboWaltz pipeline
+# Filter the transcripts to only keep those with a 5-prime UTR if there are enough of them
+rule filter_by_5UTR:
+    input:
+        gff_namedCDS = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
+    output:
+        gff_5UTR_filtered = local_path + "RESULTS/annex_database/gff_5UTR_filtered_" + os.path.basename(config['gff']),
+        gff_features = local_path + "RESULTS/annex_database/gff_features_counts.txt"
+    log:
+        local_path + "logs/filter_by_5UTR/filtering.log"
+    benchmark:
+        local_path + "benchmarks/filter_by_5UTR/filtering.benchmark.txt"
+    params:
+        annex_path = local_path + "RESULTS/annex_database/"
+    shell:
+        "bash " + ribodoc_tools + "filter_5UTR.sh -g {input.gff_namedCDS} -o {output.gff_5UTR_filtered} -p {params.annex_path} -r " + config["gff_mRNA_feature"] + " -u " + config["gff_5UTR_feature"] + " -t " + utr_threshold + " 2> {log};"
+
 # In case there are no UTRs in the original GFF, call for ORFget functions
 rule ORFget:
     input:
         fasta = local_path + "database/" + os.path.basename(config['fasta']),
-        gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
+        gff = local_path + "RESULTS/annex_database/gff_5UTR_filtered_" + os.path.basename(config['gff'])
     output:
         fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta",
         gff = local_path + "RESULTS/annex_database/transcriptome_elongated.gff",
@@ -751,6 +767,8 @@ rule index_bam_transcriptome:
     shell:
         "samtools index {input.bam} 2> {log.index_bam};"
 
+
+# riboWaltz pipeline
 # Performs qualitative analysis with riboWaltz
 rule riboWaltz_transcriptome:
     input:
@@ -775,8 +793,7 @@ rule riboWaltz_transcriptome:
 # Divisions of SAM file according to read length and turns it into BAM
 rule quality_controls_bamDivision:
     input:
-        bam = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam",
-        gff = local_path + "RESULTS/annex_database/NamedCDS_" + config['gff']
+        bam = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam"
     output:
         bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
         bai = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam.bai"
@@ -838,7 +855,7 @@ rule quality_controls_periodicity:
     input:
         readsLengthRepartitionBed = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed",
         bed = local_path + "RESULTS/qualitativeAnalysis/bedCount/{sample}.{taille}.count.bed",
-        gff = local_path + "RESULTS/annex_database/NamedCDS_" + config['gff']
+        gff = local_path + "RESULTS/annex_database/transcriptome_elongated_with_gene_features.gff"
     output:
         start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".txt",
         stop = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".txt"
