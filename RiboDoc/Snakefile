@@ -900,7 +900,7 @@ rule graphs_length:
     benchmark:
         local_path + "benchmarks/graphs_length/{sample}.benchmark.txt"
     shell:
-        "bash " + ribodoc_tools + "generationGraph_length.sh -p " + local_path + " -N {params.sample_name} 2> {log.bash};"
+        "bash " + ribodoc_tools + "generationGraph_length.sh -p " + local_path + " -P " + ribodoc_tools + " -N {params.sample_name} 2> {log.bash};"
 
 # Creates periodicity graphs
 rule graphs_periodicity:
@@ -917,4 +917,4 @@ rule graphs_periodicity:
     benchmark:
         local_path + "benchmarks/graphs_periodicity/{sample}.{taille}.benchmark.txt"
     shell:
-        "bash " + ribodoc_tools + "generationGraph_perio.sh -p " + local_path + " -N {params.sample_name} -l {params.read_length} -t '" + config['gff_cds_feature'] + "' -m " + config['window_utr'] + " -M " + config['window_cds'] + " 2> {log.bash};"
+        "bash " + ribodoc_tools + "generationGraph_perio.sh -p " + local_path + " -P " + ribodoc_tools + " -N {params.sample_name} -l {params.read_length} -t '" + config['gff_cds_feature'] + "' -m " + config['window_utr'] + " -M " + config['window_cds'] + " 2> {log.bash};"
