@@ -8,7 +8,7 @@ params <- scan(file = paste0(local_path, "config.yaml"),
 )
 
 # Load designed R functions
-source(paste0(local_path, "tools/DESeq2_analysis_functions.R"))
+source(paste0("/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R"))
 
 # Path to count tables folder
 paths_list <- DESeq2_folder_paths(local_path)

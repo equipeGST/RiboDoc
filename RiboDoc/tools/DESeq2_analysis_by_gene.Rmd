@@ -56,13 +56,7 @@ knitr::opts_chunk$set(fig.path = paste0(paths_list$DESeq2_gene,"Images/"), dev=c
 
 
 ```{r data , echo=FALSE}
-expData = round(read.table(paths_list$pathway_matrix, header = T, row.names = 1, check.names = FALSE, sep="\t"))
-
-names_list = read.table(paths_list$pathway_names, header = T, row.names = 1, check.names = FALSE, sep="\t")
-```
-
-```{r Merge by gene, echo=FALSE}
-expData_gene <- transcript_or_gene(data=expData, list_of_names=names_list, gene_transcript="gene")
+expData_gene <- read.table(paste0(paths_list$DESeq2_gene,"count_matrix_by_gene.csv"), header = T, row.names = 1, check.names = FALSE, sep="\t")
 ```
 
 The present analysis report is part of RiboDoc tool, developed by the GST team, Université Paris-Saclay, CEA, CNRS, Institute for Integrative Biology of the Cell (I2BC), 91198, Gif-sur-Yvette, France.
@@ -79,7 +73,7 @@ First of all, the count matrix obtained with RiboDoc tool is loaded in R. It con
 \
 
 
-```{r Determination of the number of samples , include=FALSE }
+```{r Determination of the number of samples, include=FALSE }
 expData_sorted_gene <- sort_columns_by_sample(expData_gene, refCond)
 ```
 
@@ -102,7 +96,7 @@ library_size_plot(expData_sorted_gene)
 Quantitative analysis is realized in order to highlight the variability between two (or more) biological conditions. To assess this variability, replicats have to be as close as possible. To check this, a pairwise scatter plot (figure 2), a Spearman correlation (figure 2) and a PCA (figure 3) are produced. The first one shows the number of counts for each gene between two samples. Here these plots are associated with Spearman correlation coefficients, which measure the statistical relationship between two samples. The value must be as close as possible to 1 between replicates and move towards 0 between biological conditions. In the same way, the PCA allows us to visualize variability. The first component (figure 3, x-axe) is expected to clearly separate samples between the different biological conditions and bring together replicats.  
 \
 *Figure 2 : Pairwise scatter plot for variation analysis*
-```{r Pairwise Scatter plot by gene, echo = FALSE ,dev=c('png', 'tiff') }
+```{r Pairwise Scatter plot by gene, echo = FALSE, dev=c('png', 'tiff') }
 pairs(log10(expData_sorted_gene$expData_Sorted), 
       lower.panel= panel.cor,
       upper.panel = upper.panel
