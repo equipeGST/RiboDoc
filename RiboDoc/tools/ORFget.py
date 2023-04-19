@@ -10,6 +10,7 @@ import argparse
 from Bio import SeqIO
 from Bio.Seq import Seq
 import time
+import re
 
 
 def get_args():
@@ -34,8 +35,8 @@ def get_args():
                         type=str,
                         #action='store',
                         required=False,
-                        nargs="?",
                         default = ['/database/amino_acid_sequence'],
+                        nargs="?",
                         help="Output name of fasta file(s)")
     parser.add_argument("-features_include",
                         type=str,
@@ -101,6 +102,7 @@ def get_args():
                         default = "Name",
                         help="GFF 'Name' attribute")
 
+
     args = parser.parse_args()
     return args
 
@@ -109,9 +111,10 @@ class GFF_element:
     '''
 
     '''
-    def __init__(self,gff_line,genome=None,name_attribute="Name",genetic_code=1):
+    def __init__(self,gff_line,genome=None,genetic_code=1,name_attribute="Name"):
         self.chromosome = gff_line.split("\t")[0]
         self.info       = self.__organize_info__(gff_line.split("\t")[-1])
+        # self.identity   = self.__get_feature_identity__(self.info)
         self.identity   = self.__get_feature_identity__(self.info,name_attribute)
         self.phase      = gff_line.split("\t")[-2]
         self.strand     = gff_line.split("\t")[-3]
@@ -138,14 +141,14 @@ class GFF_element:
         return dico
 
     def __get_feature_identity__(self,info_organized,name_attribute):
-        if "ID" in info_organized:
+        if name_attribute in info_organized:
+            return(info_organized[name_attribute])
+        elif "ID" in info_organized:
             return(info_organized["ID"])
         elif "Name" in info_organized:
             return(info_organized["Name"])
         elif "Parent" in info_organized:
             return(info_organized["Parent"])
-        elif name_attribute in info_organized:
-            return(info_organized[name_attribute])
         else:
             return(None)
 
@@ -195,17 +198,17 @@ class GFF_element:
         # And we keep the indexes of the elongations
         if elongate == 0:
             self.UTR5_start = 1
-            self.UTR5_end = 1
+            self.UTR5_end   = 1
             self.UTR3_start = int(len(self.seq_nucl_elongated))
             self.UTR3_end   = int(len(self.seq_nucl_elongated))
         else:
             self.UTR5_start = 1
-            self.UTR5_end = int(elongate)
+            self.UTR5_end   = int(elongate)
             self.UTR3_start = int(len(self.seq_nucl_elongated) - elongate)
             self.UTR3_end   = int(len(self.seq_nucl_elongated))
 
-        if len(elongate_3UTR_nucl.seq) == 0:
-            self.UTR3_start = int(len(self.seq_nucl_elongated))
+            if len(elongate_3UTR_nucl.seq) == 0:
+                self.UTR3_start = int(len(self.seq_nucl_elongated))
 
 
 class GFF_iterator:
@@ -219,7 +222,6 @@ class GFF_iterator:
         self.gff_types    = gff_types
         self.outname      = outname
         self.output_type  = output_type
-        self.name_attribute = name_attribute
         self.features     = self.__get_features__(gff_file,gff_types,genome,chr_exclude,genetic_code,outname,output_type,check,elongate,name_attribute)
 
     def __get_features__(self,gff_file,gff_types,genome,chr_exclude,genetic_code,outname,output_type,check,elongate,name_attribute):
@@ -405,3 +407,14 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+'''
+    TO DO:
+        1. To make the function of writing the fasta outputs
+        2. To make a function for correctly writing a new GFF file
+        3. To make a function that will get N features randomly
+'''
