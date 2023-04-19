@@ -489,7 +489,7 @@ rule htseqcount_utr:
 rule count_matrix_initialization:
     input:
         ready = expand(rules.htseqcount_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount_cds.output, sample=SAMPLES),
-        counts = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA." + counts + ".txt"
+        counts = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt"
     output:
         transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt"
     log:
@@ -532,10 +532,9 @@ rule count_matrix_creation:
                 fields = "1,3"
             else:
                 fields = "1,2"
-            shell("cut -f " + fields + " " + local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/" + sample + frag_length_L + ".no-outRNA." + counts + ".txt | LC_COLLATE=C join --header -t $'\t' {output.counts_matrix} - > {params.tmp_file} 2>> {log};")
+            shell("cut -f " + fields + " " + local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/" + sample + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt | LC_COLLATE=C join --header -t $'\t' {output.counts_matrix} - > {params.tmp_file} 2>> {log};")
             shell("cat {params.tmp_file} > {output.counts_matrix};")
             shell("rm -f {params.tmp_file};")
-
 
 # Create a count matrix by transcript and a count matrix by gene
 rule matrices_by_gene_or_transcript:
@@ -552,7 +551,6 @@ rule matrices_by_gene_or_transcript:
         local_path + "benchmarks/matrices_by_gene_or_transcript/matrices_creation.benchmark.txt"
     script:
         ribodoc_tools + "by_gene_or_trancript_count_matrices.R"
-
 
 # Performs differential analysis
 rule DESeq2_analysis_gene:
