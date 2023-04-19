@@ -429,21 +429,21 @@ rule stats_report:
         data_report.close()
 
 # Counts reads on each transcript
-rule htseqcount:
+rule htseqcount_cds:
     input:
         bam = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam",
         bai = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam.bai",
         gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
     output:
-        htseq_table = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount.txt"
+        htseq_table = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt"
     log:
-        echo = local_path + "logs/htseqcount/{sample}.echo.log",
-        sed = local_path + "logs/htseqcount/{sample}.sed.log",
-        htseqcount = local_path + "logs/htseqcount/{sample}.htseqcount.log",
-        head = local_path + "logs/htseqcount/{sample}.head.log",
-        awk = local_path + "logs/htseqcount/{sample}.awk.log"
+        echo = local_path + "logs/htseqcount_cds/{sample}.echo.log",
+        sed = local_path + "logs/htseqcount_cds/{sample}.sed.log",
+        htseqcount = local_path + "logs/htseqcount_cds/{sample}.htseqcount.log",
+        head = local_path + "logs/htseqcount_cds/{sample}.head.log",
+        awk = local_path + "logs/htseqcount_cds/{sample}.awk.log"
     benchmark:
-        local_path + "benchmarks/htseqcount/{sample}.benchmark.txt"
+        local_path + "benchmarks/htseqcount_cds/{sample}.benchmark.txt"
     params:
         tmp_file = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}_tmp.txt"
     threads:
@@ -519,7 +519,7 @@ rule htseqcount_utr:
 # Creates the row names (genes/transcript names) of the count matrix
 rule count_matrix_initialization:
     input:
-        ready = expand(rules.htseqcount_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount.output, sample=SAMPLES),
+        ready = expand(rules.htseqcount_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount_cds.output, sample=SAMPLES),
         counts = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA." + counts + ".txt"
     output:
         transcript_list = local_path + "RESULTS/DESeq2" + frag_length_L + "/names_correspondence_list.txt"
