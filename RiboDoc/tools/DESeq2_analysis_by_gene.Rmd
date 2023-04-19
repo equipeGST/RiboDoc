@@ -55,7 +55,7 @@ knitr::opts_chunk$set(fig.path = paste0(paths_list$DESeq2_gene,"Images/"), dev=c
 ```
 
 
-```{r data, echo=FALSE}
+```{r data by gene, echo=FALSE}
 expData_gene <- read.table(paste0(paths_list$DESeq2_gene,"count_matrix_by_gene.csv"), header = T, row.names = 1, check.names = FALSE, sep="\t")
 ```
 
