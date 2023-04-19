@@ -35,12 +35,6 @@ frag_length_S = "." + LENGTHS[0]
 frag_length_L = "." + LENGTHS[0] + "-" + LENGTHS[len(LENGTHS)-1]
 
 
-# Change names for snakemake workflow, depending on data given
-if config['UTR'] == "yes":
-    counts = "htseqcount" + config['gff_cds_feature']
-else:
-    counts = "htseqcount"
-
 # Mean number of isoforms in the genome (for transcriptome multi-alignment parameter)
 isoform_nbr = "10"
 
@@ -70,9 +64,6 @@ rule all:
         expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html", sample=SAMPLES),
-
-        # Call of htseqcount_transcript_utr or htseqcount_transcript rule (depends on UTR="yes"|"no" in config file)
-        expand(local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA." + counts + ".txt", sample=SAMPLES),
 
         # Call for qualitative analysis
         expand(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam.bai", sample=SAMPLES),
@@ -462,26 +453,18 @@ rule htseqcount_utr:
         bam = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam",
         bai = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam.bai",
         gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff']),
-        CDS = local_path + "database/" + config['CDSlength'],
-        five_prime = local_path + "database/" + config['5primelength'],
-        three_prime = local_path + "database/" + config['3primelength']
+        htseqcount_cds = rules.htseqcount_cds.output
     output:
-        counts_CDS = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount" + config['gff_cds_feature'] + ".txt",
-        counts_threeprime = local_path + "RESULTS/htseqcount_" + config['gff_element_three_prime_utr'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcountUTR.txt",
-        counts_fiveprime = local_path + "RESULTS/htseqcount_" + config['gff_element_five_prime_utr'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcountUTR.txt"
+        counts_threeprime = local_path + "RESULTS/htseqcount_" + config['gff_3UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcountUTR.txt",
+        counts_fiveprime = local_path + "RESULTS/htseqcount_" + config['gff_5UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcountUTR.txt"
     log:
         view = local_path + "logs/htseqcount_utr/{sample}.view.log",
-        htseqcount_CDS = local_path + "logs/htseqcount_utr/{sample}.htseqcount_" + config['gff_cds_feature'] + ".log",
-        join_CDS = local_path + "logs/htseqcount_utr/{sample}.join_CDS.log",
-        awk_CDS = local_path + "logs/htseqcount_utr/{sample}.awk_CDS.log",
         htseqcount_3prime = local_path + "logs/htseqcount_utr/{sample}.htseqcount_3prime.log",
         join_3prime = local_path + "logs/htseqcount_utr/{sample}.join_3prime.log",
         awk_3prime = local_path + "logs/htseqcount_utr/{sample}.awk_3prime.log",
         htseqcount_5prime = local_path + "logs/htseqcount_utr/{sample}.htseqcount_5prime.log",
         join_5prime = local_path + "logs/htseqcount_utr/{sample}.join_5prime.log",
-        awk_5prime = local_path + "logs/htseqcount_utr/{sample}.awk_5prime.log",
-        rpkm = local_path + "logs/htseqcount_utr/{sample}.rpkm.log",
-        rpkm_out = local_path + "logsTmp/{sample}_rpkmMoyen.log"
+        awk_5prime = local_path + "logs/htseqcount_utr/{sample}.awk_5prime.log"
     benchmark:
         local_path + "benchmarks/htseqcount_utr/{sample}.benchmark.txt"
     threads:
@@ -490,31 +473,17 @@ rule htseqcount_utr:
         sample_names="{sample}"
     shell:
         "set +o pipefail;"
-        "totalReads=`samtools view -c {input.bam}` 2> {log.view};"
-
-        "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_CDS};"
-        "htseq-count -n {threads} -f bam -t " + config['gff_cds_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_CDS} | head -n -5 | LC_COLLATE=C sort >> " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt;"
-        # "mean_RPKM_CDS=`LC_COLLATE=C join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.CDS} " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt 2> {log.join_CDS} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_CDS}`;"
-        "cat " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt >> {output.counts_CDS};"
 
         "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_threeprime};"
-        "htseq-count -n {threads} -f bam -t " + config['gff_element_three_prime_utr'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_3prime} | head -n -5 | LC_COLLATE=C sort >> " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt;"
-        # "mean_RPKM_3prime=`LC_COLLATE=C join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.three_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_3prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_3prime}`;"
-        "cat " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_threeprime};"
+        "htseq-count -n {threads} -f bam -t " + config['gff_3UTR_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_3prime} | head -n -5 | LC_COLLATE=C sort >> " + local_path + "RESULTS/tmp_" + config['gff_3UTR_feature'] + ".{wildcards.sample}.txt;"
+        "cat " + local_path + "RESULTS/tmp_" + config['gff_3UTR_feature'] + ".{wildcards.sample}.txt >> {output.counts_threeprime};"
 
         "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_fiveprime};"
-        "htseq-count -n {threads} -f bam -t " + config['gff_element_five_prime_utr'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_5prime} | head -n -5 | LC_COLLATE=C sort >> " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt;"
-        # "mean_RPKM_5prime=`LC_COLLATE=C join -1 1 -2 1 -o 1.1,1.2,2.2 -t $'\\t' {input.five_prime} " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt 2> {log.join_5prime} | awk -F '\t' -v totalReads=$totalReads '{{print $0,$3/($2/1000*totalReads/1000000)}}' | awk 'BEGIN{{sum=0}}{{sum=sum+$4}}END{{print sum/NR}}' 2> {log.awk_5prime}`;"
-        "cat " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt >> {output.counts_fiveprime};"
+        "htseq-count -n {threads} -f bam -t " + config['gff_5UTR_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_5prime} | head -n -5 | LC_COLLATE=C sort >> " + local_path + "RESULTS/tmp_" + config['gff_5UTR_feature'] + ".{wildcards.sample}.txt;"
+        "cat " + local_path + "RESULTS/tmp_" + config['gff_5UTR_feature'] + ".{wildcards.sample}.txt >> {output.counts_fiveprime};"
 
-        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_cds_feature'] + ".{wildcards.sample}.txt;"
-        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_three_prime_utr'] + ".{wildcards.sample}.txt;"
-        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_element_five_prime_utr'] + ".{wildcards.sample}.txt;"
-
-        # "echo 'Mean RPKM' 1>> {log.rpkm_out} 2> {log.rpkm};"
-        # "echo '" + config['gff_cds_feature'] + " : '$mean_RPKM_CDS 1>> {log.rpkm_out} 2>> {log.rpkm};"
-        # "echo '5prime : '$mean_RPKM_5prime 1>> {log.rpkm_out} 2>> {log.rpkm};"
-        # "echo '3prime : '$mean_RPKM_3prime 1>> {log.rpkm_out} 2>> {log.rpkm};"
+        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_3UTR_feature'] + ".{wildcards.sample}.txt;"
+        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_5UTR_feature'] + ".{wildcards.sample}.txt;"
 
 # Creates the row names (genes/transcript names) of the count matrix
 rule count_matrix_initialization:
