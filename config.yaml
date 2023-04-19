@@ -1,6 +1,8 @@
 # Name for the experiment
 project_name: ""
 
+
+##### REFERENCE FILES #####
 # Name of the genome or transcriptome fasta file to align on
 fasta: ""
 
@@ -11,12 +13,15 @@ gff: ""
 fasta_outRNA: ""
 
 
+##### TRIMMING #####
 # Are the sequencing adapters already removed in fastq files ? 'yes' or 'no'
 already_trimmed: ""
 
 # Adapter sequence (Example sequence for Illumina TruSeq™ single or CD index : "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA")
 adapt_sequence: ""
 
+
+##### LENGTHS SELECTION #####
 # Minimum read length kept for ribosome profiling
 readsLength_min: "25"
 
@@ -24,8 +29,15 @@ readsLength_min: "25"
 readsLength_max: "35"
 
 
-# Elements of the annotation file to select during counting
+##### GFF #####
+# Feature of the annotation file to select during counting (usually "CDS")
 gff_cds_feature: "CDS"
+
+# Feature defining a transcript (usually "mRNA" or "transcript")
+gff_mRNA_feature: "mRNA"
+
+# Feature defining a transcript (usually "five_prime_UTR" or "5UTR")
+gff_5UTR_feature: "five_prime_UTR"
 
 # Attribut linking CDS to its related transcript feature in the annotation file (usually "Parent")
 gff_parent_attribut: "Parent"
@@ -34,6 +46,7 @@ gff_parent_attribut: "Parent"
 gff_name_attribut: "Name"
 
 
+##### DIFFERENTIAL ANALYSIS #####
 # Name of the reference condition (same as file name)
 reference_condition: ""
 
@@ -42,6 +55,7 @@ p-val: "0.01"
 logFC: "0"
 
 
+##### QUALITATIVE ANALYSIS #####
 # Choose between "ribowaltz", "trip" or "none"
 # riboWaltz requires a lot of ressources
 # RiboDoc needs a specific gff format
@@ -69,6 +83,5 @@ CDSlength: ""
 3primelength: ""
 
 # Elements for UTRs have to be specified only if you put 'yes' for the 'UTR' option
-gff_element_three_prime_utr: "three_prime_UTR"
-gff_element_five_prime_utr: "five_prime_UTR"
+gff_5UTR_feature: "three_prime_UTR"
 ###########################################################################
