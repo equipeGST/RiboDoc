@@ -814,7 +814,7 @@ rule quality_controls_bedcount:
     input:
         bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
         bai = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam.bai",
-        fasta = local_path + "database/" + config['fasta']
+        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta"
     output:
         sequenceBedCount = local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/{sample}.{taille}.count.sequence.bed",
         readsLengthRepartitionBed = temp(local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed"),
