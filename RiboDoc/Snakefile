@@ -97,7 +97,7 @@ onsuccess:
     # Copy config file to keep trace of parameters used
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/;")
     # Remove useless directories if the pipeline does not stop because of an error
-    shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout;")
+    shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout;")
     shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "*tempoR.Rout;")
     shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ || true;")
 
