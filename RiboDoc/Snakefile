@@ -544,8 +544,7 @@ rule matrices_by_gene_or_transcript:
         counts_matrix = local_path + "RESULTS/DESeq2" + frag_length_L + "/count_matrix_by_transcript_unnamed.csv"
     output:
         by_gene = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_gene/count_matrix_by_gene.csv",
-        by_transcript = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/count_matrix_by_transcript.csv",
-        most_expressed = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/most_expressed_transcripts.txt"
+        by_transcript = local_path + "RESULTS/DESeq2" + frag_length_L + "/DESeq2_by_transcript/count_matrix_by_transcript.csv"
     log:
         local_path + "logs/matrices_by_gene_or_transcript/matrices_creation.log"
     benchmark:

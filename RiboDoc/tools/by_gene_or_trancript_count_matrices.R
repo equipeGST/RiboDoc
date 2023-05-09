@@ -21,6 +21,3 @@ names_list = read.table(paths_list$pathway_names, header = T, row.names = 1, che
 
 # Create count matrices by gene of by transcript
 expData_transcript <- transcript_or_gene(data = expData, list_of_names = names_list)
-
-# Write the ID of the most expressed transcript for each gene
-most_expressed_transcript(data = expData_transcript, list_of_names = names_list)
