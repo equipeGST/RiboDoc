@@ -18,6 +18,7 @@ fasta_outRNA: ""
 already_trimmed: ""
 
 # Adapter sequence (Example sequence for Illumina TruSeq™ single or CD index : "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA")
+# Put "" if unknown, RiboDoc_BAM2Reads will try to find it for you
 adapt_sequence: ""
 
 
@@ -56,8 +57,8 @@ logFC: "0"
 
 
 ##### QUALITATIVE ANALYSIS #####
-# Choose between "ribowaltz", "trip" or "none"
-# riboWaltz requires a lot of ressources
+# Choose between "ribowaltz" or "trip"
+# riboWaltz may require a lot of ressources but trip needs specific files format
 # RiboDoc needs a specific gff format
 qualitative_analysis: "ribowaltz"
 
