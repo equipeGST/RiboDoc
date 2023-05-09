@@ -92,7 +92,9 @@ upper.panel<-function(x, y){
 # PCA
 make_PCA <- function(data, axis=2) {
   res.pca <- PCA(t(data) , ncp = 3, graph = FALSE)
-  plot(res.pca, choix ="ind", autoLab = "yes", axes = c(1,axis), width=3, height=3)
+  if(dim(res.pca$eig)[1] > axis - 1) {
+      plot(res.pca, choix ="ind", autoLab = "yes", axes = c(1,axis), width=3, height=3)
+  }
 }
 
 # DESeq2 matrix creation
