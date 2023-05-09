@@ -83,5 +83,5 @@ CDSlength: ""
 3primelength: ""
 
 # Elements for UTRs have to be specified only if you put 'yes' for the 'UTR' option
-gff_5UTR_feature: "three_prime_UTR"
+gff_3UTR_feature: "three_prime_UTR"
 ###########################################################################
