@@ -23,6 +23,7 @@ local_path = "/data/"
 ribodoc_tools = "/RiboDoc/RiboDoc/tools/"
 snakemake_log_path = local_path + ".snakemake/log/"
 
+
 # Wildcards definition
 SAMPLES, = glob_wildcards(local_path + "fastq/{sample}.fastq.gz")
 SAMPLES.sort()
@@ -49,6 +50,11 @@ for l in f:
     is_name = re.search("^([^\t]+\t){8}.*" + config['gff_name_attribut'],l)
     if is_name:
         name_in_gff = True
+
+        features_of_interest = [config['gff_cds_feature'],'exon']
+        if config['UTR'] == "yes":
+            features_of_interest.extend([config['gff_5UTR_feature'],config['gff_3UTR_feature']])
+
         htseq_additional = "--additional-attr " + config['gff_name_attribut']
         htseq_header = 'ID\tName\t'
         fields = "1,3"
@@ -138,7 +144,7 @@ rule name_CDS:
                 for d in db.directives:
                     fout.write('##{0}\n'.format(d))
                 for feature in db.all_features():
-                    if feature.featuretype == config['gff_cds_feature'] or feature.featuretype == "exon":
+                    if feature.featuretype in features_of_interest:
                         parent = list(db.parents(feature, level=1))
                         if len(parent) > 0:
                             parent = parent[0]
