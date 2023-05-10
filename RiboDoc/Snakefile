@@ -92,8 +92,6 @@ onstart:
 
 # When the jobs are all done
 onsuccess:
-    if config['UTR'] == "yes":
-        shell("Rscript " + ribodoc_tools + "CDSvsUTR_coverage_graph.R " + config['project_name'] + ";")
     # Copy config file to keep trace of parameters used
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/;")
     # Remove useless directories if the pipeline does not stop because of an error
