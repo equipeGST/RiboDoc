@@ -41,10 +41,10 @@ do
 
     if [ ${pos} = "start" ]; then
         file="${N}.${l}.periodicity.start.${t}.-${m}+${M}";
-        Rscript "${P}generationGraph_perio.R" --work_dir "${p}" --name "${file}" --feature_type "${t}" --start_or_stop "${pos}" --length_in_utr "${m}";
+        Rscript "${P}generationGraph_perio.R" --work_dir "${p}" --name "${file}" --feature_type "${t}" --start_or_stop "${pos}" --length_before "${m}";
     else
         file="${N}.${l}.periodicity.stop.${t}.-${M}+${m}";
-        Rscript "${P}generationGraph_perio.R" --work_dir "${p}" --name "${file}" --feature_type "${t}" --start_or_stop "${pos}" --length_in_utr "${M}";
+        Rscript "${P}generationGraph_perio.R" --work_dir "${p}" --name "${file}" --feature_type "${t}" --start_or_stop "${pos}" --length_before "${M}";
     fi;
 
 done;
