@@ -59,7 +59,7 @@ For example, for the human genome annotations, you can look for [Human genome](h
 >&emsp; CTCTCGCGCGTCCGAGCGTCCCGACTCCCGGTGCCGGCCCGGGTCCGGGTCTCTGACCCACCCGGGGGCG  
 
 If you look for specific sequences, you can find them on the [NCBI website](https://www.ncbi.nlm.nih.gov/). For example, you can find a fasta file with some rRNA sequences [here](https://www.ncbi.nlm.nih.gov/nuccore/U13369.1?report=fasta).  
-***You _need_ to have an outRNA file, even if it's empty***. So, if you want everything to be used in the analysis, just put an empty file.
+If you do not want to remove any sequence, just leave the outRNA parameter of the configuration file empty (fasta_outRNA: "") **but we strongly advise to remove rRNA sequences**.
 
 If you need them, files containing each annotation length (see next paragraph) are also to be dropped into this folder.  
 
@@ -92,7 +92,7 @@ First and easy step, the project name ! You can use the same as your folder.
 You must enter the full name **with extensions** without the path of files added in the database subfolder previously created.   
 *fasta*: "reference_genome_fasta_file.fa"  
 *gff*: "corresponding_GFF_annotation_file.gff3"  
-*fasta_outRNA*: "unwanted_DNA_sequences_fasta_file.fa" (can be empty but is necessary)  
+*fasta_outRNA*: "unwanted_DNA_sequences_fasta_file.fa" (can be empty if no specific RNA sequence is to be removed from the analysis)  
 ##### Pipeline option selection  
 During the RiboDoc process, data is trimmed and selected depending on their length.   
 *already_trimmed*: If your data contains reads already trimmed of their adapter, you can set this option on “yes”. Else, set it on "no".   

@@ -23,9 +23,9 @@ local_path = "/data/"
 ribodoc_tools = "/RiboDoc/RiboDoc/tools/"
 snakemake_log_path = local_path + ".snakemake/log/"
 
-
 # Wildcards definition
 SAMPLES, = glob_wildcards(local_path + "fastq/{sample}.fastq.gz")
+SAMPLES.sort()
 BOWTIE2 = ["1","2","3","4","rev.1","rev.2"]
 HISAT2 = ["1","2","3","4","5","6","7","8"]
 LENGTHS = list(map(str,range(int(config['readsLength_min']),int(config['readsLength_max'])+1)))
@@ -64,7 +64,7 @@ rule all:
         # Call of make_fastqc rule
         expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
-        expand(local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html", sample=SAMPLES) if config['fasta_outRNA']=="" else expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
 
         # Call for qualitative analysis
         expand(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam.bai", sample=SAMPLES),
@@ -248,8 +248,6 @@ rule bowtie2_run_outRNA:
         local_path + "benchmarks/bowtie2_run_outRNA/{sample}.benchmark.txt"
     resources:
         mem_mb = mem_mb_resources
-    params:
-        sample_names = "{sample}"
     threads:
         multi_threads_nbr
     shell:
@@ -311,7 +309,7 @@ rule run_mapping:
     input:
         expand(local_path + "RESULTS/annex_database/index_hisat2.{exth}.ht2",exth=HISAT2),
         expand(local_path + "RESULTS/annex_database/index_bowtie2.{extb}.bt2",extb=BOWTIE2),
-        fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
+        fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz" if config['fasta_outRNA']=="" else local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
         fastq = temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.fastq.gz"),
         sam_hisat2 = temp(local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam"),
@@ -325,8 +323,7 @@ rule run_mapping:
         mem_mb = mem_mb_resources
     params:
         index_names_hisat2 = local_path + "RESULTS/annex_database/index_hisat2",
-        index_names_bowtie2 = local_path + "RESULTS/annex_database/index_bowtie2",
-        sample_names="{sample}"
+        index_names_bowtie2 = local_path + "RESULTS/annex_database/index_bowtie2"
     threads:
         multi_threads_nbr
     shell:
@@ -388,26 +385,23 @@ rule stats_report:
         stat_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt"
     run:
         # List of interesting logs to make the report
-        logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2"]
-        # logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2","rpkmMoyen"]
-        # if config['UTR'] == "no":
-        #     logs_names = logs_names[:-1]
+        if config['fasta_outRNA'] == "":
+            logs_names = ["adapt_trimming","run_mapping_hisat2","run_mapping_bowtie2"]
+        else:
+            logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2"]
 
         # File for the statistical report
         data_report = open(output.stat_report,"w")
         for sample in SAMPLES:
             # Data treatment report creation
-            data_report.write("##################\n## NEXT SAMPLE ##\n##################\n\n" + sample + "\n")
+            data_report.write("##################\n## NEXT SAMPLE ##\n##################\n\n\t" + sample + "\n")
             for log in logs_names:
                 data_report.write("\n" + ("#" * (len(log)+6)) + "\n## " + log + " ##\n" + ("#" * (len(log)+6)) + "\n")
                 logs_files = open(local_path + "stats/" + sample + "_" + log + ".log","r")
                 # Keep only lines of interest from cutadapt report1,2
                 i=-1
                 if log=="adapt_trimming":
-                    if int(2) > 1:
-                        lines_to_read = range(22)
-                    else:
-                        lines_to_read = range(20)
+                    lines_to_read = range(19)
                     for position, line in enumerate(logs_files):
                         if position in lines_to_read:
                             data_report.write(line)
@@ -470,8 +464,6 @@ rule htseqcount_utr:
         local_path + "benchmarks/htseqcount_utr/{sample}.benchmark.txt"
     threads:
         multi_threads_nbr
-    params:
-        sample_names="{sample}"
     shell:
         "set +o pipefail;"
 
@@ -698,7 +690,7 @@ rule run_mapping_transcriptome:
     input:
         expand(local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2),
         expand(local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2),
-        fastq = local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
+        fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz" if config['fasta_outRNA']=="" else local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
         sam_hisat2 = temp(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam"),
         sam_bowtie2 = temp(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam"),
@@ -712,8 +704,7 @@ rule run_mapping_transcriptome:
         mem_mb = mem_mb_resources
     params:
         index_names_hisat2 = local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_hisat2",
-        index_names_bowtie2 = local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_bowtie2",
-        sample_names = "{sample}"
+        index_names_bowtie2 = local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_bowtie2"
     threads:
         multi_threads_nbr
     shell:

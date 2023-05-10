@@ -9,7 +9,7 @@ fasta: ""
 # Name of the gff file with genome or transcriptome annotations
 gff: ""
 
-# Fasta file with not interesting sequences
+# Fasta file with not interesting sequences (can be left empty if no sequence has to be removed)
 fasta_outRNA: ""
 
 
