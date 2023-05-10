@@ -189,7 +189,7 @@ rule adapt_trimming:
     log:
         trim_value = local_path + "logs/adapt_trimming/{sample}_trim_value.log",
         cutadapt = local_path + "logs/adapt_trimming/{sample}_cutadapt.log",
-        cutadapt_out = local_path + "logsTmp/{sample}_adapt_trimming.log"
+        cutadapt_out = local_path + "stats/{sample}_adapt_trimming.log"
     benchmark:
         local_path + "benchmarks/adapt_trimming/{sample}.benchmark.txt"
     resources:
@@ -243,7 +243,7 @@ rule bowtie2_run_outRNA:
     output:
         local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     log:
-        bt2 = local_path + "logsTmp/{sample}_bowtie2_run_outRNA.log"
+        bt2 = local_path + "stats/{sample}_bowtie2_run_outRNA.log"
     benchmark:
         local_path + "benchmarks/bowtie2_run_outRNA/{sample}.benchmark.txt"
     resources:
@@ -317,8 +317,8 @@ rule run_mapping:
         sam_hisat2 = temp(local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam"),
         sam_bowtie2 = temp(local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam")
     log:
-        hisat2_out = local_path + "logsTmp/{sample}_run_mapping_hisat2.log",
-        bowtie2_out = local_path + "logsTmp/{sample}_run_mapping_bowtie2.log"
+        hisat2_out = local_path + "stats/{sample}_run_mapping_hisat2.log",
+        bowtie2_out = local_path + "stats/{sample}_run_mapping_bowtie2.log"
     benchmark:
         local_path + "benchmarks/run_mapping/{sample}.benchmark.txt"
     resources:
@@ -400,7 +400,7 @@ rule stats_report:
             data_report.write("##################\n## NEXT SAMPLE ##\n##################\n\n" + sample + "\n")
             for log in logs_names:
                 data_report.write("\n" + ("#" * (len(log)+6)) + "\n## " + log + " ##\n" + ("#" * (len(log)+6)) + "\n")
-                logs_files = open(local_path + "logsTmp/" + sample + "_" + log + ".log","r")
+                logs_files = open(local_path + "stats/" + sample + "_" + log + ".log","r")
                 # Keep only lines of interest from cutadapt report1,2
                 i=-1
                 if log=="adapt_trimming":
