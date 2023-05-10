@@ -28,4 +28,4 @@ used_memory="--resources mem_mb=${available_memory_mb}"
 # conda list;
 snakemake -s /RiboDoc/RiboDoc/Snakefile -j --dag -np | dot -Tsvg > /data/dag_last-run.svg;
 snakemake -s /RiboDoc/RiboDoc/Snakefile -j --dag -np --forceall | dot -Tsvg > /data/dag_all.svg;
-snakemake -s /RiboDoc/RiboDoc/Snakefile -k -j ${cpu_use};
+snakemake -s /RiboDoc/RiboDoc/Snakefile -k --rerun-incomplete -j ${cpu_use};
