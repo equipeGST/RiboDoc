@@ -155,7 +155,7 @@ rule name_CDS:
                                 feature.attributes["ID"] = parent.attributes["ID"]
                                 feature.attributes['ID'] = feature.attributes['ID'][0] + "_CDS"
                         if feature.attributes.get(config['gff_name_attribut']):
-                            fout.write(str(feature) + '\n')
+                            fout.write(str(feature) + ';\n')
                     else:
                         fout.write(str(feature) + '\n')
         else:
