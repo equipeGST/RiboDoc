@@ -2,7 +2,8 @@
 
 # Scan config file and determine paths
 DESeq2_folder_paths <- function(path) {
-  DESeq2_folder <- paste0(path, "RESULTS/DESeq2.",
+  DESeq2_folder <- paste0(path, "RESULTS/DESeq2_",
+                          gsub(" ", "", params[which(params=="gff_cds_feature")+1], fixed = TRUE), ".",
                           gsub(" ", "", params[which(params=="readsLength_min")+1], fixed = TRUE), "-",
                           gsub(" ", "", params[which(params=="readsLength_max")+1], fixed = TRUE), "/")
   DESeq2_gene <- paste0(DESeq2_folder, "DESeq2_by_gene/")
