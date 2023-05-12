@@ -466,21 +466,22 @@ rule htseqcount_utr:
         awk_5prime = local_path + "logs/htseqcount_utr/{sample}.awk_5prime.log"
     benchmark:
         local_path + "benchmarks/htseqcount_utr/{sample}.benchmark.txt"
+    params:
+        tmp_file = local_path + "RESULTS/{sample}_tmp.txt"
     threads:
         multi_threads_nbr
     shell:
         "set +o pipefail;"
 
         "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_threeprime};"
-        "htseq-count -n {threads} -f bam -t " + config['gff_3UTR_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_3prime} | head -n -5 | LC_COLLATE=C sort >> " + local_path + "RESULTS/tmp_" + config['gff_3UTR_feature'] + ".{wildcards.sample}.txt;"
-        "cat " + local_path + "RESULTS/tmp_" + config['gff_3UTR_feature'] + ".{wildcards.sample}.txt >> {output.counts_threeprime};"
+        "htseq-count -n {threads} -f bam -t " + config['gff_3UTR_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_3prime} | head -n -5 | LC_COLLATE=C sort >> {params.tmp_file};"
+        "cat {params.tmp_file} >> {output.counts_threeprime};"
+        "rm -f {params.tmp_file};"
 
         "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.counts_fiveprime};"
-        "htseq-count -n {threads} -f bam -t " + config['gff_5UTR_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_5prime} | head -n -5 | LC_COLLATE=C sort >> " + local_path + "RESULTS/tmp_" + config['gff_5UTR_feature'] + ".{wildcards.sample}.txt;"
-        "cat " + local_path + "RESULTS/tmp_" + config['gff_5UTR_feature'] + ".{wildcards.sample}.txt >> {output.counts_fiveprime};"
-
-        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_3UTR_feature'] + ".{wildcards.sample}.txt;"
-        "rm -f " + local_path + "RESULTS/tmp_" + config['gff_5UTR_feature'] + ".{wildcards.sample}.txt;"
+        "htseq-count -n {threads} -f bam -t " + config['gff_5UTR_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_5prime} | head -n -5 | LC_COLLATE=C sort >> {params.tmp_file};"
+        "cat {params.tmp_file} >> {output.counts_fiveprime};"
+        "rm -f {params.tmp_file};"
 
 # Creates the row names (genes/transcript names) of the count matrix
 rule count_matrix_initialization:
