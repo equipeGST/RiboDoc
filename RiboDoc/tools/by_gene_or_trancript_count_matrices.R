@@ -14,10 +14,7 @@ source(paste0("/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R"))
 paths_list <- DESeq2_folder_paths(local_path)
 
 # Make counts rounded for future differential analyses
-expData = round(read.table(paths_list$pathway_matrix, header = T, row.names = 1, check.names = FALSE, sep="\t"))
-
-# Load names corresponding to transcript IDs
-names_list = read.table(paths_list$pathway_names, header = T, row.names = 1, check.names = FALSE, sep="\t")
+expData = read.table(paths_list$pathway_matrix, header = T, row.names = 1, check.names = FALSE, sep="\t")
 
 # Create count matrices by gene of by transcript
-expData_transcript <- transcript_or_gene(data = expData, list_of_names = names_list)
+expData_transcript <- transcript_or_gene(expData)
