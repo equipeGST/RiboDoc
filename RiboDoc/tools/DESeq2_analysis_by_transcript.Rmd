@@ -51,7 +51,7 @@ dir.create(paste0(paths_list$DESeq2_transcript,"Images/"))
 ```{r setup, echo=FALSE, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(include = TRUE, message = FALSE, warning = FALSE)
-knitr::opts_chunk$set(fig.path = paste0(paths_list$DESeq2_transcript,"Images/"), dev=c('png','tiff'))
+knitr::opts_chunk$set(fig.path = paste0(paths_list$DESeq2_transcript,"Images/"), dev=c('tiff'))
 ```
 
 
@@ -87,7 +87,7 @@ knitr::kable(head(expData_sorted_transcript$expData_Sorted))
 Figure 1 shows the library sizes. That is the total number of reads count in each sample. Size must be as similar as possible within conditions.  
 \
 *Figure 1 : Number of raw reads counts per sample. One color by biological condition.*
-```{r Library sizes by transcript, fig.height = 3, fig.width = 4, echo=FALSE, dev=c('png','tiff')}
+```{r Library sizes by transcript, fig.height = 3, fig.width = 4, echo=FALSE, dev=c('tiff')}
 library_size_plot(expData_sorted_transcript)
 ```
 \
@@ -96,7 +96,7 @@ library_size_plot(expData_sorted_transcript)
 Quantitative analysis is realized in order to highlight the variability between two (or more) biological conditions. To assess this variability, replicats have to be as close as possible. To check this, a pairwise scatter plot (figure 2), a Spearman correlation (figure 2) and a PCA (figure 3) are produced. The first one shows the number of counts for each gene between two samples. Here these plots are associated with Spearman correlation coefficients, which measure the statistical relationship between two samples. The value must be as close as possible to 1 between replicates and move towards 0 between biological conditions. In the same way, the PCA allows us to visualize variability. The first component (figure 3, x-axe) is expected to clearly separate samples between the different biological conditions and bring together replicats.  
 \
 *Figure 2 : Pairwise scatter plot for variation analysis*
-```{r Pairwise Scatter plot by transcript, echo = FALSE, dev=c('png', 'tiff')}
+```{r Pairwise Scatter plot by transcript, echo = FALSE, dev=c( 'tiff')}
 pairs(log10(expData_sorted_transcript$expData_Sorted), 
       lower.panel= panel.cor,
       upper.panel = upper.panel
@@ -104,12 +104,12 @@ pairs(log10(expData_sorted_transcript$expData_Sorted),
 ```
 \
 *Figure 3a : PCA for variation analysis (axes 1 & 2)*  
-```{r PCA by transcript 1-2, echo=FALSE, dev=c('png', 'tiff')}
+```{r PCA by transcript 1-2, echo=FALSE, dev=c( 'tiff')}
 make_PCA(expData_sorted_transcript$expData_Sorted, 2)
 ```
 \
 *Figure 3b : PCA for variation analysis (axes 1 & 3)*  
-```{r PCA by transcript 1-3, echo=FALSE, dev=c('png', 'tiff')}
+```{r PCA by transcript 1-3, echo=FALSE, dev=c( 'tiff')}
 make_PCA(expData_sorted_transcript$expData_Sorted, 3)
 ```
 \
