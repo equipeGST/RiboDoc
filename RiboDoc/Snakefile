@@ -762,8 +762,8 @@ rule riboWaltz_transcriptome:
         transcriptome_gtf = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_" + os.path.basename(config['gff']) + ".gtf",
         transcriptome_bam = expand(rules.index_bam_transcriptome.output, sample=SAMPLES)
     output:
-        psite_table = local_path + "RESULTS/riboWaltz/psite_offset.csv",
-        metaprofile = local_path + "RESULTS/riboWaltz/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff"
+        psite_table = local_path + "RESULTS/riboWaltz" + frag_length_L + "/psite_offset.csv",
+        metaprofile = local_path + "RESULTS/riboWaltz" + frag_length_L + "/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff"
     log:
         periodicity = local_path + "logs/riboWaltz_transcriptome/riboWaltz.log"
     resources:
@@ -772,7 +772,7 @@ rule riboWaltz_transcriptome:
         local_path + "benchmarks/riboWaltz_transcriptome/riboWaltz.benchmark.txt"
     shell:
         "touch {output.psite_table};"
-        "Rscript " + ribodoc_tools + "periodicity_riboWaltz_transcriptome.R {input.transcriptome_gtf} 2> {log};"
+        "Rscript " + ribodoc_tools + "periodicity_riboWaltz_transcriptome.R " + local_path + " {input.transcriptome_gtf} 2> {log};"
         "rm -f " + local_path + "Rplots.pdf;"
 
 
@@ -899,16 +899,17 @@ rule main_output_folder:
         stats_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
         deseq2_transcript = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html",
         deseq2_gene = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html",
-        qualitative_lengths = local_path + "RESULTS/riboWaltz/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_length.output,sample=SAMPLES,taille=LENGTHS),
-        qualitative_perio = local_path + "RESULTS/riboWaltz/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_periodicity.output,sample=SAMPLES,taille=LENGTHS)
+        qualitative_lengths = local_path + "RESULTS/riboWaltz" + frag_length_L + "/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_length.output,sample=SAMPLES,taille=LENGTHS),
+        qualitative_perio = local_path + "RESULTS/riboWaltz" + frag_length_L + "/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_periodicity.output,sample=SAMPLES,taille=LENGTHS)
     output:
         local_path + "MAIN_RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt"
     params:
         deseq2_folder = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L,
-        graphs_folder = local_path + "RESULTS/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] if config['qualitative_analysis']=="ribowaltz" else local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/"
+        graphs_folder = local_path + "RESULTS/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] if config['qualitative_analysis']=="ribowaltz" else local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/",
+        ribowaltz_folder = local_path + "RESULTS/riboWaltz" + frag_length_L
     log:
         bash = local_path + "logs/main_output_folder/bash.log"
     benchmark:
         local_path + "benchmarks/main_output_folder/benchmark.txt"
     shell:
-        "bash " + ribodoc_tools + "main_results_folder_maker.sh -p " + local_path + " -P " + ribodoc_tools + " -q " + config['qualitative_analysis'] + " -d {params.deseq2_folder} -s {input.stats_report} -g {params.graphs_folder} 2> {log.bash};"
+        "bash " + ribodoc_tools + "main_results_folder_maker.sh -p " + local_path + " -P " + ribodoc_tools + " -q " + config['qualitative_analysis'] + " -s {input.stats_report} -d {params.deseq2_folder} -g {params.graphs_folder} -r {params.ribowaltz_folder} 2> {log.bash};"

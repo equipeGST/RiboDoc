@@ -1,6 +1,4 @@
-# Put the path to the project folder as argument
-
-# Load args
+# Load args : path to working directory
 args <- commandArgs(trailingOnly=TRUE)
 local_path <- args[1]
 
@@ -9,6 +7,7 @@ params <- scan(file = paste0(local_path, "config.yaml"),
                what = "character",
                sep = ":"
 )
+
 qualitative_analysis <- gsub(" ", "", params[which(params=="qualitative_analysis")+1], fixed = TRUE)
 
 readsLength_min <- as.integer(gsub(" ", "", params[which(params=="readsLength_min")+1], fixed = TRUE))
@@ -37,7 +36,7 @@ if(window_cds %% 3 == 0) {
 # Add the "periodicity" folder to the "RESULTS" folder from RiboDoc
 dir.create(paste0(local_path, "RESULTS/periodicity_-", window_utr, "+", window_cds, "/"), showWarnings = F)
 
-samples <- list.dirs(paste0(local_path, "RESULTS/riboWaltz/"), full.names = F, recursive = F)
+samples <- list.dirs(paste0(local_path, "RESULTS/riboWaltz.", readsLength_min, "-", readsLength_max, "/"), full.names = F, recursive = F)
 
 # For each sample
 for(sample in samples) {
@@ -48,7 +47,7 @@ for(sample in samples) {
   for(specific_length in readsLength_min:readsLength_max) {
     
     # Load data
-    pathway_metaprofile_table_specific <- paste0(local_path, "RESULTS/riboWaltz/", sample,"/results_by_length/metaprofiles_-", window_utr,"+", window_cds, "/metaprofile_psite_length", specific_length, "_-", window_utr,"+", window_cds, ".csv")
+    pathway_metaprofile_table_specific <- paste0(local_path, "RESULTS/riboWaltz.", readsLength_min, "-", readsLength_max, "/", sample,"/results_by_length/metaprofiles_-", window_utr,"+", window_cds, "/metaprofile_psite_length", specific_length, "_-", window_utr,"+", window_cds, ".csv")
     perio_specific <- read.table(pathway_metaprofile_table_specific, header = TRUE, sep = "\t")
     
     # Select relative positions from start or stop
