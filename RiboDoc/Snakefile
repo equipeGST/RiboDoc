@@ -1,5 +1,4 @@
-# configfile: "/data/config.yaml"
-configfile: "/home/hugo.arbes/Hugo/GST/Ftsj1/human_riboseq_genome_2023-05-09/config.yaml"
+configfile: "/data/config.yaml"
 
 ribodoc_version = "0.9.0"
 
@@ -21,10 +20,6 @@ utr_threshold = "0.25"
 # Sets paths for inside the container
 local_path = "/data/"
 ribodoc_tools = "/RiboDoc/RiboDoc/tools/"
-snakemake_log_path = local_path + ".snakemake/log/"
-# configfile: "/home/hugo.arbes/Hugo/GST/Ftsj1/human_riboseq_genome_2023-05-09/config.yaml"
-local_path = "/home/hugo.arbes/Hugo/GST/Ftsj1/human_riboseq_genome_2023-05-09/"
-ribodoc_tools = "/home/hugo.arbes/Hugo/GST/RiboDoc/RiboDoc_GST/RiboDoc/RiboDoc/tools/"
 snakemake_log_path = local_path + ".snakemake/log/"
 
 
