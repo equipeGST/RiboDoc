@@ -1,5 +1,5 @@
-configfile: "/data/config.yaml"
-
+# configfile: "/data/config.yaml"
+configfile: "/home/hugo.arbes/Hugo/GST/Ftsj1/human_riboseq_genome_2023-05-09/config.yaml"
 
 ribodoc_version = "0.9.0"
 
@@ -21,6 +21,10 @@ utr_threshold = "0.25"
 # Sets paths for inside the container
 local_path = "/data/"
 ribodoc_tools = "/RiboDoc/RiboDoc/tools/"
+snakemake_log_path = local_path + ".snakemake/log/"
+# configfile: "/home/hugo.arbes/Hugo/GST/Ftsj1/human_riboseq_genome_2023-05-09/config.yaml"
+local_path = "/home/hugo.arbes/Hugo/GST/Ftsj1/human_riboseq_genome_2023-05-09/"
+ribodoc_tools = "/home/hugo.arbes/Hugo/GST/RiboDoc/RiboDoc_GST/RiboDoc/RiboDoc/tools/"
 snakemake_log_path = local_path + ".snakemake/log/"
 
 
@@ -207,7 +211,6 @@ rule make_fastqc_after_trimming:
     params:
        outdir = local_path + "RESULTS/fastqc/fastqc_after_trimming/"
     shell:
-        # fastqc 0.11.9
         "fastqc {input} --outdir {params.outdir} 2> {log};"
 
 # Builds the index of bowtie2 mapping on sequences for reads remove
@@ -215,22 +218,22 @@ rule bowtie2_build_outRNA:
     input:
         outRNA = local_path + "database/" + os.path.basename(config['fasta_outRNA'])
     output:
-        expand(local_path + "RESULTS/annex_database/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2)
-    params:
-        outNames = local_path + "RESULTS/annex_database/outRNA_bowtie2"
+        expand(local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2)
     log:
         local_path + "logs/bowtie2_build_outRNA/bowtie2_build_outRNA.log"
     benchmark:
         local_path + "benchmarks/bowtie2_build_outRNA/bowtie2_build_outRNA.benchmark.txt"
     threads:
         multi_threads_nbr
+    params:
+        outNames = local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2"
     shell:
         "bowtie2-build --threads {threads} {input.outRNA} {params.outNames} &> {log};"
 
 # Mapping of non-coding RNA
 rule bowtie2_run_outRNA:
     input:
-        expand(local_path + "RESULTS/annex_database/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2),
+        expand(local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2),
         fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
     output:
         local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
@@ -243,7 +246,7 @@ rule bowtie2_run_outRNA:
     threads:
         multi_threads_nbr
     shell:
-        "bowtie2 -x " + local_path + "RESULTS/annex_database/outRNA_bowtie2 --threads {threads} -U {input.fastq} --un-gz {output} > /dev/null 2>> {log.bt2};"
+        "bowtie2 -x " + local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2 --threads {threads} -U {input.fastq} --un-gz {output} > /dev/null 2>> {log.bt2};"
 
 # Quality control of data : build of the fastqc after depletin rRNA as ribosomal RNA can have an impact on the data's profiles (ATGC content)
 rule make_fastqc_after_outRNA_depletion:
@@ -259,7 +262,6 @@ rule make_fastqc_after_outRNA_depletion:
     params:
        outdir = local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/"
     shell:
-        # fastqc 0.11.9
         "fastqc {input} --outdir {params.outdir} 2> {log};"
 
 # Builds the index of bowtie2 mapping for all RNA
@@ -267,7 +269,7 @@ rule bowtie2_build:
     input:
         fasta = local_path + "database/" + os.path.basename(config['fasta'])
     output:
-        expand(local_path + "RESULTS/annex_database/index_bowtie2.{extb}.bt2",extb=BOWTIE2)
+        expand(local_path + "RESULTS/annex_database/index_files/index_bowtie2.{extb}.bt2",extb=BOWTIE2)
     log:
         local_path + "logs/bowtie2_build/bowtie2_build.log"
     benchmark:
@@ -275,7 +277,7 @@ rule bowtie2_build:
     threads:
         multi_threads_nbr
     params:
-        outNames = local_path + "RESULTS/annex_database/index_bowtie2"
+        outNames = local_path + "RESULTS/annex_database/index_files/index_bowtie2"
     shell:
         "bowtie2-build --threads {threads} {input.fasta} {params.outNames} &> {log};"
 
@@ -284,7 +286,7 @@ rule hisat2_build:
     input:
         fasta = local_path + "database/" + os.path.basename(config['fasta'])
     output:
-        expand(local_path + "RESULTS/annex_database/index_hisat2.{exth}.ht2",exth=HISAT2)
+        expand(local_path + "RESULTS/annex_database/index_files/index_hisat2.{exth}.ht2",exth=HISAT2)
     log:
         local_path + "logs/hisat2_build/hisat2_build.log"
     benchmark:
@@ -292,15 +294,15 @@ rule hisat2_build:
     threads:
         multi_threads_nbr
     params:
-        outNames = local_path + "RESULTS/annex_database/index_hisat2"
+        outNames = local_path + "RESULTS/annex_database/index_files/index_hisat2"
     shell:
         "hisat2-build --threads {threads} {input.fasta} {params.outNames} &> {log};"
 
 # Mapping of all RNA by bowtie2 and hisat2
 rule run_mapping:
     input:
-        expand(local_path + "RESULTS/annex_database/index_hisat2.{exth}.ht2",exth=HISAT2),
-        expand(local_path + "RESULTS/annex_database/index_bowtie2.{extb}.bt2",extb=BOWTIE2),
+        expand(local_path + "RESULTS/annex_database/index_files/index_hisat2.{exth}.ht2",exth=HISAT2),
+        expand(local_path + "RESULTS/annex_database/index_files/index_bowtie2.{extb}.bt2",extb=BOWTIE2),
         fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz" if config['fasta_outRNA']=="" else local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
         fastq = temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.fastq.gz"),
@@ -314,8 +316,8 @@ rule run_mapping:
     resources:
         mem_mb = mem_mb_resources
     params:
-        index_names_hisat2 = local_path + "RESULTS/annex_database/index_hisat2",
-        index_names_bowtie2 = local_path + "RESULTS/annex_database/index_bowtie2"
+        index_names_hisat2 = local_path + "RESULTS/annex_database/index_files/index_hisat2",
+        index_names_bowtie2 = local_path + "RESULTS/annex_database/index_files/index_bowtie2"
     threads:
         multi_threads_nbr
     shell:
@@ -324,6 +326,7 @@ rule run_mapping:
 
 # Creates bam and sam files
 rule samtools_filter:
+    priority: 50
     input:
         sam_hisat2 = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam",
         sam_bowtie2 = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam"
@@ -654,13 +657,13 @@ rule bowtie2_build_transcriptome:
     input:
         fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta"
     output:
-        expand(local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2)
+        expand(local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2)
     log:
         local_path + "logs/bowtie2_build_transcriptome/bowtie2_build.log"
     benchmark:
         local_path + "benchmarks/bowtie2_build_transcriptome/transcriptome_index_bowtie2.benchmark.txt"
     params:
-        index_names = local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_bowtie2"
+        index_names = local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2"
     threads:
         multi_threads_nbr
     shell:
@@ -671,13 +674,13 @@ rule hisat2_build_transcriptome:
     input:
         fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta"
     output:
-        expand(local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2)
+        expand(local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2)
     log:
         local_path + "logs/hisat2_build_transcriptome/hisat2_build.log"
     benchmark:
         local_path + "benchmarks/hisat2_build_transcriptome/hisat2_build_transcriptome.benchmark.txt"
     params:
-        index_names = local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_hisat2"
+        index_names = local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2"
     threads:
         multi_threads_nbr
     shell:
@@ -686,8 +689,8 @@ rule hisat2_build_transcriptome:
 # Performs mapping on transcriptome
 rule run_mapping_transcriptome:
     input:
-        expand(local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2),
-        expand(local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2),
+        expand(local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2),
+        expand(local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2),
         fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz" if config['fasta_outRNA']=="" else local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
         sam_hisat2 = temp(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam"),
@@ -701,8 +704,8 @@ rule run_mapping_transcriptome:
     resources:
         mem_mb = mem_mb_resources
     params:
-        index_names_hisat2 = local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_hisat2",
-        index_names_bowtie2 = local_path + "RESULTS/annex_database/transcriptome_elongated.transcriptome_index_bowtie2"
+        index_names_hisat2 = local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2",
+        index_names_bowtie2 = local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2"
     threads:
         multi_threads_nbr
     shell:
@@ -711,6 +714,7 @@ rule run_mapping_transcriptome:
 
 # Creates bam and sam files
 rule samtools_filter_transcriptome:
+    priority: 50
     input:
         sam_hisat2 = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam",
         sam_bowtie2 = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam"
