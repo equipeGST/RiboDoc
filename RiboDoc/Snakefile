@@ -74,18 +74,9 @@ rule all:
 
         # Call for qualitative analysis
         expand(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam.bai", sample=SAMPLES),
-        local_path + "RESULTS/riboWaltz/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
-        local_path + "RESULTS/riboWaltz/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff" if config['qualitative_analysis']=="ribowaltz" else expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
-        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg", sample=SAMPLES, taille=LENGTHS) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
-        expand(local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg", sample=SAMPLES) if config['qualitative_analysis']=="trip" else expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
 
-        # Alignment statistics report
-        local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
-
-        # Call for count matrix creation for DESeq2 dans final report
-        local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html",
-        local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html"
-
+        # Folder with main outputs
+        local_path + "MAIN_RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt"
 
 # When RiboDoc starts
 onstart:
@@ -491,6 +482,7 @@ rule count_matrix_initialization:
         transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.txt"
     log:
         header = "logs/count_matrix_initialization/head.log",
+        cut = "logs/count_matrix_initialization/cut.log",
         sort = local_path + "logs/count_matrix_initialization/sort.log"
     benchmark:
         local_path + "benchmarks/count_matrix_initialization/count_matrix_initialization.benchmark.txt"
@@ -499,14 +491,14 @@ rule count_matrix_initialization:
         if name_in_gff == True:
             shell("""
             echo -e 'ID\\tTranscript_name\\tGene_name' 2> {log.header} > {output.transcript_list};
-            tail +2 {input.counts} | cut -f 1,2 2> {log.id_name} | LC_COLLATE=C sort 2> {log.sort} >> {output.transcript_list};
+            tail +2 {input.counts} | cut -f 1,2 2> {log.cut} | LC_COLLATE=C sort 2> {log.sort} >> {output.transcript_list};
             sed -i -E 's/\\t([^\\t]+)(-[0-9]{{3}})/\\t\\1\\2\\t\\1/' {output.transcript_list};
             sed -i -E 's/^([^\\t]+)\\t([^\t]+)$/\\1\\t\\2\\t\\2/' {output.transcript_list};
             """)
         else:
             shell("""
             echo -e 'ID' 2> {log.header} > {output.transcript_list};
-            tail +2 {input.counts} | cut -f 1,2 2> {log.id_name} | LC_COLLATE=C sort 2> {log.sort} >> {output.transcript_list};
+            tail +2 {input.counts} | cut -f 1,2 2> {log.cut} | LC_COLLATE=C sort 2> {log.sort} >> {output.transcript_list};
             """)
 
 # Adds the read counts of each sample to the matrix
@@ -901,3 +893,23 @@ rule graphs_periodicity:
         local_path + "benchmarks/quality_controls_graphs_periodicity/{sample}.{taille}.benchmark.txt"
     shell:
         "bash " + ribodoc_tools + "generationGraph_perio.sh -p " + local_path + " -P " + ribodoc_tools + " -N {params.sample_name} -l {params.read_length} -t '" + config['gff_cds_feature'] + "' -m " + config['window_utr'] + " -M " + config['window_cds'] + " 2> {log.bash};"
+
+# Creates periodicity graphs
+rule main_output_folder:
+    input:
+        stats_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
+        deseq2_transcript = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html",
+        deseq2_gene = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html",
+        qualitative_lengths = local_path + "RESULTS/riboWaltz/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_length.output,sample=SAMPLES,taille=LENGTHS),
+        qualitative_perio = local_path + "RESULTS/riboWaltz/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_periodicity.output,sample=SAMPLES,taille=LENGTHS)
+    output:
+        local_path + "MAIN_RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt"
+    params:
+        deseq2_folder = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L,
+        graphs_folder = local_path + "RESULTS/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] if config['qualitative_analysis']=="ribowaltz" else local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/"
+    log:
+        bash = local_path + "logs/main_output_folder/bash.log"
+    benchmark:
+        local_path + "benchmarks/main_output_folder/benchmark.txt"
+    shell:
+        "bash " + ribodoc_tools + "main_results_folder_maker.sh -p " + local_path + " -P " + ribodoc_tools + " -q " + config['qualitative_analysis'] + " -d {params.deseq2_folder} -s {input.stats_report} -g {params.graphs_folder} 2> {log.bash};"
