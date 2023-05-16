@@ -72,9 +72,6 @@ rule all:
         expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html", sample=SAMPLES) if config['fasta_outRNA']=="" else expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
 
-        # Call for qualitative analysis
-        expand(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam.bai", sample=SAMPLES),
-
         # Folder with main outputs
         local_path + "MAIN_RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt"
 
@@ -724,7 +721,7 @@ rule samtools_filter_transcriptome:
         uniq_header = local_path + "logs/samtools_filter_transcriptome/{sample}.uniq_header.log",
         grep_core_hisat2 =  local_path + "logs/samtools_filter_transcriptome/{sample}.grep_core_hisat2.log",
         XM_filter_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_hisat2.log",
-        XM_filter_bowtie2 = local_path + "logs/samtools_filter/{sample}.XM_filter_bowtie2.log",
+        XM_filter_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_bowtie2.log",
         grep_core_bowtie2 =  local_path + "logs/samtools_filter_transcriptome/{sample}.grep_core_bowtie2.log",
         view_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.view_bam.log",
         sort_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.sort_bam.log"
@@ -764,7 +761,7 @@ rule index_bam_transcriptome:
 rule riboWaltz_transcriptome:
     input:
         transcriptome_gtf = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_" + os.path.basename(config['gff']) + ".gtf",
-        transcriptome_bam = expand(rules.samtools_filter_transcriptome.output, sample=SAMPLES)
+        transcriptome_bam = expand(rules.index_bam_transcriptome.output, sample=SAMPLES)
     output:
         psite_table = local_path + "RESULTS/riboWaltz/psite_offset.csv",
         metaprofile = local_path + "RESULTS/riboWaltz/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff"
@@ -784,7 +781,8 @@ rule riboWaltz_transcriptome:
 # Divisions of SAM file according to read length and turns it into BAM
 rule quality_controls_bamDivision:
     input:
-        bam = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam"
+        bam = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam",
+        bai = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam.bai"
     output:
         bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
         bai = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam.bai"
