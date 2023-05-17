@@ -411,7 +411,7 @@ rule htseqcount_cds:
         bai = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam.bai",
         gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
     output:
-        htseq_table = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt"
+        htseq_table = temp(local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt")
     log:
         echo = local_path + "logs/htseqcount_cds/{sample}.echo.log",
         sed = local_path + "logs/htseqcount_cds/{sample}.sed.log",
@@ -440,8 +440,8 @@ rule htseqcount_utr:
         gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff']),
         htseqcount_cds = rules.htseqcount_cds.output
     output:
-        htseq_table_threeprime = local_path + "RESULTS/htseqcount_" + config['gff_3UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_3UTR_feature'] + ".txt",
-        htseq_table_fiveprime = local_path + "RESULTS/htseqcount_" + config['gff_5UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_5UTR_feature'] + ".txt"
+        htseq_table_threeprime = temp(local_path + "RESULTS/htseqcount_" + config['gff_3UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_3UTR_feature'] + ".txt"),
+        htseq_table_fiveprime = temp(local_path + "RESULTS/htseqcount_" + config['gff_5UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_5UTR_feature'] + ".txt")
     log:
         htseqcount_5prime = local_path + "logs/htseqcount_utr/{sample}.htseqcount_5prime.log",
         head_5prime = local_path + "logs/htseqcount_utr/{sample}.head_5prime.log",
@@ -501,7 +501,7 @@ rule count_matrix_creation:
     input:
         transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.txt"
     output:
-        counts_matrix = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/count_matrix_by_transcript.csv"
+        counts_matrix = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/count_matrix_by_transcript_IDs.csv"
     log:
         cut = local_path + "logs/count_matrix_creation/cut.log",
         cat_cds = local_path + "logs/count_matrix_creation/cat.log",
@@ -529,7 +529,7 @@ rule count_matrix_creation:
 rule matrices_by_gene_or_transcript:
     input:
         transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.txt",
-        counts_matrix = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/count_matrix_by_transcript.csv"
+        counts_matrix = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/count_matrix_by_transcript_IDs.csv"
     output:
         by_gene = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/count_matrix_by_gene.csv",
         by_transcript = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/count_matrix_by_transcript.csv"
@@ -588,7 +588,7 @@ rule filter_by_5UTR:
     input:
         gff_namedCDS = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
     output:
-        gff_5UTR_filtered = local_path + "RESULTS/annex_database/gff_5UTR_filtered_" + os.path.basename(config['gff']),
+        gff_5UTR_filtered = temp(local_path + "RESULTS/annex_database/gff_5UTR_filtered_" + os.path.basename(config['gff'])),
         gff_features = local_path + "RESULTS/annex_database/gff_features_counts.txt"
     log:
         local_path + "logs/filter_by_5UTR/filtering.log"
@@ -605,27 +605,22 @@ rule ORFget:
         fasta = local_path + "database/" + os.path.basename(config['fasta']),
         gff = local_path + "RESULTS/annex_database/gff_5UTR_filtered_" + os.path.basename(config['gff'])
     output:
-        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta",
-        gff = local_path + "RESULTS/annex_database/transcriptome_elongated.gff",
-        gff_with_genes = local_path + "RESULTS/annex_database/transcriptome_elongated_with_gene_features.gff"
+        fasta = temp(local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta"),
+        gff = temp(local_path + "RESULTS/annex_database/transcriptome_elongated.gff")
     log:
-        orf_get = local_path + "logs/ORFget/orf_get.log",
-        mv = local_path + "logs/ORFget/mv.log",
-        awk = local_path + "logs/ORFget/awk.log"
+        orf_get = local_path + "logs/ORFget/orf_get.log"
     benchmark:
         local_path + "benchmarks/ORFget/ORFget.benchmark.txt"
     params:
         path = local_path + "RESULTS/annex_database/transcriptome"
     shell:
         "python3 " + ribodoc_tools + "ORFget.py -fna {input.fasta} -gff {input.gff} -features_include " + config['gff_cds_feature'] + " -name_attribute " + config['gff_name_attribut'] + " -o {params.path} -type nucl -elongate 50 -check 2> {log.orf_get};"
-        "mv {output.gff} {output.gff_with_genes} 2> {log.mv};"
-        "awk '$3 !~ /gene/' {output.gff_with_genes} > {output.gff} 2> {log.awk};"
 
 # Create GTF file for riboWaltz
 rule transcriptome_construction_gtf:
     input:
         fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta",
-        gff_with_genes = local_path + "RESULTS/annex_database/transcriptome_elongated_with_gene_features.gff"
+        gff = local_path + "RESULTS/annex_database/transcriptome_elongated.gff"
     output:
         fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_" + os.path.basename(config['fasta']),
         gtf = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_" + os.path.basename(config['gff']) + ".gtf"
@@ -640,7 +635,7 @@ rule transcriptome_construction_gtf:
         tmp_gtf = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_tmp.gtf"
     shell:
         "samtools faidx {input.fasta} 2> {log.samtools_index};"
-        "gffread -F -T -w {output.fasta} -o {params.tmp_gtf} -g {input.fasta} {input.gff_with_genes} 2> {log.gffread_gtf};"
+        "gffread -F -T -w {output.fasta} -o {params.tmp_gtf} -g {input.fasta} {input.gff} 2> {log.gffread_gtf};"
         "sed -i 's/description[^\;]*\;//' {params.tmp_gtf} 2>> {log.sed};"
         "sed -i 's/\\t[A-Z]*[_]*gene_segment\\t/\\ttranscript\\t/' {params.tmp_gtf} 2>> {log.sed};"
         """awk -F '\\t' '{{if(NF<=9) {{print($0);}} else {{for(field=1;field<9;field++) {{printf("%s\\t",$field);}} for(field=9;field<=NF;field++) {{printf("%s ",$field);}} printf("\\n");}}}}' {params.tmp_gtf} > {output.gtf} 2>> {log.awk};"""
@@ -843,7 +838,7 @@ rule quality_controls_periodicity:
     input:
         readsLengthRepartitionBed = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed",
         bed = local_path + "RESULTS/qualitativeAnalysis/bedCount/{sample}.{taille}.count.bed",
-        gff = local_path + "RESULTS/annex_database/transcriptome_elongated_with_gene_features.gff"
+        gff = local_path + "RESULTS/annex_database/transcriptome_elongated.gff"
     output:
         start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".txt",
         stop = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".txt"
