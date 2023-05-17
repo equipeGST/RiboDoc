@@ -227,12 +227,6 @@ class GFF_iterator:
         # Initialize the variable previous_feature to test if this feature.identity exists already and update it
         previous_feature = ""
 
-        if output_type == "prot" or output_type == "both":
-            fwp = open(outname + '.pfasta', 'w')
-
-        if output_type == "nucl" or output_type == "both":
-            fwn = open(outname + '.nfasta', 'w')
-
         if elongate != False:
             fasta_elongate = open(outname + '_elongated.nfasta','w')
             gff_elongate   = open(outname + '_elongated.gff','w')
@@ -293,16 +287,6 @@ class GFF_iterator:
                                 gff_elongate.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(features[0].identity+"_mRNA","elongated","three_prime_UTR",cds_end+1,gene_end,".","+",".","ID=" + features[0].identity + "_3UTR;Parent="+features[0].identity+"_mRNA;"))
 
 
-                            # If the check option is False or the sequence just passed
-                            # the check then we write it in the output:
-                            try:
-                                fwn.write(">{}\n{}\n".format(features[0].identity,str(features[0].seq_nucl.seq)))
-                            except:
-                                pass
-                            try:
-                                fwp.write(">{}\n{}\n".format(features[0].identity,str(features[0].seq_prot.seq)))
-                            except:
-                                pass
                             # We delete the previous feature
                             del features[0]
 
@@ -319,14 +303,6 @@ class GFF_iterator:
             features[0].__correct_feature_sequences__(genetic_code=genetic_code)
         except:
             print("None of the feature paterns was found in your GFF file")
-        try:
-            fwn.write(">{}\n{}\n".format(features[0].identity,str(features[0].seq_nucl.seq)))
-        except:
-            pass
-        try:
-            fwp.write(">{}\n{}\n".format(features[0].identity,str(features[0].seq_prot.seq)))
-        except:
-            pass
 
         # And if elongate is not False, then write the last feature elongated
         if elongate != False:
@@ -348,14 +324,6 @@ class GFF_iterator:
 
 
         # And close the opened fasta files
-        try:
-            fwn.close()
-        except:
-            pass
-        try:
-            fwp.close()
-        except:
-            pass
         try:
             fasta_elongate.close()
         except:
