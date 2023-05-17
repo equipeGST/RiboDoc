@@ -537,8 +537,8 @@ rule matrices_by_gene_or_transcript:
         local_path + "logs/matrices_by_gene_or_transcript/matrices_creation.log"
     benchmark:
         local_path + "benchmarks/matrices_by_gene_or_transcript/matrices_creation.benchmark.txt"
-    script:
-        ribodoc_tools + "by_gene_or_trancript_count_matrices.R"
+    shell:
+        "Rscript " + ribodoc_tools + "by_gene_or_trancript_count_matrices.R -w " + local_path + " -f " + ribodoc_tools
 
 # Performs differential analysis
 rule DESeq2_analysis_gene:
@@ -772,7 +772,7 @@ rule riboWaltz_transcriptome:
         local_path + "benchmarks/riboWaltz_transcriptome/riboWaltz.benchmark.txt"
     shell:
         "touch {output.psite_table};"
-        "Rscript " + ribodoc_tools + "periodicity_riboWaltz_transcriptome.R " + local_path + " {input.transcriptome_gtf} 2> {log};"
+        "Rscript " + ribodoc_tools + "periodicity_riboWaltz_transcriptome.R -w " + local_path + " -f " + ribodoc_tools + " -g {input.transcriptome_gtf} 2> {log};"
         "rm -f " + local_path + "Rplots.pdf;"
 
 
@@ -906,7 +906,7 @@ rule main_output_folder:
     params:
         deseq2_folder = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L,
         graphs_folder = local_path + "RESULTS/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] if config['qualitative_analysis']=="ribowaltz" else local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/",
-        ribowaltz_folder = local_path + "RESULTS/riboWaltz" + frag_length_L
+        ribowaltz_folder = local_path + "RESULTS/riboWaltz" + frag_length_L + "/"
     log:
         bash = local_path + "logs/main_output_folder/bash.log"
     benchmark:

@@ -1,16 +1,37 @@
-# Load needed libraries
-library(riboWaltz)
-library(stringr)
-library(data.table)
+#########################
+####### LIBRARIES #######
+#########################
 
-# Load remastered psite() function from riboWaltz
-psite_function <- "/RiboDoc/RiboDoc/tools/ribowaltz_psite_with_NA_control.R"
+library("optparse")
+library("stringr")
+library("data.table")
+library("riboWaltz")
 
-# Load args : path to working directory and name of the gtf file for input
-args <- commandArgs(trailingOnly=TRUE)
-local_path <- args[1]
-gtf_file <- args[2]
 
+##########################
+####### PARAMETERS #######
+##########################
+
+option_list = list(
+  make_option(c("-w", "--work_dir"), type="character",
+              help="Path to working directory"),
+  make_option(c("-f", "--feature_type"), type="character",
+              help="Path to designed R functions"),
+  make_option(c("-g", "--gtf"), type="character",
+              help="Path and name of the input GTF file")
+)
+opt = parse_args(OptionParser(option_list=option_list))
+
+# Path to wotking directory
+local_path <- opt$w
+
+# Path to remastered psite() function from riboWaltz
+function_psite <- paste0(opt$f,"ribowaltz_psite_with_NA_control.R")
+
+#  Name of the gtf file
+gtf_file <- opt$g
+
+# Read the config file
 params <- scan(file = paste0(local_path, "config.yaml"),
                what = "character",
                sep = ":"
@@ -18,8 +39,14 @@ params <- scan(file = paste0(local_path, "config.yaml"),
 
 readsLength_min <- gsub(" ", "", params[which(params=="readsLength_min")+1], fixed = TRUE)
 readsLength_max <- gsub(" ", "", params[which(params=="readsLength_max")+1], fixed = TRUE)
+
 ribowaltz_folder <- paste0(local_path, "RESULTS/riboWaltz.", readsLength_min, "-", readsLength_max, "/")
 dir.create(ribowaltz_folder)
+
+
+#########################
+####### EXECUTION #######
+#########################
 
 # Creates annotation table by transcript names
 annotation_db <- riboWaltz::create_annotation(gtf_file)
@@ -66,7 +93,7 @@ gc()
 
 
 # p-site offset calculation
-source(psite_function)
+source(function_psite)
 psite_offset <- psite_ribowaltz(reads_list,
                                 flanking = 6,
                                 start = TRUE,

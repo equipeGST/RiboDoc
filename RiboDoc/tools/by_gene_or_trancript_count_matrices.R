@@ -1,5 +1,27 @@
-# Path to project directory
-local_path <- "/data/"
+#########################
+####### LIBRARIES #######
+#########################
+
+library("optparse")
+
+
+##########################
+####### PARAMETERS #######
+##########################
+
+option_list = list(
+  make_option(c("-w", "--work_dir"), type="character",
+              help="Path to working directory"),
+  make_option(c("-f", "--feature_type"), type="character",
+              help="Path to designed R functions")
+)
+opt = parse_args(OptionParser(option_list=option_list))
+
+# Path to working directory
+local_path <- opt$w
+
+# Path to designed R functions
+functions_path <- paste0(opt$f,"DESeq2_analysis_functions.R")
 
 # Read the config file
 params <- scan(file = paste0(local_path, "config.yaml"),
@@ -7,8 +29,18 @@ params <- scan(file = paste0(local_path, "config.yaml"),
                sep = ":"
 )
 
+
+#########################
+####### FUNCTIONS #######
+#########################
+
 # Load designed R functions
-source(paste0("/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R"))
+source(functions_path)
+
+
+#########################
+####### EXECUTION #######
+#########################
 
 # Path to count tables folder
 paths_list <- DESeq2_folder_paths(local_path)

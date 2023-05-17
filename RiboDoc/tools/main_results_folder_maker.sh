@@ -53,7 +53,7 @@ cp -r "${d}" "${p}MAIN_RESULTS/Quantitative_analysis/"
 
 if [ "${q}" == "ribowaltz" ]; then
     # Launch R script to make RGB periodicity graphs
-    Rscript "${P}/change_riboWaltz_periodicity_graphs_to_RGB_by_length.R" "${PWD}/"
+    Rscript "${P}change_riboWaltz_periodicity_graphs_to_RGB_by_length.R" -w "${p}"
 
     # Save the phasing figures from riboWaltz
     cp "${r}frame_psite.tiff" "${r}frame_psite_length.tiff" "${r}region_psite.tiff" "${p}MAIN_RESULTS/Qualitative_analysis/"

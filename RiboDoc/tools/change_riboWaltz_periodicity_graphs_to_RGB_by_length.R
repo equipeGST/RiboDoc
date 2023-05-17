@@ -1,6 +1,20 @@
-# Load args : path to working directory
-args <- commandArgs(trailingOnly=TRUE)
-local_path <- args[1]
+#########################
+####### LIBRARIES #######
+#########################
+
+library("optparse")
+
+
+##########################
+####### PARAMETERS #######
+##########################
+
+option_list = list(
+  make_option(c("-w", "--work_dir"), type="character",
+              help="Path to working directory")
+)
+opt = parse_args(OptionParser(option_list=option_list))
+local_path <- opt$w
 
 # Load parameters from configuration file
 params <- scan(file = paste0(local_path, "config.yaml"),
@@ -15,6 +29,11 @@ readsLength_max <- as.integer(gsub(" ", "", params[which(params=="readsLength_ma
 
 window_utr <- as.integer(gsub(" ", "", params[which(params=="window_utr")+1], fixed = TRUE))
 window_cds <- as.integer(gsub(" ", "", params[which(params=="window_cds")+1], fixed = TRUE))
+
+
+#########################
+####### EXECUTION #######
+#########################
 
 # Define the order of colors, depending on the phase it is in (assuming start and stop are in the same phase)
 if(window_utr %% 3 == 0) {
