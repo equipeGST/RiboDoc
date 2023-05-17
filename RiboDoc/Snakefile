@@ -1,5 +1,6 @@
 configfile: "/data/config.yaml"
 
+
 ribodoc_version = "0.9.0"
 
 
@@ -411,7 +412,7 @@ rule htseqcount_cds:
         bai = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam.bai",
         gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
     output:
-        htseq_table = temp(local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt")
+        htseq_table = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt"
     log:
         echo = local_path + "logs/htseqcount_cds/{sample}.echo.log",
         sed = local_path + "logs/htseqcount_cds/{sample}.sed.log",
@@ -421,7 +422,7 @@ rule htseqcount_cds:
     benchmark:
         local_path + "benchmarks/htseqcount_cds/{sample}.benchmark.txt"
     params:
-        tmp_file = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/{sample}_tmp.txt"
+        tmp_file = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_cds_feature'] + "/{sample}_tmp.txt"
     threads:
         multi_threads_nbr
     shell:
@@ -440,8 +441,8 @@ rule htseqcount_utr:
         gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff']),
         htseqcount_cds = rules.htseqcount_cds.output
     output:
-        htseq_table_threeprime = temp(local_path + "RESULTS/htseqcount_" + config['gff_3UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_3UTR_feature'] + ".txt"),
-        htseq_table_fiveprime = temp(local_path + "RESULTS/htseqcount_" + config['gff_5UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_5UTR_feature'] + ".txt")
+        htseq_table_threeprime = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_3UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_3UTR_feature'] + ".txt",
+        htseq_table_fiveprime = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_5UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_5UTR_feature'] + ".txt"
     log:
         htseqcount_5prime = local_path + "logs/htseqcount_utr/{sample}.htseqcount_5prime.log",
         head_5prime = local_path + "logs/htseqcount_utr/{sample}.head_5prime.log",
@@ -472,7 +473,7 @@ rule htseqcount_utr:
 rule count_matrix_initialization:
     input:
         ready = expand(rules.htseqcount_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount_cds.output, sample=SAMPLES),
-        counts = local_path + "RESULTS/htseqcount_" + config['gff_cds_feature'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt"
+        counts = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_cds_feature'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt"
     output:
         transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.txt"
     log:
@@ -512,18 +513,18 @@ rule count_matrix_creation:
         tmp_file = local_path + "RESULTS/tmp.txt"
     run:
         for region in features_of_interest:
-            shell("cut -f 1 {input.transcript_list} 2> {log.cut} > " + local_path + "RESULTS/htseqcount_" + region + "/count_matrix_by_transcript.csv;")
+            shell("cut -f 1 {input.transcript_list} 2> {log.cut} > " + local_path + "RESULTS/HTSeq-counts/htseqcount_" + region + "/count_matrix_by_transcript.csv;")
             for sample in SAMPLES:
                 if name_in_gff == True:
                     fields = "1,3"
                 else:
                     fields = "1,2"
-                shell("cut -f " + fields + " " + local_path + "RESULTS/htseqcount_" + region + "/" + sample + frag_length_L + ".no-outRNA.htseqcount_" + region + ".txt | LC_COLLATE=C join --header -t $'\t' " + local_path + "RESULTS/htseqcount_" + region + "/count_matrix_by_transcript.csv - > {params.tmp_file} 2>> {log.cut};")
-                shell("cat {params.tmp_file} 1> " + local_path + "RESULTS/htseqcount_" + region + "/count_matrix_by_transcript.csv 2> {log.cat_cds};")
-            shell("LC_COLLATE=C join --header -t $'\t' {params.tmp_file} {input.transcript_list} 1> " + local_path + "RESULTS/htseqcount_" + region + "/count_matrix_by_transcript.csv 2> {log.join_utr}")
+                shell("cut -f " + fields + " " + local_path + "RESULTS/HTSeq-counts/htseqcount_" + region + "/" + sample + frag_length_L + ".no-outRNA.htseqcount_" + region + ".txt | LC_COLLATE=C join --header -t $'\t' " + local_path + "RESULTS/HTSeq-counts/htseqcount_" + region + "/count_matrix_by_transcript.csv - > {params.tmp_file} 2>> {log.cut};")
+                shell("cat {params.tmp_file} 1> " + local_path + "RESULTS/HTSeq-counts/htseqcount_" + region + "/count_matrix_by_transcript.csv 2> {log.cat_cds};")
+            shell("LC_COLLATE=C join --header -t $'\t' {params.tmp_file} {input.transcript_list} 1> " + local_path + "RESULTS/HTSeq-counts/htseqcount_" + region + "/count_matrix_by_transcript.csv 2> {log.join_utr}")
             shell("rm -f {params.tmp_file};")
             if region == features_of_interest[0]:
-                shell("cp " + local_path + "RESULTS/htseqcount_" + region + "/count_matrix_by_transcript.csv {output.counts_matrix}")
+                shell("cp " + local_path + "RESULTS/HTSeq-counts/htseqcount_" + region + "/count_matrix_by_transcript.csv {output.counts_matrix}")
 
 # Create a count matrix by transcript and a count matrix by gene
 rule matrices_by_gene_or_transcript:
