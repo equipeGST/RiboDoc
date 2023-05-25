@@ -606,8 +606,8 @@ rule ORFget:
         fasta = local_path + "database/" + os.path.basename(config['fasta']),
         gff = local_path + "RESULTS/annex_database/gff_5UTR_filtered_" + os.path.basename(config['gff'])
     output:
-        fasta = temp(local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta"),
-        gff = temp(local_path + "RESULTS/annex_database/transcriptome_elongated.gff")
+        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta",
+        gff = local_path + "RESULTS/annex_database/transcriptome_elongated.gff"
     log:
         orf_get = local_path + "logs/ORFget/orf_get.log"
     benchmark:
