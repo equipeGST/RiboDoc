@@ -87,7 +87,6 @@ for(i in 1:length(samples_renamed))
   plot(length_dist[[paste0("plot_",samples_renamed[i])]])
   dev.off()
 }
-write.table(length_dist$dt, paste0(ribowaltz_folder, "length_dist.csv"), quote = F, row.names = F, sep ="\t")
 rm(length_dist)
 gc()
 
@@ -108,25 +107,7 @@ psite_offset <- psite_ribowaltz(reads_list,
 
 reads_psite_list <- riboWaltz::psite_info(reads_list, psite_offset)
 write.table(psite_offset, paste0(ribowaltz_folder, "psite_offset.csv"), quote = F, row.names = F, sep ="\t")
-for(i in 1:length(samples_renamed))
-{
-  write.table(reads_list[[i]], paste0(ribowaltz_folder,samples[i],"/reads_list_",samples[i],".csv"), quote = F, row.names = F, sep ="\t")
-}
 rm(list=c("psite_offset","reads_list"))
-gc()
-
-
-# Codon coverage
-codon_coverage <- codon_coverage(reads_psite_list, annotation_db_transcript, psite = TRUE)
-write.table(codon_coverage, paste0(ribowaltz_folder, "codon_coverage.csv"), quote = F, row.names = F, sep ="\t")
-rm(codon_coverage)
-gc()
-
-
-# CDS coverage
-cds_coverage <- cds_coverage(reads_psite_list, annotation_db_transcript)
-write.table(cds_coverage, paste0(ribowaltz_folder, "cds_coverage.csv"), quote = F, row.names = F, sep ="\t")
-rm(cds_coverage)
 gc()
 
 
@@ -137,7 +118,6 @@ tiff(file=paste0(ribowaltz_folder, "region_psite.tiff"))
 psite_region[["plot"]]
 dev.off()
 
-write.table(psite_region$dt, paste0(ribowaltz_folder, "psite_region.csv"), quote = F, sep ="\t")
 rm(psite_region)
 gc()
 
@@ -149,7 +129,6 @@ tiff(file=paste0(ribowaltz_folder, "frame_psite_length.tiff"))
 frames_stratified[["plot"]]
 dev.off()
 
-write.table(frames_stratified$dt, paste0(ribowaltz_folder, "frames_stratified.csv"), quote = F, row.names = F, sep ="\t")
 rm(frames_stratified)
 gc()
 
@@ -161,7 +140,6 @@ tiff(file=paste0(ribowaltz_folder, "frame_psite.tiff"))
 frames[["plot"]]
 dev.off()
 
-write.table(frames$dt, paste0(ribowaltz_folder, "frames.csv"), quote = F, row.names = F, sep ="\t")
 rm(frames)
 gc()
 
@@ -211,14 +189,3 @@ for(i in 1:length(samples_renamed))
                 quote = F, row.names = F, sep ="\t")
   }
 }
-# write.table(metaprofile$dt, paste0(ribowaltz_folder, "metaprofile.csv"), quote = F, row.names = F, sep ="\t")
-# rm(list=c("metaprofile", "metaprofile_specific","reads_psite_list_specific_length"))
-# gc()
-# 
-# 
-# for(i in 1:length(samples))
-# {
-#   write.table(reads_psite_list[[i]], paste0(ribowaltz_folder,samples[i],"/reads_psite_list_",samples[i],".csv"), quote = F, row.names = F, sep ="\t")
-# }
-# rm(reads_psite_list)
-# gc()
