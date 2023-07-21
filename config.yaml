@@ -37,7 +37,7 @@ gff_cds_feature: "CDS"
 # Feature defining a transcript (usually "mRNA" or "transcript")
 gff_mRNA_feature: "mRNA"
 
-# Feature defining a transcript (usually "five_prime_UTR" or "5UTR")
+# Feature defining a 5-prime_UTR (usually "five_prime_UTR" or "5UTR")
 gff_5UTR_feature: "five_prime_UTR"
 
 # Attribut linking CDS to its related transcript feature in the annotation file (usually "Parent")
@@ -58,31 +58,20 @@ logFC: "0"
 
 ##### QUALITATIVE ANALYSIS #####
 # Choose between "ribowaltz" or "trip"
-# riboWaltz may require a lot of ressources but trip needs specific files format
-# RiboDoc needs a specific gff format
+# riboWaltz may require a lot of ressources but is more accurate and find Psite offsets
 qualitative_analysis: "ribowaltz"
 
 # Number of bases to look before the start and after the stop for periodicity (relative positions)
-window_utr: "15"
+window_utr: "30"
 
 # Number of bases to look after the start and before the stop for periodicity (relative positions)
-window_cds: "30"
+window_cds: "90"
 
 
-########## Optional and only for qualitative_analysis: "trip" ##########
-# Does UTR covering has to be calculated ('yes' or 'no'). You need the corresponding length files if set to 'yes'
-UTR: "no"
+########## OPTIONAL ##########
+# Does UTR covering has to be calculated ("yes" or "no")
+UTR: "yes"
 
-# The length options will be ignore if UTR is set on 'yes'
-# File with CDS lengths
-CDSlength: ""
-
-# File with 5-prime UTR lengths
-5primelength: ""
-
-# File with 3-prime UTR lengths
-3primelength: ""
-
-# Elements for UTRs have to be specified only if you put 'yes' for the 'UTR' option
+# Feature defining a 3-prime_UTR in GFF file (usually "three_prime_UTR" or "3UTR")
 gff_3UTR_feature: "three_prime_UTR"
-###########################################################################
+##############################

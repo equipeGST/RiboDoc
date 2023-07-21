@@ -14,6 +14,7 @@ Sys.setenv(RSTUDIO_PANDOC="/RiboDoc/miniconda3/envs/RiboDoc_env/bin/pandoc")
 ```{r rm Global environment, include=FALSE}
 rm(list=ls())
 local_path <- "/data/"
+deseq2_functions <- "/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R"
 ```
 
 ```{r packages, echo=FALSE, include=FALSE}
@@ -31,7 +32,7 @@ params <- scan(file = paste0(local_path, "config.yaml"),
 ```
 
 ```{r Load functions and determine paths, echo=FALSE, include=FALSE}
-source("/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R")
+source(deseq2_functions)
 paths_list <- DESeq2_folder_paths(local_path)
 ```
 

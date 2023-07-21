@@ -14,6 +14,7 @@ Sys.setenv(RSTUDIO_PANDOC="/RiboDoc/miniconda3/envs/RiboDoc_env/bin/pandoc")
 ```{r rm Global environment, include=FALSE}
 rm(list=ls())
 local_path <- "/data/"
+deseq2_functions <- "/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R"
 ```
 
 ```{r packages, echo=FALSE, include=FALSE}
@@ -31,7 +32,7 @@ params <- scan(file = paste0(local_path, "config.yaml"),
 ```
 
 ```{r Load functions and determine paths, echo=FALSE, include=FALSE}
-source("/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R")
+source(deseq2_functions)
 paths_list <- DESeq2_folder_paths(local_path)
 ```
 
@@ -199,7 +200,12 @@ volcano_plot_zoom(resDESeq_transcript, expData_sorted_transcript)
 \
 
 ```{r Final tables creation by transcript, include = FALSE}
-tables_transcript <- tables_creation(dds_object_transcript, resDESeq_transcript, expData_sorted_transcript, means_transcript, refCond, "transcript")
+tables_transcript <- tables_creation(dds_object = dds_object_transcript,
+                                     deseq_results = resDESeq_transcript,
+                                     data_list = expData_sorted_transcript,
+                                     means = means_transcript,
+                                     reference_condition = refCond,
+                                     gene_transcript = "transcript")
 ```
 
 
