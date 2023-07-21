@@ -24,19 +24,23 @@ RUN mv /root/.bashrc /bin/ && ln -s /bin/.bashrc /root/.bashrc && \
     ln -s /root/ /bin/
 
 ENV PATH=/bin/miniconda3/bin:$PATH
-ENV PATH=/bin/miniconda3/envs/RiboDoc_env/bin:$PATH
+ENV PATH=/bin/miniconda3/envs:$PATH
 ENV PATH=$PATH:/bin
 
 SHELL ["/bin/bash", "-c"]
 
-RUN conda install mamba -n base -c conda-forge
-RUN mamba env create -f /RiboDoc/RiboDoc/RiboDoc_env.yml
-RUN mamba init bash
-RUN echo "mamba activate RiboDoc_env" >> /bin/.bashrc \
-    && mamba info --envs \
-    && mamba list --name RiboDoc_env
+RUN conda install mamba -n base -c conda-forge -y \
+    && mamba env create -f /RiboDoc/RiboDoc/RiboDoc_env.yml
+RUN conda init bash
 
-RUN R -e "library('devtools');devtools::install_github('LabTranslationalArchitectomics/riboWaltz@v1.2.0', dependencies = FALSE);"
+
+RUN echo "conda activate RiboDoc_env" >> /bin/.bashrc \
+    && conda info --envs \
+    && conda list --name RiboDoc_env
+
+ENV PATH=/bin/miniconda3/envs/RiboDoc_env/bin:$PATH
+
+RUN /bin/miniconda3/envs/RiboDoc_env/bin/R -e "library('devtools');devtools::install_github('LabTranslationalArchitectomics/riboWaltz@v1.2.0', dependencies = FALSE);"
 
 WORKDIR /data/
 
