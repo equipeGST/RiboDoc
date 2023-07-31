@@ -93,8 +93,8 @@ onsuccess:
     shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "*tempoR.Rout")
     # Make a folder with old snakemake logs and put the last one in the 'logs' folder
     shell("mkdir -p " + local_path + "logs/old_snakemake_logs/")
-    shell("mv " + local_path + "logs/*.log " + local_path + "old_snakemake_logs/")
-    shell("cp " + snakemake_log_path + "*.snakemake.log " + local_path + "logs/ || true")
+    shell("[ -f logs/*.log ] && mv logs/*.log logs/old_snakemake_logs/ || true")
+    shell("log=$(ls -t .snakemake/log/ | head -n 1); cp .snakemake/log/${{log}} logs/ || true")
 
 # If anything goes wrong
 onerror:
@@ -102,8 +102,8 @@ onerror:
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/")
     # Make a folder with old snakemake logs and put the last one in the 'logs' folder
     shell("mkdir -p " + local_path + "logs/old_snakemake_logs/")
-    shell("mv " + local_path + "logs/*.log " + local_path + "old_snakemake_logs/")
-    shell("cp .snakemake/log/*.snakemake.log " + local_path + "logs/ || true")
+    shell("[ -f logs/*.log ] && mv logs/*.log logs/old_snakemake_logs/ || true")
+    shell("log=$(ls -t .snakemake/log/ | head -n 1); cp .snakemake/log/${{log}} logs/ || true")
 
 
 # Find the adapter sequence if not set in config file
