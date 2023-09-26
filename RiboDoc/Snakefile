@@ -93,8 +93,8 @@ onsuccess:
     shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "*tempoR.Rout")
     # Make a folder with old snakemake logs and put the last one in the 'logs' folder
     shell("mkdir -p " + local_path + "logs/old_snakemake_logs/")
-    shell("[ -f logs/*.log ] && mv logs/*.log logs/old_snakemake_logs/ || true")
-    shell("log=$(ls -t .snakemake/log/ | head -n 1); cp .snakemake/log/${{log}} logs/ || true")
+    shell("[ -f " + local_path + "logs/*.log ] && mv " + local_path + "logs/*.log " + local_path + "logs/old_snakemake_logs/ || true")
+    shell("log=$(ls -t " + local_path + ".snakemake/log/ | head -n 1); cp " + local_path + ".snakemake/log/${{log}} " + local_path + "logs/ || true")
 
 # If anything goes wrong
 onerror:
@@ -102,8 +102,8 @@ onerror:
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/")
     # Make a folder with old snakemake logs and put the last one in the 'logs' folder
     shell("mkdir -p " + local_path + "logs/old_snakemake_logs/")
-    shell("[ -f logs/*.log ] && mv logs/*.log logs/old_snakemake_logs/ || true")
-    shell("log=$(ls -t .snakemake/log/ | head -n 1); cp .snakemake/log/${{log}} logs/ || true")
+    shell("[ -f " + local_path + "logs/*.log ] && mv " + local_path + "logs/*.log " + local_path + "logs/old_snakemake_logs/ || true")
+    shell("log=$(ls -t " + local_path + ".snakemake/log/ | head -n 1); cp " + local_path + ".snakemake/log/${{log}} " + local_path + "logs/ || true")
 
 
 # Find the adapter sequence if not set in config file
@@ -453,9 +453,11 @@ rule htseqcount_utr:
         htseq_table_threeprime = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_3UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_3UTR_feature'] + ".txt",
         htseq_table_fiveprime = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_5UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_5UTR_feature'] + ".txt"
     log:
+        header_5prime = local_path + "logs/htseqcount_utr/{sample}.header_5prime.log",
         htseqcount_5prime = local_path + "logs/htseqcount_utr/{sample}.htseqcount_5prime.log",
         head_5prime = local_path + "logs/htseqcount_utr/{sample}.head_5prime.log",
         awk_5prime = local_path + "logs/htseqcount_utr/{sample}.awk_5prime.log",
+        header_3prime = local_path + "logs/htseqcount_utr/{sample}.header_3prime.log",
         htseqcount_3prime = local_path + "logs/htseqcount_utr/{sample}.htseqcount_3prime.log",
         head_3prime = local_path + "logs/htseqcount_utr/{sample}.head_3prime.log",
         awk_3prime = local_path + "logs/htseqcount_utr/{sample}.awk_3prime.log"
@@ -466,14 +468,14 @@ rule htseqcount_utr:
     threads:
         multi_threads_nbr
     shell:
-        "set +o pipefail"
+        "set +o pipefail ;"
 
-        "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.htseq_table_fiveprime} ;"
+        "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.htseq_table_fiveprime} 2> {log.header_5prime} ;"
         "htseq-count -n {threads} -f bam -t " + config['gff_5UTR_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_5prime} > {params.tmp_file} ;"
         """head -n -5 {params.tmp_file} 2> {log.head_5prime} | awk -F '\t+' '{{if($3 >= 0) {{print($0)}} else {{printf("%s\\tNA\\t%s\\n",$1,$2)}}}}' 2> {log.awk_5prime} >> {output.htseq_table_fiveprime} ;"""
         "rm -f {params.tmp_file} ;"
 
-        "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.htseq_table_threeprime} ;"
+        "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.htseq_table_threeprime} 2> {log.header_3prime} ;"
         "htseq-count -n {threads} -f bam -t " + config['gff_3UTR_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_3prime} > {params.tmp_file} ;"
         """head -n -5 {params.tmp_file} 2> {log.head_3prime} | awk -F '\t+' '{{if($3 >= 0) {{print($0)}} else {{printf("%s\\tNA\\t%s\\n",$1,$2)}}}}' 2> {log.awk_3prime} >> {output.htseq_table_threeprime} ;"""
         "rm -f {params.tmp_file} ;"
