@@ -166,7 +166,7 @@ dependencies:
   - ld_impl_linux-64=2.39=hcc3a1bd_1
   - lerc=3.0=h9c3ff4c_0
   - libabseil=20220623.0=cxx17_h05df665_6
-  - libarchive=3.5.2=hb890918_3
+  - libarchive=3.5.2=hb890918_2
   - libblas=3.9.0=16_linux64_openblas
   - libbrotlicommon=1.0.9=h166bdaf_8
   - libbrotlidec=1.0.9=h166bdaf_8
