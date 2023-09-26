@@ -70,7 +70,7 @@ window_cds: "90"
 
 ########## OPTIONAL ##########
 # Does UTR covering has to be calculated ("yes" or "no")
-UTR: "yes"
+UTR: "no"
 
 # Feature defining a 3-prime_UTR in GFF file (usually "three_prime_UTR" or "3UTR")
 gff_3UTR_feature: "three_prime_UTR"
