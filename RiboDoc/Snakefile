@@ -899,13 +899,26 @@ rule graphs_periodicity:
         "Rscript " + ribodoc_tools + "generationGraph_perio.R --work_dir " + local_path + " --name {params.name_stop} --feature_type " + config['gff_cds_feature'] + " --start_or_stop 'stop' --length_before '" + config['window_cds'] + "' 2> {log.stop} ;"
 
 # Creates periodicity graphs
+rule periodicity_rgb:
+    input:
+        metaprofile = local_path + "RESULTS/riboWaltz" + frag_length_L + "/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff"
+    output:
+        rgb_graph = local_path + "RESULTS/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/transcriptome_elongated." + SAMPLES[0] + "/length" + LENGTHS[0] + "_start.tiff"
+    log:
+        rscript = local_path + "logs/periodicity_rgb/Rscript.log"
+    benchmark:
+        local_path + "benchmarks/periodicity_rgb/benchmark.txt"
+    shell:
+        "Rscript " + ribodoc_tools + "change_riboWaltz_periodicity_graphs_to_RGB_by_length.R -w " + local_path + " 2> {log.rscript}"
+
+# Creates periodicity graphs
 rule main_output_folder:
     input:
         stats_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
         deseq2_transcript = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html",
         deseq2_gene = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html",
-        qualitative_lengths = local_path + "RESULTS/riboWaltz" + frag_length_L + "/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_length.output,sample=SAMPLES,taille=LENGTHS),
-        qualitative_perio = local_path + "RESULTS/riboWaltz" + frag_length_L + "/psite_offset.csv" if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_periodicity.output,sample=SAMPLES,taille=LENGTHS)
+        qualitative_lengths = rules.riboWaltz_transcriptome.output if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_length.output,sample=SAMPLES,taille=LENGTHS),
+        qualitative_perio = rules.periodicity_rgb.output if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_periodicity.output,sample=SAMPLES,taille=LENGTHS)
     output:
         local_path + "MAIN_RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt"
     params:
