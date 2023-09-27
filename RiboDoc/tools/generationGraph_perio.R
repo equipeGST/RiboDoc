@@ -13,7 +13,9 @@ option_list = list(
   make_option(c("-s", "--start_or_stop"), type="character",
               help="Either 'start' or 'stop'"),
   make_option(c("-l", "--length_before"), default=30, type="integer",
-              help="Number of nucleotides in UTR")
+              help="Number of nucleotides before start/stop"),
+  make_option(c("-L", "--Length_after"), default=30, type="integer",
+              help="Number of nucleotides after start/stop")
 )
 
 opt = parse_args(OptionParser(option_list=option_list))
@@ -22,6 +24,7 @@ name_file <- opt$n
 feature_type <- opt$f
 start_or_stop <- opt$s
 length_before <- opt$l
+length_after <- opt$L
 ##########################
 
 ###########################
@@ -39,6 +42,7 @@ if(start_or_stop == "start"){
   } else {
     phase_color <- c('red','green','blue')
   }
+  jpeg_path <- paste0(path,"graphes/periodicity_-",length_before,"+",length_after,"/",name_file,".jpeg")
 } else {
   if(length_before %% 3 == 0) {
     phase_color <- c('green','blue','red')
@@ -47,9 +51,10 @@ if(start_or_stop == "start"){
   } else {
     phase_color <- c('blue','red','green')
   }
+  jpeg_path <- paste0(path,"graphes/periodicity_-",length_after,"+",length_before,"/",name_file,".jpeg")
 }
 
-jpeg(filename = paste0(path,"graphes/periodicity/",name_file,".jpeg"))
+jpeg(filename = jpeg_path)
   barplot(perio$V2,
           col = phase_color,
           names.arg = perio$V1-length_before,

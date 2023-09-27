@@ -42,7 +42,7 @@ if [ -z "${p}" ] || [ -z "${q}" ] || [ -z "${d}" ] || [ -z "${s}" ] || [ -z "${g
 fi;
 
 # Create the folder's structure
-mkdir -p "${p}MAIN_RESULTS/Qualitative_analysis/" "${p}MAIN_RESULTS/Quantitative_analysis/"
+mkdir -p "${p}MAIN_RESULTS/Quantitative_analysis/"
 
 # Copy the alignments and filtering stats
 cp "${s}" "${p}MAIN_RESULTS/"
@@ -55,8 +55,8 @@ if [ "${q}" == "ribowaltz" ]; then
     # Save the phasing figures from riboWaltz
     cp "${r}frame_psite.tiff" "${r}frame_psite_length.tiff" "${r}region_psite.tiff" "${p}MAIN_RESULTS/Qualitative_analysis/"
     # Save periodicity graphs
-    cp -r "${g}" "${p}MAIN_RESULTS/Qualitative_analysis/"
+    cp -r "${g}" "${p}MAIN_RESULTS/Qualitative_analysis_riboWaltz/"
 else
     # Save periodicity graphs
-    cp -r "${g}" "${p}MAIN_RESULTS/Qualitative_analysis/"
+    cp -r "${g}" "${p}MAIN_RESULTS/Qualitative_analysis_TRiP/"
 fi
