@@ -52,7 +52,7 @@ if(start_or_stop == "start"){
 jpeg(filename = paste0(path,"graphes/periodicity/",name_file,".jpeg"))
   barplot(perio$V2,
           col = phase_color,
-          names.arg = paste0(perio$V1,"-",length_before),
+          names.arg = perio$V1-length_before,
           cex.names = 0.75, las=3,
           xlab = paste0("Relative positions around",feature_type,start_or_stop,"s"),
           ylab = "Number of reads",
