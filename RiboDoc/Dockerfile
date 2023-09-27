@@ -29,8 +29,7 @@ ENV PATH=$PATH:/bin
 
 SHELL ["/bin/bash", "-c"]
 
-RUN conda install conda=23.3.1 \
-    && conda install mamba=1.4.5 -n base -c conda-forge -y \
+RUN conda install mamba=1.4.5 -n base -c conda-forge -y \
     && mamba env create -f /RiboDoc/RiboDoc/RiboDoc_env.yml
 RUN conda init bash
 
