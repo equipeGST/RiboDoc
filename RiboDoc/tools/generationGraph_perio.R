@@ -33,19 +33,19 @@ perio <- read.table(file = paste0(path,"periodicity/",name_file,".txt"))
 # Define the colors, depending on the length of the region before start or stop
 if(start_or_stop == "start"){
   if(length_before %% 3 == 0) {
-    phase_color <- c('red','green','blue')
-  } else if(length_before %% 3 == 1) {
     phase_color <- c('blue','red','green')
-  } else {
+  } else if(length_before %% 3 == 1) {
     phase_color <- c('green','blue','red')
+  } else {
+    phase_color <- c('red','green','blue')
   }
 } else {
   if(length_before %% 3 == 0) {
-    phase_color <- c('blue','red','green')
-  } else if(length_before %% 3 == 1) {
     phase_color <- c('green','blue','red')
-  } else {
+  } else if(length_before %% 3 == 1) {
     phase_color <- c('red','green','blue')
+  } else {
+    phase_color <- c('blue','red','green')
   }
 }
 
