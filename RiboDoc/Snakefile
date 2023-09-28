@@ -884,25 +884,6 @@ rule graphs_periodicity:
     input:
         perio = rules.quality_controls_periodicity.output
     output:
-        perioStart = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg",
-        perioStop = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".jpeg"
-    params:
-        name_start = "{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'],
-        name_stop = "{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr']
-    log:
-        start = local_path + "logs/quality_controls_graphs_periodicity/{sample}.{taille}.start.log",
-        stop = local_path + "logs/quality_controls_graphs_periodicity/{sample}.{taille}.stop.log"
-    benchmark:
-        local_path + "benchmarks/quality_controls_graphs_periodicity/{sample}.{taille}.benchmark.txt"
-    shell:
-        "Rscript " + ribodoc_tools + "generationGraph_perio.R --work_dir " + local_path + " --name {params.name_start} --feature_type " + config['gff_cds_feature'] + " --start_or_stop 'start' --Length_before '" + config['window_utr'] + "' 2> {log.start} ;"
-        "Rscript " + ribodoc_tools + "generationGraph_perio.R --work_dir " + local_path + " --name {params.name_stop} --feature_type " + config['gff_cds_feature'] + " --start_or_stop 'stop' --Length_before '" + config['window_cds'] + "' 2> {log.stop} ;"
-
-# Creates periodicity graphs
-rule graphs_periodicity:
-    input:
-        perio = rules.quality_controls_periodicity.output
-    output:
         perioStart = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg",
         perioStop = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".jpeg"
     params:
