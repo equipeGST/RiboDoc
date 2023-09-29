@@ -414,6 +414,19 @@ rule stats_report:
             data_report.write("\n\n\n")
         data_report.close()
 
+# Combine important stats into a summary table
+rule generate_report:
+    input:
+        path = expand(rules.samtools_filter.output, sample=SAMPLES)
+    output:
+        report_table = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Table_summary" + frag_length_L + ".csv"
+    log:
+        bash = local_path + "logs/report_table/report_table.log"
+    benchmark:
+        local_path + "benchmarks/report_table/benchmark.txt"
+    shell:
+        "bash " + ribodoc_tools + "report_table.sh -r {input.path} -D " + local_path + " -o " + local_path + "RESULTS/" + config['project_name'] + ".Analysis_Table_summary" + frag_length_L + ".csv 2> {log.bash}"
+
 # Counts reads on each transcript
 rule htseqcount_cds:
     input:
@@ -915,6 +928,7 @@ rule periodicity_rgb:
 rule main_output_folder:
     input:
         stats_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
+        report_table = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Table_summary" + frag_length_L + ".csv",
         deseq2_transcript = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html",
         deseq2_gene = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html",
         qualitative_lengths = rules.riboWaltz_transcriptome.output if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_length.output,sample=SAMPLES,taille=LENGTHS),
@@ -931,4 +945,4 @@ rule main_output_folder:
     benchmark:
         local_path + "benchmarks/main_output_folder/benchmark.txt"
     shell:
-        "bash " + ribodoc_tools + "main_results_folder_maker.sh -p " + local_path + " -P " + ribodoc_tools + " -q " + config['qualitative_analysis'] + " -s {input.stats_report} -d {params.deseq2_folder} -g {params.graphs_folder} -r {params.ribowaltz_folder} 2> {log.bash}"
+        "bash " + ribodoc_tools + "main_results_folder_maker.sh -p " + local_path + " -P " + ribodoc_tools + " -q " + config['qualitative_analysis'] + " -s {input.stats_report} -d {params.deseq2_folder} -g {params.graphs_folder} -r {params.ribowaltz_folder} -t {input.report_table} 2> {log.bash}"
