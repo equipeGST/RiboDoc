@@ -21,6 +21,9 @@ utr_threshold = "0.25"
 # Sets paths for inside the container
 local_path = "/data/"
 ribodoc_tools = "/RiboDoc/RiboDoc/tools/"
+
+stats_path = local_path + "stats/"
+logs_path = local_path + "logs/"
 snakemake_log_path = local_path + ".snakemake/log/"
 
 
@@ -80,9 +83,9 @@ onstart:
     # In case the user is using a Macintosh computer, hidden files are removed
     shell("find " + local_path + " -depth -name '.DS_Store' -exec rm -f {{}} \;")
     shell("find " + local_path + " -depth -name '.AppleDouble' -exec rm -rf {{}} \;")
-    shell("mkdir -p " + local_path + "logs/")
-    shell("echo 'RiboDoc version : " + ribodoc_version + "' > " + local_path + "logs/RiboDoc_package_versions.txt")
-    shell("conda list >> " + local_path + "logs/RiboDoc_package_versions.txt")
+    shell("mkdir -p " + logs_path)
+    shell("echo 'RiboDoc version : " + ribodoc_version + "' > " + logs_path + "RiboDoc_package_versions.txt")
+    shell("conda list >> " + logs_path + "RiboDoc_package_versions.txt")
 
 # When the jobs are all done
 onsuccess:
@@ -92,18 +95,18 @@ onsuccess:
     shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout")
     shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "*tempoR.Rout")
     # Make a folder with old snakemake logs and put the last one in the 'logs' folder
-    shell("mkdir -p " + local_path + "logs/old_snakemake_logs/")
-    shell("[ -f " + local_path + "logs/*.log ] && mv " + local_path + "logs/*.log " + local_path + "logs/old_snakemake_logs/ || true")
-    shell("log=$(ls -t " + local_path + ".snakemake/log/ | head -n 1); cp " + local_path + ".snakemake/log/${{log}} " + local_path + "logs/ || true")
+    shell("mkdir -p " + logs_path + "old_snakemake_logs/")
+    shell("[ -f " + logs_path + "*.log ] && mv " + logs_path + "*.log " + logs_path + "old_snakemake_logs/ || true")
+    shell("log=$(ls -t " + local_path + ".snakemake/log/ | head -n 1); cp " + local_path + ".snakemake/log/${{log}} " + logs_path + " || true")
 
 # If anything goes wrong
 onerror:
     # Copy config file to keep trace of parameters used
     shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/")
     # Make a folder with old snakemake logs and put the last one in the 'logs' folder
-    shell("mkdir -p " + local_path + "logs/old_snakemake_logs/")
-    shell("[ -f " + local_path + "logs/*.log ] && mv " + local_path + "logs/*.log " + local_path + "logs/old_snakemake_logs/ || true")
-    shell("log=$(ls -t " + local_path + ".snakemake/log/ | head -n 1); cp " + local_path + ".snakemake/log/${{log}} " + local_path + "logs/ || true")
+    shell("mkdir -p " + logs_path + "old_snakemake_logs/")
+    shell("[ -f " + logs_path + "*.log ] && mv " + logs_path + "*.log " + logs_path + "old_snakemake_logs/ || true")
+    shell("log=$(ls -t " + local_path + ".snakemake/log/ | head -n 1); cp " + local_path + ".snakemake/log/${{log}} " + logs_path + " || true")
 
 
 # Find the adapter sequence if not set in config file
@@ -113,10 +116,10 @@ rule find_adapter_sequence:
     output:
         adapter = local_path + "RESULTS/adapter_lists/{sample}.txt"
     log:
-        rscript = local_path + "logs/find_adapter_sequence/{sample}.rscript.log",
-        sed = local_path + "logs/find_adapter_sequence/{sample}.sed.log",
-        echo = local_path + "logs/find_adapter_sequence/{sample}.echo.log",
-        touch = local_path + "logs/find_adapter_sequence/{sample}.touch.log"
+        rscript = logs_path + "find_adapter_sequence/{sample}.rscript.log",
+        sed = logs_path + "find_adapter_sequence/{sample}.sed.log",
+        echo = logs_path + "find_adapter_sequence/{sample}.echo.log",
+        touch = logs_path + "find_adapter_sequence/{sample}.touch.log"
     shell:
         "touch {output.adapter} 2> {log.touch} ;"
         "if [ -z " + config['adapt_sequence'] + " ]; then "
@@ -172,7 +175,7 @@ rule make_fastqc_before_trimming:
         local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.zip",
         local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html"
     log:
-        local_path + "logs/make_fastqc_before_trimming/{sample}.log"
+        logs_path + "make_fastqc_before_trimming/{sample}.log"
     benchmark:
         local_path + "benchmarks/make_fastqc_before_trimming/{sample}.benchmark.txt"
     params:
@@ -188,9 +191,9 @@ rule adapt_trimming:
     output:
         cut_fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
     log:
-        trim_value = local_path + "logs/adapt_trimming/{sample}_trim_value.log",
-        cutadapt = local_path + "logs/adapt_trimming/{sample}_cutadapt.log",
-        cutadapt_out = local_path + "stats/{sample}_adapt_trimming.log"
+        trim_value = logs_path + "adapt_trimming/{sample}_trim_value.log",
+        cutadapt = logs_path + "adapt_trimming/{sample}_cutadapt.log",
+        cutadapt_out = stats_path + "{sample}_adapt_trimming.log"
     benchmark:
         local_path + "benchmarks/adapt_trimming/{sample}.benchmark.txt"
     resources:
@@ -210,7 +213,7 @@ rule make_fastqc_after_trimming:
         local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.zip",
         local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html"
     log:
-        local_path + "logs/make_fastqc_after_trimming/{sample}.log"
+        logs_path + "make_fastqc_after_trimming/{sample}.log"
     benchmark:
         local_path + "benchmarks/make_fastqc_after_trimming/{sample}.benchmark.txt"
     params:
@@ -225,7 +228,7 @@ rule bowtie2_build_outRNA:
     output:
         expand(local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2)
     log:
-        local_path + "logs/bowtie2_build_outRNA/bowtie2_build_outRNA.log"
+        logs_path + "bowtie2_build_outRNA/bowtie2_build_outRNA.log"
     benchmark:
         local_path + "benchmarks/bowtie2_build_outRNA/bowtie2_build_outRNA.benchmark.txt"
     threads:
@@ -243,7 +246,7 @@ rule bowtie2_run_outRNA:
     output:
         local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     log:
-        bt2 = local_path + "stats/{sample}_bowtie2_run_outRNA.log"
+        bt2 = stats_path + "{sample}_bowtie2_run_outRNA.log"
     benchmark:
         local_path + "benchmarks/bowtie2_run_outRNA/{sample}.benchmark.txt"
     resources:
@@ -261,7 +264,7 @@ rule make_fastqc_after_outRNA_depletion:
         local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.zip",
         local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html"
     log:
-        local_path + "logs/make_fastqc_after_outRNA_depletion/{sample}.log"
+        logs_path + "make_fastqc_after_outRNA_depletion/{sample}.log"
     benchmark:
         local_path + "benchmarks/make_fastqc_after_outRNA_depletion/{sample}.benchmark.txt"
     params:
@@ -276,7 +279,7 @@ rule bowtie2_build:
     output:
         expand(local_path + "RESULTS/annex_database/index_files/index_bowtie2.{extb}.bt2",extb=BOWTIE2)
     log:
-        local_path + "logs/bowtie2_build/bowtie2_build.log"
+        logs_path + "bowtie2_build/bowtie2_build.log"
     benchmark:
         local_path + "benchmarks/bowtie2_build/bowtie2_build.benchmark.txt"
     threads:
@@ -293,7 +296,7 @@ rule hisat2_build:
     output:
         expand(local_path + "RESULTS/annex_database/index_files/index_hisat2.{exth}.ht2",exth=HISAT2)
     log:
-        local_path + "logs/hisat2_build/hisat2_build.log"
+        logs_path + "hisat2_build/hisat2_build.log"
     benchmark:
         local_path + "benchmarks/hisat2_build/hisat2_build.benchmark.txt"
     threads:
@@ -314,8 +317,8 @@ rule run_mapping:
         sam_hisat2 = temp(local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam"),
         sam_bowtie2 = temp(local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam")
     log:
-        hisat2_out = local_path + "stats/{sample}_run_mapping_hisat2.log",
-        bowtie2_out = local_path + "stats/{sample}_run_mapping_bowtie2.log"
+        hisat2_out = stats_path + "{sample}_run_mapping_hisat2.log",
+        bowtie2_out = stats_path + "{sample}_run_mapping_bowtie2.log"
     benchmark:
         local_path + "benchmarks/run_mapping/{sample}.benchmark.txt"
     resources:
@@ -338,15 +341,15 @@ rule samtools_filter:
     output:
         bam = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam"
     log:
-        view_header_hisat2 = local_path + "logs/samtools_filter/{sample}.grep_hisat2.log",
-        view_core_hisat2 =  local_path + "logs/samtools_filter/{sample}.grep_core_hisat2.log",
-        ZS_filter_hisat2 = local_path + "logs/samtools_filter/{sample}.NH_filter_hisat2.log",
-        XM_filter_hisat2 = local_path + "logs/samtools_filter/{sample}.XM_filter_hisat2.log",
-        XS_filter_bowtie2 = local_path + "logs/samtools_filter/{sample}.XS_filter_bowtie2.log",
-        XM_filter_bowtie2 = local_path + "logs/samtools_filter/{sample}.XM_filter_bowtie2.log",
-        view_bam = local_path + "logs/samtools_filter/{sample}.view_bam.log",
-        sort_bam = local_path + "logs/samtools_filter/{sample}.sort_bam.log",
-        rm = local_path + "logs/samtools_filter/{sample}.rm.log"
+        view_header_hisat2 = logs_path + "samtools_filter/{sample}.grep_hisat2.log",
+        view_core_hisat2 =  logs_path + "samtools_filter/{sample}.grep_core_hisat2.log",
+        ZS_filter_hisat2 = logs_path + "samtools_filter/{sample}.NH_filter_hisat2.log",
+        XM_filter_hisat2 = logs_path + "samtools_filter/{sample}.XM_filter_hisat2.log",
+        XS_filter_bowtie2 = logs_path + "samtools_filter/{sample}.XS_filter_bowtie2.log",
+        XM_filter_bowtie2 = logs_path + "samtools_filter/{sample}.XM_filter_bowtie2.log",
+        view_bam = logs_path + "samtools_filter/{sample}.view_bam.log",
+        sort_bam = logs_path + "samtools_filter/{sample}.sort_bam.log",
+        rm = logs_path + "samtools_filter/{sample}.rm.log"
     benchmark:
         local_path + "benchmarks/samtools_filter/{sample}.benchmark.txt"
     resources:
@@ -370,7 +373,7 @@ rule index_bam:
     output:
         bai = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam.bai"
     log:
-        index_bam = local_path + "logs/index_bam/{sample}.index_bam.log"
+        index_bam = logs_path + "index_bam/{sample}.index_bam.log"
     benchmark:
         local_path + "benchmarks/index_bam/{sample}.benchmark.txt"
     shell:
@@ -396,7 +399,7 @@ rule stats_report:
             data_report.write("##################\n## NEXT SAMPLE ##\n##################\n\n\t" + sample + "\n")
             for log in logs_names:
                 data_report.write("\n" + ("#" * (len(log)+6)) + "\n## " + log + " ##\n" + ("#" * (len(log)+6)) + "\n")
-                logs_files = open(local_path + "stats/" + sample + "_" + log + ".log","r")
+                logs_files = open(stats_path + sample + "_" + log + ".log","r")
                 # Keep only lines of interest from cutadapt report1,2
                 i=-1
                 if log=="adapt_trimming":
@@ -435,11 +438,11 @@ rule htseqcount_cds:
     output:
         htseq_table = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt"
     log:
-        echo = local_path + "logs/htseqcount_cds/{sample}.echo.log",
-        sed = local_path + "logs/htseqcount_cds/{sample}.sed.log",
-        htseqcount = local_path + "logs/htseqcount_cds/{sample}.htseqcount.log",
-        head = local_path + "logs/htseqcount_cds/{sample}.head.log",
-        awk = local_path + "logs/htseqcount_cds/{sample}.awk.log"
+        echo = logs_path + "htseqcount_cds/{sample}.echo.log",
+        sed = logs_path + "htseqcount_cds/{sample}.sed.log",
+        htseqcount = logs_path + "htseqcount_cds/{sample}.htseqcount.log",
+        head = logs_path + "htseqcount_cds/{sample}.head.log",
+        awk = logs_path + "htseqcount_cds/{sample}.awk.log"
     benchmark:
         local_path + "benchmarks/htseqcount_cds/{sample}.benchmark.txt"
     params:
@@ -465,14 +468,14 @@ rule htseqcount_utr:
         htseq_table_threeprime = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_3UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_3UTR_feature'] + ".txt",
         htseq_table_fiveprime = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_5UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_5UTR_feature'] + ".txt"
     log:
-        header_5prime = local_path + "logs/htseqcount_utr/{sample}.header_5prime.log",
-        htseqcount_5prime = local_path + "logs/htseqcount_utr/{sample}.htseqcount_5prime.log",
-        head_5prime = local_path + "logs/htseqcount_utr/{sample}.head_5prime.log",
-        awk_5prime = local_path + "logs/htseqcount_utr/{sample}.awk_5prime.log",
-        header_3prime = local_path + "logs/htseqcount_utr/{sample}.header_3prime.log",
-        htseqcount_3prime = local_path + "logs/htseqcount_utr/{sample}.htseqcount_3prime.log",
-        head_3prime = local_path + "logs/htseqcount_utr/{sample}.head_3prime.log",
-        awk_3prime = local_path + "logs/htseqcount_utr/{sample}.awk_3prime.log"
+        header_5prime = logs_path + "htseqcount_utr/{sample}.header_5prime.log",
+        htseqcount_5prime = logs_path + "htseqcount_utr/{sample}.htseqcount_5prime.log",
+        head_5prime = logs_path + "htseqcount_utr/{sample}.head_5prime.log",
+        awk_5prime = logs_path + "htseqcount_utr/{sample}.awk_5prime.log",
+        header_3prime = logs_path + "htseqcount_utr/{sample}.header_3prime.log",
+        htseqcount_3prime = logs_path + "htseqcount_utr/{sample}.htseqcount_3prime.log",
+        head_3prime = logs_path + "htseqcount_utr/{sample}.head_3prime.log",
+        awk_3prime = logs_path + "htseqcount_utr/{sample}.awk_3prime.log"
     benchmark:
         local_path + "benchmarks/htseqcount_utr/{sample}.benchmark.txt"
     params:
@@ -502,7 +505,7 @@ rule count_matrix_initialization:
     log:
         header = "logs/count_matrix_initialization/head.log",
         cut = "logs/count_matrix_initialization/cut.log",
-        sort = local_path + "logs/count_matrix_initialization/sort.log"
+        sort = logs_path + "count_matrix_initialization/sort.log"
     benchmark:
         local_path + "benchmarks/count_matrix_initialization/count_matrix_initialization.benchmark.txt"
     run:
@@ -527,9 +530,9 @@ rule count_matrix_creation:
     output:
         counts_matrix = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/count_matrix_by_transcript_IDs.csv"
     log:
-        cut = local_path + "logs/count_matrix_creation/cut.log",
-        cat_cds = local_path + "logs/count_matrix_creation/cat.log",
-        join_utr = local_path + "logs/count_matrix_creation/join_utr.log"
+        cut = logs_path + "count_matrix_creation/cut.log",
+        cat_cds = logs_path + "count_matrix_creation/cat.log",
+        join_utr = logs_path + "count_matrix_creation/join_utr.log"
     benchmark:
         local_path + "benchmarks/count_matrix_creation/count_matrix_creation.benchmark.txt"
     params:
@@ -558,7 +561,7 @@ rule matrices_by_gene_or_transcript:
         by_gene = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/count_matrix_by_gene.csv",
         by_transcript = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/count_matrix_by_transcript.csv"
     log:
-        local_path + "logs/matrices_by_gene_or_transcript/matrices_creation.log"
+        logs_path + "matrices_by_gene_or_transcript/matrices_creation.log"
     benchmark:
         local_path + "benchmarks/matrices_by_gene_or_transcript/matrices_creation.benchmark.txt"
     shell:
@@ -574,8 +577,8 @@ rule DESeq2_analysis_gene:
         down = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/gene_down.csv",
         report = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html"
     log:
-        control = local_path + "logs/DESeq2_analysis_gene/header_control.log",
-        deseq2 = local_path + "logs/DESeq2_analysis_gene/DESeq2_analysis.log"
+        control = logs_path + "DESeq2_analysis_gene/header_control.log",
+        deseq2 = logs_path + "DESeq2_analysis_gene/DESeq2_analysis.log"
     benchmark:
         local_path + "benchmarks/DESeq2_analysis_gene/DESeq2_analysis.benchmark.txt"
     params:
@@ -593,8 +596,8 @@ rule DESeq2_analysis_transcript:
         down = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/transcript_down.csv",
         report = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html"
     log:
-        control = local_path + "logs/DESeq2_analysis_transcript/header_control.log",
-        deseq2 = local_path + "logs/DESeq2_analysis_transcript/DESeq2_analysis.log"
+        control = logs_path + "DESeq2_analysis_transcript/header_control.log",
+        deseq2 = logs_path + "DESeq2_analysis_transcript/DESeq2_analysis.log"
     benchmark:
         local_path + "benchmarks/DESeq2_analysis_transcript/DESeq2_analysis.benchmark.txt"
     params:
@@ -613,7 +616,7 @@ rule filter_by_5UTR:
         gff_5UTR_filtered = temp(local_path + "RESULTS/annex_database/gff_5UTR_filtered_" + os.path.basename(config['gff'])),
         gff_features = local_path + "RESULTS/annex_database/gff_features_counts.txt"
     log:
-        local_path + "logs/filter_by_5UTR/filtering.log"
+        logs_path + "filter_by_5UTR/filtering.log"
     benchmark:
         local_path + "benchmarks/filter_by_5UTR/filtering.benchmark.txt"
     params:
@@ -630,7 +633,7 @@ rule ORFget:
         fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta",
         gff = local_path + "RESULTS/annex_database/transcriptome_elongated.gff"
     log:
-        orf_get = local_path + "logs/ORFget/orf_get.log"
+        orf_get = logs_path + "ORFget/orf_get.log"
     benchmark:
         local_path + "benchmarks/ORFget/ORFget.benchmark.txt"
     params:
@@ -647,10 +650,10 @@ rule transcriptome_construction_gtf:
         fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_" + os.path.basename(config['fasta']),
         gtf = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_" + os.path.basename(config['gff']) + ".gtf"
     log:
-        samtools_index = local_path + "logs/transcriptome_construction_gtf/samtools_index.log",
-        gffread_gtf = local_path + "logs/transcriptome_construction_gtf/gffread.log",
-        sed = local_path + "logs/transcriptome_construction_gtf/sed.log",
-        awk = local_path + "logs/transcriptome_construction_gtf/awk.log"
+        samtools_index = logs_path + "transcriptome_construction_gtf/samtools_index.log",
+        gffread_gtf = logs_path + "transcriptome_construction_gtf/gffread.log",
+        sed = logs_path + "transcriptome_construction_gtf/sed.log",
+        awk = logs_path + "transcriptome_construction_gtf/awk.log"
     benchmark:
         local_path + "benchmarks/transcriptome_construction_gtf/transcriptome_construction_gtf.benchmark.txt"
     params:
@@ -671,7 +674,7 @@ rule bowtie2_build_transcriptome:
     output:
         expand(local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2)
     log:
-        local_path + "logs/bowtie2_build_transcriptome/bowtie2_build.log"
+        logs_path + "bowtie2_build_transcriptome/bowtie2_build.log"
     benchmark:
         local_path + "benchmarks/bowtie2_build_transcriptome/transcriptome_index_bowtie2.benchmark.txt"
     params:
@@ -688,7 +691,7 @@ rule hisat2_build_transcriptome:
     output:
         expand(local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2)
     log:
-        local_path + "logs/hisat2_build_transcriptome/hisat2_build.log"
+        logs_path + "hisat2_build_transcriptome/hisat2_build.log"
     benchmark:
         local_path + "benchmarks/hisat2_build_transcriptome/hisat2_build_transcriptome.benchmark.txt"
     params:
@@ -709,8 +712,8 @@ rule run_mapping_transcriptome:
         sam_bowtie2 = temp(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam"),
         fastq = temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.transcriptome.fastq.gz")
     log:
-        hisat2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_transcriptome_hisat2.log",
-        bowtie2_out = local_path + "logs/run_mapping_transcriptome/{sample}_run_mapping_transcriptome_bowtie2.log"
+        hisat2_out = logs_path + "run_mapping_transcriptome/{sample}_run_mapping_transcriptome_hisat2.log",
+        bowtie2_out = logs_path + "run_mapping_transcriptome/{sample}_run_mapping_transcriptome_bowtie2.log"
     benchmark:
         local_path + "benchmarks/run_mapping_transcriptome/{sample}.benchmark.txt"
     resources:
@@ -733,13 +736,13 @@ rule samtools_filter_transcriptome:
     output:
         bam = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam"
     log:
-        view_header_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.grep_hisat2.log",
-        uniq_header = local_path + "logs/samtools_filter_transcriptome/{sample}.uniq_header.log",
-        view_core_hisat2 =  local_path + "logs/samtools_filter_transcriptome/{sample}.grep_core_hisat2.log",
-        XM_filter_hisat2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_hisat2.log",
-        XM_filter_bowtie2 = local_path + "logs/samtools_filter_transcriptome/{sample}.XM_filter_bowtie2.log",
-        view_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.view_bam.log",
-        sort_bam = local_path + "logs/samtools_filter_transcriptome/{sample}.sort_bam.log"
+        view_header_hisat2 = logs_path + "samtools_filter_transcriptome/{sample}.grep_hisat2.log",
+        uniq_header = logs_path + "samtools_filter_transcriptome/{sample}.uniq_header.log",
+        view_core_hisat2 =  logs_path + "samtools_filter_transcriptome/{sample}.grep_core_hisat2.log",
+        XM_filter_hisat2 = logs_path + "samtools_filter_transcriptome/{sample}.XM_filter_hisat2.log",
+        XM_filter_bowtie2 = logs_path + "samtools_filter_transcriptome/{sample}.XM_filter_bowtie2.log",
+        view_bam = logs_path + "samtools_filter_transcriptome/{sample}.view_bam.log",
+        sort_bam = logs_path + "samtools_filter_transcriptome/{sample}.sort_bam.log"
     benchmark:
         local_path + "benchmarks/samtools_filter_transcriptome/{sample}.benchmark.txt"
     resources:
@@ -764,7 +767,7 @@ rule index_bam_transcriptome:
     output:
         bai = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam.bai"
     log:
-        index_bam = local_path + "logs/index_bam_transcriptome/{sample}.index_bam.log"
+        index_bam = logs_path + "index_bam_transcriptome/{sample}.index_bam.log"
     benchmark:
         local_path + "benchmarks/index_bam_transcriptome/{sample}.benchmark.txt"
     shell:
@@ -781,7 +784,7 @@ rule riboWaltz_transcriptome:
         psite_table = local_path + "RESULTS/riboWaltz" + frag_length_L + "/psite_offset.csv",
         metaprofile = local_path + "RESULTS/riboWaltz" + frag_length_L + "/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff"
     log:
-        periodicity = local_path + "logs/riboWaltz_transcriptome/riboWaltz.log"
+        periodicity = logs_path + "riboWaltz_transcriptome/riboWaltz.log"
     resources:
         mem_mb = mem_mb_resources
     benchmark:
@@ -802,7 +805,7 @@ rule quality_controls_bamDivision:
         bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
         bai = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam.bai"
     log:
-        local_path + "logs/quality_controls_bamDivision/{sample}.{taille}.BamDivision.log"
+        logs_path + "quality_controls_bamDivision/{sample}.{taille}.BamDivision.log"
     benchmark:
         local_path + "benchmarks/quality_controls_bamDivision/{sample}.{taille}.benchmark.txt"
     threads:
@@ -824,7 +827,7 @@ rule quality_controls_bedcount:
         readsLengthRepartitionBed = temp(local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed"),
         bed = temp(local_path + "RESULTS/qualitativeAnalysis/bedCount/{sample}.{taille}.count.bed")
     log:
-        local_path + "logs/quality_controls_bedcount/{sample}.{taille}.readsLengthRepartition.log"
+        logs_path + "quality_controls_bedcount/{sample}.{taille}.readsLengthRepartition.log"
     benchmark:
         local_path + "benchmarks/quality_controls_bedcount/{sample}.{taille}.benchmark.txt"
     params:
@@ -840,11 +843,11 @@ rule quality_controls_readsLengthRepartition:
     output:
         local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.readsLengthRepartition.txt"
     log:
-        wc = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.wc.log",
-        sed1 = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.sed1.log",
-        awk = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.awk.log",
-        sed2 = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.sed2.log",
-        head = local_path + "logs/quality_controls_readsLengthRepartition/{sample}.head.log"
+        wc = logs_path + "quality_controls_readsLengthRepartition/{sample}.wc.log",
+        sed1 = logs_path + "quality_controls_readsLengthRepartition/{sample}.sed1.log",
+        awk = logs_path + "quality_controls_readsLengthRepartition/{sample}.awk.log",
+        sed2 = logs_path + "quality_controls_readsLengthRepartition/{sample}.sed2.log",
+        head = logs_path + "quality_controls_readsLengthRepartition/{sample}.head.log"
     benchmark:
         local_path + "benchmarks/quality_controls_readsLengthRepartition/{sample}.benchmark.txt"
     params:
@@ -864,8 +867,8 @@ rule quality_controls_periodicity:
         start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".txt",
         stop = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".txt"
     log:
-        start = local_path + "logs/quality_controls_periodicity/{sample}.{taille}.log",
-        stop = local_path + "logs/quality_controls_periodicity/{sample}.{taille}.log"
+        start = logs_path + "quality_controls_periodicity/{sample}.{taille}.log",
+        stop = logs_path + "quality_controls_periodicity/{sample}.{taille}.log"
     benchmark:
         local_path + "benchmarks/quality_controls_periodicity/{sample}.{taille}.benchmark.txt"
     params:
@@ -884,7 +887,7 @@ rule graphs_length:
     params:
         sample_name = "{sample}"
     log:
-        rscript = local_path + "logs/quality_controls_graphs_length/{sample}.rscript.log"
+        rscript = logs_path + "quality_controls_graphs_length/{sample}.rscript.log"
     benchmark:
         local_path + "benchmarks/quality_controls_graphs_length/{sample}.benchmark.txt"
     shell:
@@ -901,8 +904,8 @@ rule graphs_periodicity:
         name_start = "{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'],
         name_stop = "{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr']
     log:
-        start = local_path + "logs/quality_controls_graphs_periodicity/{sample}.{taille}.start.log",
-        stop = local_path + "logs/quality_controls_graphs_periodicity/{sample}.{taille}.stop.log"
+        start = logs_path + "quality_controls_graphs_periodicity/{sample}.{taille}.start.log",
+        stop = logs_path + "quality_controls_graphs_periodicity/{sample}.{taille}.stop.log"
     benchmark:
         local_path + "benchmarks/quality_controls_graphs_periodicity/{sample}.{taille}.benchmark.txt"
     shell:
@@ -916,7 +919,7 @@ rule periodicity_rgb:
     output:
         rgb_graph = local_path + "RESULTS/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/transcriptome_elongated." + SAMPLES[0] + "/length" + LENGTHS[0] + "_start.tiff"
     log:
-        rscript = local_path + "logs/periodicity_rgb/Rscript.log"
+        rscript = logs_path + "periodicity_rgb/Rscript.log"
     benchmark:
         local_path + "benchmarks/periodicity_rgb/benchmark.txt"
     shell:
@@ -939,7 +942,7 @@ rule main_output_folder:
         graphs_folder = local_path + "RESULTS/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] if config['qualitative_analysis']=="ribowaltz" else local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/",
         ribowaltz_folder = local_path + "RESULTS/riboWaltz" + frag_length_L + "/"
     log:
-        bash = local_path + "logs/main_output_folder/bash.log"
+        bash = logs_path + "main_output_folder/bash.log"
     benchmark:
         local_path + "benchmarks/main_output_folder/benchmark.txt"
     shell:
