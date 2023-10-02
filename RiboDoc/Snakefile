@@ -360,8 +360,8 @@ rule samtools_filter:
         multi_threads_nbr
     shell:
         "set +o pipefail ;"
-        "samtools view -H {input.sam_hisat2} 2> {log.grep_header_hisat2} 1> {params.sam} ;"
-        "samtools view {input.sam_hisat2} 2> {log.grep_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -vi 'XM:i:[2-9]' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
+        "samtools view -H {input.sam_hisat2} 2> {log.view_header_hisat2} 1> {params.sam} ;"
+        "samtools view {input.sam_hisat2} 2> {log.view_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -vi 'XM:i:[2-9]' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
         "grep -v 'XS:i:' {input.sam_bowtie2} 2> {log.XS_filter_bowtie2} | egrep -vi 'XM:i:[2-9]' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
         "samtools view -@ {threads} -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ {threads} -o {output.bam} 2> {log.sort_bam} ;"
         "rm -rf {params.sam} 2> {log.rm} ;"
@@ -423,11 +423,11 @@ rule generate_report:
     output:
         report_table = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Table_summary" + frag_length_L + ".csv"
     log:
-        bash = local_path + "logs/report_table/report_table.log"
+        report = logs_path + "generate_report/report.log"
     benchmark:
-        local_path + "benchmarks/report_table/benchmark.txt"
+        local_path + "benchmarks/generate_report/benchmark.txt"
     shell:
-        "bash " + ribodoc_tools + "report_table.sh -r {input.path} -D " + local_path + " -o " + local_path + "RESULTS/" + config['project_name'] + ".Analysis_Table_summary" + frag_length_L + ".csv 2> {log.bash}"
+        "bash " + ribodoc_tools + "report_table.sh -r " + stats_path + " -D " + local_path + " -o " + local_path + "RESULTS/" + config['project_name'] + ".Analysis_Table_summary" + frag_length_L + ".csv 2> {log.report}"
 
 # Counts reads on each transcript
 rule htseqcount_cds:
