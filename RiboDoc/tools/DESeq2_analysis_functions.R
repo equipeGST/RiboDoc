@@ -76,7 +76,6 @@ sort_columns_by_sample <- function(data, reference_condition) {
     str_replace(Names_Col, regex("[.]{0,1}[[:digit:]]{1,}$"), "")
   nb_col_condA <- table(factor(Cond))[[1]]
   nb_col_condB <- table(factor(Cond))[[2]]
-  sample_test <- Cond[nb_col_condA + 1]
   
   
   if (Cond[1] != reference_condition) {
@@ -88,7 +87,6 @@ sort_columns_by_sample <- function(data, reference_condition) {
     nb_col_condB <- nb_col_condA - nb_col_condB
     nb_col_condA <- nb_col_condA - nb_col_condB
     Names_Col <- colnames(expData_Sorted)
-    sample_test <- Cond[1]
   }
   sorted_data_list <- list(
     expData_Sorted = expData_Sorted,
@@ -96,7 +94,7 @@ sort_columns_by_sample <- function(data, reference_condition) {
     Cond = Cond,
     nb_col_condA = nb_col_condA,
     nb_col_condB = nb_col_condB,
-    sample_test = sample_test
+    sample_test = Cond[nb_col_condA + 1]
   )
   return(sorted_data_list)
 }
