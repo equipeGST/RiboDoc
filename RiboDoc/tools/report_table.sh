@@ -91,7 +91,7 @@ if [ -z "${protocole}" ]; then # If no protocole is given, RiboSeq is written
 fi
 
 # Create output file with header
-echo -e "Protocole\tDate\tLibrary\tSequencer\tSample\tTotal Read\tReads W adapters\t% of Total Reads\tToo short\t% of reads W adapters\tToo long\t% of reads W adapters\tPass filters\t% of Total Reads\tReads mapped on rRNA\tContamination (%)\tUniquely Mapped\t% of raw data\t% of reads W adapters\tMapped more than once\tUnmapped" > "${output}"
+printf "Protocole\tDate\tLibrary\tSequencer\tSample\tTotal Read\tReads with adapters\t%% of Total Reads\tToo short\t%% of reads with adapters\tToo long\t%% of reads with adapters\tPass filters\t%% of Total Reads\tReads mapped on rRNA\tContamination (%%)\tUniquely Mapped\t%% of raw data\t%% of reads with adapters\tMapped more than once\tUnmapped\n" > "${output}"
 
 dirlist=$(ls ${dir}/fastq)
 
@@ -131,5 +131,27 @@ for file in ${dirlist}; do
     Raw_data=$(bc <<< "scale=1; $Uniquely_mapped_genome * 100 / $Total_reads")
     Reads_ok=$(bc <<< "scale=1; $Uniquely_mapped_genome * 100 / $Passing_filters")
 
-    echo -e "$protocole\t$date\t$library\t$seq\t$sample\t$Total_reads\t$Reads_with_adapters\t$Percent\t$Too_short\t$Percent_too_short\t$Too_long\t$Percent_too_long\t$Passing_filters\t$Percent_passing_filters%\t$rRNA\t$Contamination%\t$Uniquely_mapped_genome\t$Raw_data%\t$Reads_ok%\t$Multi_mapped\t$Unmapped_genome" >> "${output}"
+    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s%%\t%s\t%s%%\t%s\t%s%%\t%s%%\t%s\t%s\n" \
+        "$protocole" \
+        "$date" \
+        "$library" \
+        "$seq" \
+        "$sample" \
+        "$Total_reads" \
+        "$Reads_with_adapters" \
+        "$Percent" \
+        "$Too_short" \
+        "$Percent_too_short" \
+        "$Too_long" \
+        "$Percent_too_long" \
+        "$Passing_filters" \
+        "$Percent_passing_filters" \
+        "$rRNA" \
+        "$Contamination" \
+        "$Uniquely_mapped_genome" \
+        "$Raw_data" \
+        "$Reads_ok" \
+        "$Multi_mapped" \
+        "$Unmapped_genome" \
+        >> "${output}"
 done
