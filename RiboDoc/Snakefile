@@ -30,8 +30,6 @@ snakemake_log_path = local_path + ".snakemake/log/"
 # Wildcards definition
 SAMPLES, = glob_wildcards(local_path + "fastq/{sample}.fastq.gz")
 SAMPLES.sort()
-BOWTIE2 = ["1","2","3","4","rev.1","rev.2"]
-HISAT2 = ["1","2","3","4","5","6","7","8"]
 LENGTHS = list(map(str,range(int(config['readsLength_min']),int(config['readsLength_max'])+1)))
 
 
@@ -226,7 +224,7 @@ rule bowtie2_build_outRNA:
     input:
         outRNA = local_path + "database/" + os.path.basename(config['fasta_outRNA'])
     output:
-        expand(local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2)
+        local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2.1.bt2"
     log:
         logs_path + "bowtie2_build_outRNA/bowtie2_build_outRNA.log"
     benchmark:
@@ -241,7 +239,7 @@ rule bowtie2_build_outRNA:
 # Mapping of non-coding RNA
 rule bowtie2_run_outRNA:
     input:
-        expand(local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2.{extb}.bt2",extb=BOWTIE2),
+        local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2.1.bt2",
         fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
     output:
         local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
@@ -277,7 +275,7 @@ rule bowtie2_build:
     input:
         fasta = local_path + "database/" + os.path.basename(config['fasta'])
     output:
-        expand(local_path + "RESULTS/annex_database/index_files/index_bowtie2.{extb}.bt2",extb=BOWTIE2)
+        local_path + "RESULTS/annex_database/index_files/index_bowtie2.1.bt2"
     log:
         logs_path + "bowtie2_build/bowtie2_build.log"
     benchmark:
@@ -294,7 +292,7 @@ rule hisat2_build:
     input:
         fasta = local_path + "database/" + os.path.basename(config['fasta'])
     output:
-        expand(local_path + "RESULTS/annex_database/index_files/index_hisat2.{exth}.ht2",exth=HISAT2)
+        local_path + "RESULTS/annex_database/index_files/index_hisat2.1.ht2"
     log:
         logs_path + "hisat2_build/hisat2_build.log"
     benchmark:
@@ -309,8 +307,8 @@ rule hisat2_build:
 # Mapping of all RNA by bowtie2 and hisat2
 rule run_mapping:
     input:
-        expand(local_path + "RESULTS/annex_database/index_files/index_hisat2.{exth}.ht2",exth=HISAT2),
-        expand(local_path + "RESULTS/annex_database/index_files/index_bowtie2.{extb}.bt2",extb=BOWTIE2),
+        local_path + "RESULTS/annex_database/index_files/index_hisat2.1.ht2",
+        local_path + "RESULTS/annex_database/index_files/index_bowtie2.1.bt2",
         fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz" if config['fasta_outRNA']=="" else local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
         fastq = temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.fastq.gz"),
@@ -672,7 +670,7 @@ rule bowtie2_build_transcriptome:
     input:
         fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta"
     output:
-        expand(local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2)
+        local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2.1.bt2"
     log:
         logs_path + "bowtie2_build_transcriptome/bowtie2_build.log"
     benchmark:
@@ -689,7 +687,7 @@ rule hisat2_build_transcriptome:
     input:
         fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta"
     output:
-        expand(local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2)
+        local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2.1.ht2"
     log:
         logs_path + "hisat2_build_transcriptome/hisat2_build.log"
     benchmark:
@@ -704,8 +702,8 @@ rule hisat2_build_transcriptome:
 # Performs mapping on transcriptome
 rule run_mapping_transcriptome:
     input:
-        expand(local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2.{exth}.ht2",exth=HISAT2),
-        expand(local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2.{extb}.bt2",extb=BOWTIE2),
+        local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2.1.ht2",
+        local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2.1.bt2",
         fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz" if config['fasta_outRNA']=="" else local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
         sam_hisat2 = temp(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam"),
