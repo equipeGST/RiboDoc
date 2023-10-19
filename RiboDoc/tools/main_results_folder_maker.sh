@@ -56,7 +56,7 @@ cp -r "${d}" "${p}MAIN_RESULTS/Quantitative_analysis/"
 
 if [ "${q}" == "ribowaltz" ]; then
     # Save the phasing figures from riboWaltz
-    cp "${r}frame_psite.tiff" "${r}frame_psite_length.tiff" "${r}region_psite.tiff" "${p}MAIN_RESULTS/Qualitative_analysis/"
+    cp "${r}frame_psite.tiff" "${r}frame_psite_length.tiff" "${r}region_psite.tiff" "${p}MAIN_RESULTS/Qualitative_analysis_riboWaltz/"
     # Save periodicity graphs
     cp -r "${g}" "${p}MAIN_RESULTS/Qualitative_analysis_riboWaltz/"
 else
