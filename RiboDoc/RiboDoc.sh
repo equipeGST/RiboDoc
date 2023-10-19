@@ -9,7 +9,7 @@
 
 if [ $# -eq 0 ]|| [ $# -eq 1 ]; then
     printf "PLEASE SPECIFY AVAILABLE RESOURCES BY ADDING CPUs AND MEMORY AMOUNT (in GB)\n"
-    printf "Example (with 10 CPU and 30GB of memory) :\n\tsingularity run --bind /path/to/workdir/ ribodoc_v0.9.0.19.sif 10 30\n"
+    printf "Example (with 10 CPU and 30GB of memory) :\n\tsingularity run --bind /path/to/workdir/:/data/ ribodoc_v0.9.0.sif 10 30\n"
 else
     if [ "$1" -eq "1" ]; then
         cpu_use=$(($1/2))
