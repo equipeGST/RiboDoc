@@ -83,6 +83,10 @@ length_dist <- rlength_distr(reads_list, sample = samples_renamed)
 for(i in 1:length(samples_renamed))
 {
   dir.create(paste0(ribowaltz_folder,samples[i],"/"), showWarnings = F)
+  col_selec <- c(1,(i*2),(i*2)+1)
+  write.table(length_dist$dt[,..col_selec],
+              paste0(ribowaltz_folder,samples[i],"/reads_distribution_",samples[i],".csv"),
+              quote = F, row.names = F, sep ="\t")
   tiff(file=paste0(ribowaltz_folder,samples[i],"/reads_distribution_",samples[i],".tiff"))
   plot(length_dist[[paste0("plot_",samples_renamed[i])]])
   dev.off()
