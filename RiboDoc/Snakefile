@@ -499,7 +499,7 @@ rule count_matrix_initialization:
         ready = expand(rules.htseqcount_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount_cds.output, sample=SAMPLES),
         counts = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_cds_feature'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt"
     output:
-        transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.txt"
+        transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.csv"
     log:
         header = "logs/count_matrix_initialization/head.log",
         cut = "logs/count_matrix_initialization/cut.log",
@@ -524,7 +524,7 @@ rule count_matrix_initialization:
 # Adds the read counts of each sample to the matrix
 rule count_matrix_creation:
     input:
-        transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.txt"
+        transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.csv"
     output:
         counts_matrix = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/count_matrix_by_transcript_IDs.csv"
     log:
@@ -553,7 +553,7 @@ rule count_matrix_creation:
 # Create a count matrix by transcript and a count matrix by gene
 rule matrices_by_gene_or_transcript:
     input:
-        transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.txt",
+        transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.csv",
         counts_matrix = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/count_matrix_by_transcript_IDs.csv"
     output:
         by_gene = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/count_matrix_by_gene.csv",
