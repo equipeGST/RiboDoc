@@ -784,7 +784,7 @@ rule riboWaltz_transcriptome:
     log:
         periodicity = logs_path + "riboWaltz_transcriptome/riboWaltz.log"
     resources:
-        mem_mb = mem_mb_resources
+        mem_mb = mem_mb_resources*100
     benchmark:
         local_path + "benchmarks/riboWaltz_transcriptome/riboWaltz.benchmark.txt"
     shell:
