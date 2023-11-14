@@ -23,7 +23,7 @@ DESeq2_folder_paths <- function(path) {
     DESeq2_gene = DESeq2_gene,
     DESeq2_transcript = DESeq2_transcript,
     pathway_matrix = paste0(DESeq2_folder, "count_matrix_by_transcript_IDs.csv"),
-    pathway_names = paste0(DESeq2_folder, "names_correspondence_list.txt")
+    pathway_names = paste0(DESeq2_folder, "names_correspondence_list.csv")
   )
 }
 
@@ -431,64 +431,64 @@ tables_creation <-
            means,
            reference_condition,
            gene_transcript = "gene") {
-    normalized_counts <- counts(dds_object, normalized = TRUE)
-    Bruts_Norm <- cbind(data_list$expData_Sorted, normalized_counts)
-    Names_Col <- colnames(data_list$expData_Sorted)
-    
-    Table_Complete <-
-      data.frame(cbind(
-        row.names(Bruts_Norm) ,
-        Bruts_Norm,
-        means$CT_Mean,
-        means$Mut_Mean ,
-        deseq_results
-      ))
-    
-    
-    colnames(Table_Complete) =  c(
-      "ID" ,
-      Names_Col,
-      paste("norm", data_list$Names_Col, sep = "_"),
-      paste0(reference_condition, "_Mean"),
-      paste0(data_list$sample_test, "_Mean"),
-      colnames(deseq_results)
-    )
-    
-    names_list = read.table(
-      paths_list$pathway_names,
-      header = T,
-      row.names = 1,
-      check.names = FALSE,
-      sep = "\t"
-    )
-    if (gene_transcript == "gene" & ncol(names_list) > 0)
-    {
-      allGenes <- Table_Complete
-    } else {
-      allGenes <- merge(Table_Complete, names_list, by = 1)
-    }
-    
-    inducedGenes = allGenes[which((allGenes[, "log2FoldChange"] > Var_log2FC) &
-                                    (allGenes[, "padj"] < Var_padj)), ]
-    dim(inducedGenes)
-    
-    repressedGenes = allGenes[which((allGenes[, "log2FoldChange"] < -Var_log2FC) &
-                                      (allGenes[, "padj"] < Var_padj)), ]
-    dim(repressedGenes)
-    
-    # Sort tables by padj
-    inducedGenes <- inducedGenes[(order(inducedGenes[, "padj"])), ]
-    repressedGenes <-
-      repressedGenes[(order(repressedGenes[, "padj"])), ]
-    
-    return(
-      list(
-        allGenes = allGenes,
-        inducedGenes = inducedGenes,
-        repressedGenes = repressedGenes
-      )
-    )
+  
+  normalized_counts <- counts(dds_object, normalized = TRUE)
+  Bruts_Norm <- cbind(data_list$expData_Sorted, normalized_counts)
+  Names_Col <- colnames(data_list$expData_Sorted)
+  
+  Table_Complete <-
+    data.frame(cbind(
+      row.names(Bruts_Norm) ,
+      Bruts_Norm,
+      means$CT_Mean,
+      means$Mut_Mean ,
+      deseq_results
+    ))
+  
+  colnames(Table_Complete) =  c(
+    "ID" ,
+    Names_Col,
+    paste("norm", data_list$Names_Col, sep = "_"),
+    paste0(reference_condition, "_Mean"),
+    paste0(data_list$sample_test, "_Mean"),
+    colnames(deseq_results)
+  )
+  
+  names_list = read.table(
+    paths_list$pathway_names,
+    header = T,
+    row.names = 1,
+    check.names = FALSE,
+    sep = "\t"
+  )
+  if (gene_transcript == "gene" & ncol(names_list) > 0)
+  {
+    allGenes <- Table_Complete
+  } else {
+    allGenes <- merge(Table_Complete, names_list, by = 1)
   }
+  
+  inducedGenes = allGenes[which((allGenes[, "log2FoldChange"] > Var_log2FC) &
+                                  (allGenes[, "padj"] < Var_padj)), ]
+  dim(inducedGenes)
+  
+  repressedGenes = allGenes[which((allGenes[, "log2FoldChange"] < -Var_log2FC) &
+                                    (allGenes[, "padj"] < Var_padj)), ]
+  dim(repressedGenes)
+  
+  # Sort tables by padj
+  inducedGenes <- inducedGenes[(order(inducedGenes[, "padj"])), ]
+  repressedGenes <-
+    repressedGenes[(order(repressedGenes[, "padj"])), ]
+  
+  return(
+    list(
+      allGenes = allGenes,
+      inducedGenes = inducedGenes,
+      repressedGenes = repressedGenes
+    )
+  )
+}
 
 # Write tables
 write_DE_tables <- function(tables_list, gene_transcript = "gene") {
@@ -504,7 +504,6 @@ write_DE_tables <- function(tables_list, gene_transcript = "gene") {
     sep = "\t",
     row.names = F
   )
-  
   
   write.table(
     tables_list$inducedGenes,
