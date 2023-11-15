@@ -117,6 +117,7 @@ gc()
 
 # Proportion of region covered by P-sites
 psite_region <- region_psite(reads_psite_list, annotation_db_transcript, sample = samples_renamed)
+write.table(psite_region$dt, paste0(ribowaltz_folder, "region_psite.csv"), quote = F, row.names = F, sep ="\t")
 
 tiff(file=paste0(ribowaltz_folder, "region_psite.tiff"))
 psite_region[["plot"]]
@@ -128,6 +129,7 @@ gc()
 
 # Phasing by read length
 frames_stratified <- frame_psite_length(reads_psite_list, sample = samples_renamed, region = "all")
+write.table(frames_stratified$dt, paste0(ribowaltz_folder, "frame_psite_length.csv"), quote = F, row.names = F, sep ="\t")
 
 tiff(file=paste0(ribowaltz_folder, "frame_psite_length.tiff"))
 frames_stratified[["plot"]]
@@ -139,6 +141,7 @@ gc()
 
 # Global phasing
 frames <- frame_psite(reads_psite_list, sample = samples_renamed, region = "all")
+write.table(frames$dt, paste0(ribowaltz_folder, "frame_psite.csv"), quote = F, row.names = F, sep ="\t")
 
 tiff(file=paste0(ribowaltz_folder, "frame_psite.tiff"))
 frames[["plot"]]

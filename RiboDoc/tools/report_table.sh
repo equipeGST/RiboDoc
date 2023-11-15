@@ -91,7 +91,7 @@ if [ -z "${protocole}" ]; then # If no protocole is given, RiboSeq is written
 fi
 
 # Create output file with header
-printf "Protocole\tDate\tLibrary\tSequencer\tSample\tTotal Read\tReads with adapters\t%% of Total Reads\tToo short\t%% of reads with adapters\tToo long\t%% of reads with adapters\tPass filters\t%% of Total Reads\tReads mapped on rRNA\tContamination (%%)\tUniquely Mapped\t%% of raw data\t%% of reads with adapters\tMapped more than once\tUnmapped\n" > "${output}"
+printf "Protocole\tDate\tLibrary\tSequencer\tSample\tTotal Read\tReads with adapters\t%% of Total Reads\tToo short\t%% of total reads\tToo long\t%% of total reads\tPass filters\t%% of Total Reads\tReads mapped on rRNA\tContamination (%%)\tUniquely Mapped\t%% of raw data\t%% of reads with adapters\tMapped more than once\tUnmapped\n" > "${output}"
 
 dirlist=$(ls ${dir}/fastq)
 
@@ -105,19 +105,19 @@ for file in ${dirlist}; do
     mapping_hisat2_log="${stats}/${sample}_run_mapping_hisat2.log" # Path to mapping hisat2 log file
 
     Total_reads=$(grep "Total reads" ${adapt_trimming_log} | awk -F ':' '{{print $2}}' | tr -d '[:space:],')
-    Reads_with_adapters=$(grep "Reads with adapters" ${adapt_trimming_log} | grep -oP '\d+,\d+,\d+' | tr -d ',')
+    Reads_with_adapters=$(grep "Reads with adapters" ${adapt_trimming_log} | grep -oP '\s[\d,]+\s' | tr -d ',[:space:]')
     Percent=$(grep "Reads with adapters" ${adapt_trimming_log} | grep -oP '\(\K[^\)]+')
-    Too_short=$(grep "too short" ${adapt_trimming_log} | grep -oP '\d+,\d+,\d+' | tr -d ',')
+    Too_short=$(grep "too short" ${adapt_trimming_log} | grep -oP '\s[\d,]+\s' | tr -d ',[:space:]')
     Percent_too_short=$(grep "too short" ${adapt_trimming_log} | grep -oP '\(\K[^\)]+')
-    Too_long=$(grep "too long" ${adapt_trimming_log} | grep -oP '\d+,\d+,\d+' | tr -d ',')
+    Too_long=$(grep "too long" ${adapt_trimming_log} | grep -oP '\s[\d,]+\s' | tr -d ',[:space:]')
     Percent_too_long=$(grep "too long" ${adapt_trimming_log} | grep -oP '\(\K[^\)]+')
-    Passing_filters=$(grep "Reads written (passing filters)" ${adapt_trimming_log} | grep -oP '\d+,\d+,\d+' | tr -d ',')
-    Percent_passing_filters=$(bc <<< "scale=1; $Passing_filters * 100 / $Total_reads")
+    Passing_filters=$(grep "Reads written (passing filters)" ${adapt_trimming_log} | grep -oP '\s[\d,]+\s' | tr -d ',[:space:]')
+    Percent_passing_filters=$(echo "$Passing_filters $Total_reads" | awk '{printf("%.1f",($1*100)/$2)}')
 
     uniq_reads_rRNA=$(grep "aligned exactly 1 time" ${outRNA_log} | awk '{{print $1}}')
     mult_reads_rRNA=$(grep "aligned >1 times" ${outRNA_log} | awk '{{print $1}}')
     rRNA=$(( uniq_reads_rRNA + mult_reads_rRNA ))
-    Contamination=$(bc <<< "scale=1; $rRNA * 100 / $Passing_filters")
+    Contamination=$(echo "$rRNA $Passing_filters" | awk '{printf("%.1f",($1*100)/$2)}')
 
     Unique_reads_hisat=$(grep "aligned exactly 1 time" $mapping_hisat2_log | awk '{{print $1}}')
     Unique_reads_bowtie=$(grep "aligned exactly 1 time" $mapping_bowtie2_log | awk '{{print $1}}')
@@ -125,11 +125,9 @@ for file in ${dirlist}; do
     Multi_reads_hisat=$(grep "aligned >1 times" $mapping_hisat2_log | awk '{{print $1}}')
     Multi_reads_bowtie=$(grep "aligned >1 times" $mapping_bowtie2_log | awk '{{print $1}}')
     Multi_mapped=$(( Multi_reads_hisat + Multi_reads_bowtie ))
-    Unmapped_reads_bowtie=$(grep "aligned 0 time" $mapping_bowtie2_log | awk '{{print $1}}')
-    Unmapped_reads_hisat=$(grep "aligned 0 time" $mapping_hisat2_log | awk '{{print $1}}')
-    Unmapped_genome=$(( Unmapped_reads_bowtie + Unmapped_reads_hisat ))
-    Raw_data=$(bc <<< "scale=1; $Uniquely_mapped_genome * 100 / $Total_reads")
-    Reads_ok=$(bc <<< "scale=1; $Uniquely_mapped_genome * 100 / $Passing_filters")
+    Unmapped_genome=$(grep "aligned 0 time" $mapping_bowtie2_log | awk '{{print $1}}')
+    Raw_data=$(echo "$Uniquely_mapped_genome $Total_reads" | awk '{printf("%.1f",($1*100)/$2)}')
+    Reads_ok=$(echo "$Uniquely_mapped_genome $Passing_filters" | awk '{printf("%.1f",($1*100)/$2)}')
 
     printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s%%\t%s\t%s%%\t%s\t%s%%\t%s%%\t%s\t%s\n" \
         "$protocole" \
