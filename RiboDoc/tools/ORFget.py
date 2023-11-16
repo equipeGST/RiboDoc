@@ -186,7 +186,10 @@ class GFF_element:
         Elongates the nucleotide sequence towards the 5 and 3 UTRs
         '''
         # We get the nucl seq of the elongations
-        elongate_5UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.start - elongate),(self.start-1),genome)
+        if elongate > self.start:
+            elongate_5UTR_nucl = "N"*(elongate-self.start+1) + self.__get_nucletide_seq__(self.chromosome,1,(self.start-1),genome)
+        else:
+            elongate_5UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.start - elongate),(self.start-1),genome)
         elongate_3UTR_nucl = self.__get_nucletide_seq__(self.chromosome,(self.end+1),(self.end + elongate),genome)
         # We construct the elongated nucl seq
         if self.strand == "-":
