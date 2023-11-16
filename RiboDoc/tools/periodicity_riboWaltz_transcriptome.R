@@ -195,4 +195,7 @@ for(i in 1:length(samples_renamed))
                 paste0(ribowaltz_folder, samples[i],"/results_by_length/reads_psite/reads_psite_list_specific_length_", len, ".csv"),
                 quote = F, row.names = F, sep ="\t")
   }
+  if(samples != samples_renamed) {
+    unlink(paste0(ribowaltz_folder, samples_renamed[i]), recursive = T)
+  }
 }
