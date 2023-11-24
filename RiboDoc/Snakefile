@@ -74,7 +74,8 @@ rule all:
         expand(local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html", sample=SAMPLES) if config['fasta_outRNA']=="" else expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
 
         # Folder with main outputs
-        local_path + "MAIN_RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt"
+        local_path + "MAIN_RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
+        local_path + "MAIN_RESULTS/Qualitative_analysis_riboWaltz/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/transcriptome_elongated." + SAMPLES[0] + "/length" + LENGTHS[0] + "_start.tiff" if config['qualitative_analysis']=="ribowaltz" else local_path + "MAIN_RESULTS/Qualitative_analysis_TRiP/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/" + SAMPLES[0] + "." + LENGTHS[0] + ".periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg"
 
 # When RiboDoc starts
 onstart:
