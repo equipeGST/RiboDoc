@@ -39,7 +39,7 @@ Project_name
 &emsp;&emsp;&emsp;├── Mutant.1.fastq.gz   
 &emsp;&emsp;&emsp;└── Mutant.2.fastq.gz   
 
-If you want to try RiboDoc on an example dataset, you can find one on GEO : [GEO GSE173856](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE173856)
+If you want to try RiboDoc on an example dataset, you can find one on GEO : [GEO GSE173856](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE173856). If you do so, be aware that this dataset does not align enough material for a use of the riboWaltz pipeline and TRiP should be selected (see later for details).  
 
 ### b) *database*  
 In this subfolder, you must put at least the following three files:  
