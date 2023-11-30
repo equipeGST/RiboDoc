@@ -10,9 +10,9 @@ RUN apt-get update \
     && apt-get install -y wget git-all \
     && rm -rf /var/lib/apt/lists/*
 
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py310_23.3.1-0-Linux-x86_64.sh \
-    && bash Miniconda3-py310_23.3.1-0-Linux-x86_64.sh -b -u -p /bin/miniconda3/ \
-    && rm Miniconda3-py310_23.3.1-0-Linux-x86_64.sh
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-x86_64.sh \
+    && bash Miniconda3-py310_23.5.2-0-Linux-x86_64.sh -b -u -p /bin/miniconda3/ \
+    && rm Miniconda3-py310_23.5.2-0-Linux-x86_64.sh
 
 RUN git clone https://github.com/equipeGST/RiboDoc.git
 
@@ -29,14 +29,10 @@ ENV PATH=$PATH:/bin
 
 SHELL ["/bin/bash", "-c"]
 
-RUN conda install mamba=1.4.5 -n base -c conda-forge -y \
-    && mamba env create -f /RiboDoc/RiboDoc/RiboDoc_env.yml
+RUN conda env create -f /RiboDoc/RiboDoc/RiboDoc_env.yml
 RUN conda init bash
 
-
-RUN echo "conda activate RiboDoc_env" >> /bin/.bashrc \
-    && conda info --envs \
-    && conda list --name RiboDoc_env
+RUN echo "conda activate RiboDoc_env" >> /bin/.bashrc
 
 ENV PATH=/bin/miniconda3/envs/RiboDoc_env/bin:$PATH
 

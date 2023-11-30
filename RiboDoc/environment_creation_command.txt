@@ -1,3 +1,3 @@
-Using the "mamba" package manager :
+Using the "mamba" package manager from conda (anaconda/miniconda) :
 mamba create --name RiboDoc_env -c conda-forge -c bioconda python r-base snakemake graphviz bioconductor-deseq2 r-rmarkdown bowtie2 hisat2 fastqc cutadapt "samtools=1.14" htseq gawk bedtools gffread gffutils r-stringr r-factominer r-devtools r-rlang r-cli r-memoise r-pkgload r-stringi r-dplyr r-rsqlite r-xml r-curl r-optparse bioconductor-genomicfeatures bioconductor-biocgenerics bioconductor-genomeinfodb bioconductor-biostrings bioconductor-genomicalignments biopython r-data.table r-ggplot2 r-ggrepel pysam
 
