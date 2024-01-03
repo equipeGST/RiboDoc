@@ -4,6 +4,8 @@ Welcome to the RiboDoc tool tutorial !
 
 >RiboDoc is designed to perform all classical steps of **ribosome profiling** (RiboSeq) data analysis from the FastQ files to the differential expression analysis with necessary quality controls.
 
+If you want to easily understand how to launch RiboDoc on your own computer, you can check our video tutorial just here :
+[![RiboDoc_Video](https://github.com/equipeGST/RiboDoc/assets/75135539/51fdeaf2-8a7c-4cd8-a5b3-d58d3c3adf5e)](http://www.youtube.com/watch?v=e9_SFz_YEK0 "Tutorial - RiboSeq analysis with RiboDoc pipeline")
 
 ## 1) Install Docker or Singularity  
 First of all, Docker or Singularity must be installed. Singularity might be prefered as it does not need super user rights, especially interesting for the use of RiboDoc on a cluster.  
