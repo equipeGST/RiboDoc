@@ -122,7 +122,7 @@ rule find_adapter_sequence:
     shell:
         "touch {output.adapter} 2> {log.touch} ;"
         "if [ -z " + config['adapt_sequence'] + " ]; then "
-        "Rscript " + ribodoc_tools + "find_adapter_sequence.R {input.fastq} 2> {log.rscript} ;"
+        "Rscript " + ribodoc_tools + "others/find_adapter_sequence.R {input.fastq} 2> {log.rscript} ;"
         "elif [ '" + config['already_trimmed'] + "' = 'no' ]; then echo " + config['adapt_sequence'] + " 1> {output.adapter} 2> {log.echo} ;"
         "fi"
 
@@ -426,7 +426,7 @@ rule generate_report:
     benchmark:
         local_path + "benchmarks/generate_report/benchmark.txt"
     shell:
-        "bash " + ribodoc_tools + "report_table.sh -r " + stats_path + " -D " + local_path + " -o " + local_path + "RESULTS/" + config['project_name'] + ".Analysis_Table_summary" + frag_length_L + ".csv 2> {log.report}"
+        "bash " + ribodoc_tools + "others/report_table.sh -r " + stats_path + " -D " + local_path + " -o " + local_path + "RESULTS/" + config['project_name'] + ".Analysis_Table_summary" + frag_length_L + ".csv 2> {log.report}"
 
 # Counts reads on each transcript
 rule htseqcount_cds:
@@ -564,7 +564,7 @@ rule matrices_by_gene_or_transcript:
     benchmark:
         local_path + "benchmarks/matrices_by_gene_or_transcript/matrices_creation.benchmark.txt"
     shell:
-        "Rscript " + ribodoc_tools + "by_gene_or_trancript_count_matrices.R -w " + local_path + " -f " + ribodoc_tools
+        "Rscript " + ribodoc_tools + "differential_analysis/by_gene_or_trancript_count_matrices.R -w " + local_path + " -f " + ribodoc_tools + "differential_analysis/"
 
 # Performs differential analysis
 rule DESeq2_analysis_gene:
@@ -584,7 +584,7 @@ rule DESeq2_analysis_gene:
         reportPath = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/",
         reportName = config['project_name'] + ".Final_report.html"
     shell:
-        "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis_by_gene.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2}"
+        "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "differential_analysis/DESeq2_analysis_by_gene.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2}"
 
 rule DESeq2_analysis_transcript:
     input:
@@ -603,7 +603,7 @@ rule DESeq2_analysis_transcript:
         reportPath = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/",
         reportName = config['project_name'] + ".Final_report.html"
     shell:
-        "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "DESeq2_analysis_by_transcript.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2}"
+        "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "differential_analysis/DESeq2_analysis_by_transcript.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2}"
 
 
 # Quality controls :
@@ -621,7 +621,7 @@ rule filter_by_5UTR:
     params:
         annex_path = local_path + "RESULTS/annex_database/"
     shell:
-        "bash " + ribodoc_tools + "filter_5UTR.sh -g {input.gff_namedCDS} -o {output.gff_5UTR_filtered} -p {params.annex_path} -r " + config["gff_mRNA_feature"] + " -u " + config["gff_5UTR_feature"] + " -t " + utr_threshold + " 2> {log}"
+        "bash " + ribodoc_tools + "others/filter_5UTR.sh -g {input.gff_namedCDS} -o {output.gff_5UTR_filtered} -p {params.annex_path} -r " + config["gff_mRNA_feature"] + " -u " + config["gff_5UTR_feature"] + " -t " + utr_threshold + " 2> {log}"
 
 # In case there are no UTRs in the original GFF, call for ORFget functions
 rule ORFget:
@@ -638,7 +638,7 @@ rule ORFget:
     params:
         path = local_path + "RESULTS/annex_database/transcriptome"
     shell:
-        "python3 " + ribodoc_tools + "ORFget.py -fna {input.fasta} -gff {input.gff} -features_include " + config['gff_cds_feature'] + " -name_attribute " + config['gff_name_attribut'] + " -o {params.path} -type nucl -elongate 50 -check 2> {log.orf_get}"
+        "python3 " + ribodoc_tools + "orfget/ORFget.py -fna {input.fasta} -gff {input.gff} -features_include " + config['gff_cds_feature'] + " -name_attribute " + config['gff_name_attribut'] + " -o {params.path} -type nucl -elongate 50 -check 2> {log.orf_get}"
 
 # Create GTF file for riboWaltz
 rule transcriptome_construction_gtf:
@@ -790,7 +790,7 @@ rule riboWaltz_transcriptome:
         local_path + "benchmarks/riboWaltz_transcriptome/riboWaltz.benchmark.txt"
     shell:
         "touch {output.psite_table} ;"
-        "Rscript " + ribodoc_tools + "periodicity_riboWaltz_transcriptome.R -w " + local_path + " -f " + ribodoc_tools + " -g {input.transcriptome_gtf} 2> {log} ;"
+        "Rscript " + ribodoc_tools + "ribowaltz/periodicity_riboWaltz_transcriptome.R -w " + local_path + " -f " + ribodoc_tools + "ribowaltz/ -g {input.transcriptome_gtf} 2> {log} ;"
         "rm -f " + local_path + "Rplots.pdf ;"
 
 
@@ -813,7 +813,7 @@ rule quality_controls_bamDivision:
         sample_names = "{sample}",
         read_length = "{taille}"
     shell:
-        "bash " + ribodoc_tools + "BamDivision.sh -N {params.sample_names} -l {params.read_length} -B {input.bam} -T {threads} -o " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log}"
+        "bash " + ribodoc_tools + "trip/BamDivision.sh -N {params.sample_names} -l {params.read_length} -B {input.bam} -T {threads} -o " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log}"
 
 # Creates bed files from fasta files
 rule quality_controls_bedcount:
@@ -833,7 +833,7 @@ rule quality_controls_bedcount:
         sample_names = "{sample}",
         read_length = "{taille}"
     shell:
-        "bash " + ribodoc_tools + "readsLengthRepartition.sh -N {params.sample_names} -l {params.read_length} -F {input.fasta} -D " + local_path + "RESULTS/qualitativeAnalysis/bamDivision/ -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log}"
+        "bash " + ribodoc_tools + "trip/readsLengthRepartition.sh -N {params.sample_names} -l {params.read_length} -F {input.fasta} -D " + local_path + "RESULTS/qualitativeAnalysis/bamDivision/ -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log}"
 
 # Outputs the number of reads on each reads length
 rule quality_controls_readsLengthRepartition:
@@ -874,8 +874,8 @@ rule quality_controls_periodicity:
         sample_names = "{sample}",
         read_length = "{taille}"
     shell:
-        "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'start' -t '" + config['gff_cds_feature'] + "' -m " + config['window_utr'] + " -M " + config['window_cds'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.start} ;"
-        "bash " + ribodoc_tools + "periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'stop' -t '" + config['gff_cds_feature'] + "' -m " + config['window_cds'] + " -M " + config['window_utr'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.stop} ;"
+        "bash " + ribodoc_tools + "trip/periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'start' -t '" + config['gff_cds_feature'] + "' -m " + config['window_utr'] + " -M " + config['window_cds'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.start} ;"
+        "bash " + ribodoc_tools + "trip/periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'stop' -t '" + config['gff_cds_feature'] + "' -m " + config['window_cds'] + " -M " + config['window_utr'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.stop} ;"
 
 # Creates graphs of reads length repartition
 rule graphs_length:
@@ -890,7 +890,7 @@ rule graphs_length:
     benchmark:
         local_path + "benchmarks/quality_controls_graphs_length/{sample}.benchmark.txt"
     shell:
-        "Rscript " + ribodoc_tools + "generationGraph_length.R --work_dir " + local_path + " --sample_name {params.sample_name} 2> {log.rscript}"
+        "Rscript " + ribodoc_tools + "trip/generationGraph_length.R --work_dir " + local_path + " --sample_name {params.sample_name} 2> {log.rscript}"
 
 # Creates periodicity graphs
 rule graphs_periodicity:
@@ -908,8 +908,8 @@ rule graphs_periodicity:
     benchmark:
         local_path + "benchmarks/quality_controls_graphs_periodicity/{sample}.{taille}.benchmark.txt"
     shell:
-        "Rscript " + ribodoc_tools + "generationGraph_perio.R --work_dir " + local_path + " --name {params.name_start} --feature_type " + config['gff_cds_feature'] + " --start_or_stop 'start' --length_before '" + config['window_utr'] + "' --Length_after '" + config['window_cds'] + "' 2> {log.start} ;"
-        "Rscript " + ribodoc_tools + "generationGraph_perio.R --work_dir " + local_path + " --name {params.name_stop} --feature_type " + config['gff_cds_feature'] + " --start_or_stop 'stop' --length_before '" + config['window_cds'] + "' --Length_after '" + config['window_utr'] + "' 2> {log.stop} ;"
+        "Rscript " + ribodoc_tools + "trip/generationGraph_perio.R --work_dir " + local_path + " --name {params.name_start} --feature_type " + config['gff_cds_feature'] + " --start_or_stop 'start' --length_before '" + config['window_utr'] + "' --Length_after '" + config['window_cds'] + "' 2> {log.start} ;"
+        "Rscript " + ribodoc_tools + "trip/generationGraph_perio.R --work_dir " + local_path + " --name {params.name_stop} --feature_type " + config['gff_cds_feature'] + " --start_or_stop 'stop' --length_before '" + config['window_cds'] + "' --Length_after '" + config['window_utr'] + "' 2> {log.stop} ;"
 
 # Creates periodicity graphs from riboWaltz outputs
 rule periodicity_rgb:
@@ -922,7 +922,7 @@ rule periodicity_rgb:
     benchmark:
         local_path + "benchmarks/periodicity_rgb/benchmark.txt"
     shell:
-        "Rscript " + ribodoc_tools + "change_riboWaltz_periodicity_graphs_to_RGB_by_length.R -w " + local_path + " 2> {log.rscript}"
+        "Rscript " + ribodoc_tools + "ribowaltz/change_riboWaltz_periodicity_graphs_to_RGB_by_length.R -w " + local_path + " 2> {log.rscript}"
 
 # Creates periodicity graphs
 rule main_output_folder:
@@ -945,4 +945,4 @@ rule main_output_folder:
     benchmark:
         local_path + "benchmarks/main_output_folder/benchmark.txt"
     shell:
-        "bash " + ribodoc_tools + "main_results_folder_maker.sh -p " + local_path + " -P " + ribodoc_tools + " -q " + config['qualitative_analysis'] + " -s {input.stats_report} -d {params.deseq2_folder} -g {params.graphs_folder} -r {params.ribowaltz_folder} -t {input.report_table} 2> {log.bash}"
+        "bash " + ribodoc_tools + "others/main_results_folder_maker.sh -p " + local_path + " -P " + ribodoc_tools + "others/ -q " + config['qualitative_analysis'] + " -s {input.stats_report} -d {params.deseq2_folder} -g {params.graphs_folder} -r {params.ribowaltz_folder} -t {input.report_table} 2> {log.bash}"
