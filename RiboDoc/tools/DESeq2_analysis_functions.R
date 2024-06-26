@@ -70,32 +70,30 @@ transcript_or_gene <- function(data) {
 
 # Determination of the number of samples
 sort_columns_by_sample <- function(data, reference_condition) {
-  expData_Sorted <- data[, sort(colnames(data))]
-  Names_Col <- colnames(expData_Sorted)
-  Cond <-
-    str_replace(Names_Col, regex("[.]{0,1}[[:digit:]]{1,}$"), "")
-  nb_col_condA <- table(factor(Cond))[[1]]
-  nb_col_condB <- table(factor(Cond))[[2]]
+  Names_Col <- colnames(data)
+  conditions <- gsub("\\..*","",Names_Col)
   
+  nb_col_refCond <- table(factor(conditions[grepl(reference_condition, conditions)]))
+  nb_col_conditions <- table(factor(conditions[!grepl(reference_condition, conditions)]))
+  # Create a logical vector where TRUE corresponds to the reference condition
+  is_ref_condition <- conditions == reference_condition
   
-  if (Cond[1] != reference_condition) {
-    Ord <- c((1:nb_col_condB) + nb_col_condA , (1:nb_col_condA))
-    expData_Sorted <- expData_Sorted[, Ord]
-    
-    Cond <- Cond[Ord]
-    nb_col_condA <- nb_col_condA + nb_col_condB
-    nb_col_condB <- nb_col_condA - nb_col_condB
-    nb_col_condA <- nb_col_condA - nb_col_condB
-    Names_Col <- colnames(expData_Sorted)
-  }
+  # Order the columns so that reference condition columns come first
+  ordered_cols <- c(
+    Names_Col[grepl(reference_condition, conditions)],
+    Names_Col[!grepl(reference_condition, conditions)])
+  
+  # Sort the data frame by the ordered columns
+  expData_Sorted <- data[, match(ordered_cols, colnames(data))]
+  
   sorted_data_list <- list(
     expData_Sorted = expData_Sorted,
-    Names_Col = Names_Col,
-    Cond = Cond,
-    nb_col_condA = nb_col_condA,
-    nb_col_condB = nb_col_condB,
-    sample_test = Cond[nb_col_condA + 1]
+    Names_Col = ordered_cols,
+    conditions = conditions,
+    nb_col_refCond = nb_col_refCond,
+    nb_col_conditions = nb_col_conditions
   )
+  
   return(sorted_data_list)
 }
 
@@ -106,8 +104,8 @@ library_size_plot <- function(data_list) {
     ylab = "Total read number (million)",
     main = "Library sizes",
     col = c(
-      rep("yellow", data_list$nb_col_condA),
-      rep("blue", data_list$nb_col_condB)
+      rep("yellow", sum(data_list$nb_col_refCond)),
+      rep("blue", sum(data_list$nb_col_conditions))
     ),
     names = colnames(data_list$expData_Sorted),
     cex.names = 0.6,
@@ -131,26 +129,75 @@ upper.panel <- function(x, y) {
 }
 
 # PCA
-make_PCA <- function(data, axis = 2) {
-  res.pca <- PCA(t(data) , ncp = 3, graph = FALSE)
-  if (dim(res.pca$eig)[1] > axis - 1) {
-    plot(
-      res.pca,
-      choix = "ind",
-      autoLab = "yes",
-      axes = c(1, axis),
-      width = 3,
-      height = 3
-    )
+make_PCA <- function(data, axis = 2, conds) {  
+  transposed_data <- t(data)
+  res.pca <- PCA(transposed_data, ncp = 3, graph = FALSE)
+  
+  if (dim(res.pca$eig)[1] > axis - 1) {    
+    return(pca_plot(res.pca, axis, conds))
+    }
+}
+
+pca_plot <- function(res.pca, axis, conds) {
+  
+  symmetric_limits <- function (x) {
+    c(-max(abs(x)),  max(abs(x)))
   }
+
+  percent_var_explained <- (res.pca$eig^2 / sum(res.pca$eig^2))*100
+  x_axis = "Dim.1"
+  percent_var_x = res.pca$eig[1,2]
+  percent_var_y = res.pca$eig[axis,2]
+  colours <- c("#be95c4", "#5fa8d3", "#a7c957", "#ffbd00", "#e63946", "#e76f51")
+  
+  y_axis = paste0("Dim.", axis)
+  data = as.data.frame(res.pca$ind$coord)
+  conditions = c()
+  for (i in c(1:length(rownames(data)))) {
+      for (cond in conds){
+          if (grepl(cond, rownames(data)[i])){
+              conditions <- c(conditions, cond)
+              }
+          }
+      }
+  data <- cbind(data, conditions)
+  pca_plot <- ggplot(data, aes_string(x = x_axis, y = y_axis)) +
+      geom_point(aes(fill=as.factor(data$conditions)), shape = 21, alpha = 0.7, size = 6, stroke=0.75) +
+      theme_bw() +
+      scale_fill_manual(aes(order=as.factor(data$conditions)), values=colours) +
+      xlab(paste(x_axis, " (",round(percent_var_x, digit=2),"%)", sep=""))+
+      ylab(paste(y_axis, " (",round(percent_var_y, digit=2),"%)", sep=""))+
+      ggtitle("PCA graph of individuals")+
+      theme(
+        axis.text=element_text(size=16),
+        legend.title= element_blank(),
+        axis.title=element_text(size=16),
+        legend.text = element_text(size =13),
+        plot.title = element_text(size=18, face="bold", hjust = 0.5))+
+        scale_x_continuous(limits = symmetric_limits) +
+        scale_y_continuous(limits = symmetric_limits) +
+        geom_hline(yintercept = 0, linetype = "dashed", color = "grey") +
+        geom_vline(xintercept = 0, linetype = "dashed", color = "grey")
+
+  pca_plot <- pca_plot +
+    ggrepel::geom_text_repel(
+      aes(label = rownames(res.pca$ind$coord)),
+      segment.alpha = 0.8,
+      box.padding = 1,
+      nudge_x = 1,
+      force = 1,
+      size=4,
+      max.overlaps = Inf)
+
+  return(pca_plot)
 }
 
 # DESeq2 matrix creation
 deseq_object <- function(data_list) {
   conds <-
     factor(c(
-      rep("CondA", data_list$nb_col_condA),
-      rep("CondB", data_list$nb_col_condB)
+      rep("CondA", sum(data_list$nb_col_refCond)),
+      rep("CondB", sum(data_list$nb_col_conditions))
     ))
   colData <- data.frame(condition = conds)
   ddsObjet <-
@@ -165,15 +212,16 @@ deseq_object <- function(data_list) {
 }
 
 # Library Size Normalization
-library_size_barplot <- function(dds_object, data_list) {
+library_size_barplot <- function(dds_object, data_list, group, refCond) {
   normalized_counts <- counts(dds_object, normalized = TRUE)
   barplot(
     colSums(normalized_counts / 1000000),
     ylab = "Total read number (million)",
-    main = "Library sizes (after normalization)",
+    main = "Library sizes (normalized)",
+    sub = paste0(refCond, " vs ", group),
     col = c(
-      rep("yellow", data_list$nb_col_condA),
-      rep("blue", data_list$nb_col_condB)
+      rep("yellow", sum(data_list$nb_col_refCond)),
+      rep("blue", sum(data_list$nb_col_conditions))
     ),
     names = colnames(data_list$expData_Sorted),
     las = 2,
@@ -182,20 +230,20 @@ library_size_barplot <- function(dds_object, data_list) {
 }
 
 # Library Size Boxplot
-library_size_boxplot <- function(dds_object, data_list) {
+library_size_boxplot <- function(dds_object, data_list, group, refCond) {
   normalized_counts <- counts(dds_object, normalized = TRUE)
   row_sub_1 = apply(data_list$expData_Sorted, 1, function(row)
     all(row != 0))
   row_sub_2 = apply(normalized_counts, 1, function(row)
     all(row != 0))
-  par(mfrow = c(1, 2))
-  
+  par(mfrow = c(1, 2), cex.axis=0.75, cex.lab=0.75)
   boxplot((data_list$expData_Sorted[row_sub_1, ]),
           main = "Library sizes",
+          sub = paste0(refCond, " vs ", group),
           log = "y",
           col = c(
-            rep("yellow", data_list$nb_col_condA),
-            rep("blue", data_list$nb_col_condB)
+            rep("yellow", sum(data_list$nb_col_refCond)),
+            rep("blue", sum(data_list$nb_col_conditions))
           ),
           names = colnames(data_list$expData_Sorted),
           cex.names = 0.6,
@@ -206,10 +254,11 @@ library_size_boxplot <- function(dds_object, data_list) {
   boxplot((normalized_counts[row_sub_2, ]),
           ylab = "Total read number",
           main = "Library sizes (after normalization)",
+          sub = paste0(refCond, " vs ", group),
           log = "y",
           col = c(
-            rep("yellow", data_list$nb_col_condA),
-            rep("blue", data_list$nb_col_condB)
+            rep("yellow", sum(data_list$nb_col_refCond)),
+            rep("blue", sum(data_list$nb_col_conditions))
           ),
           names = colnames(data_list$expData_Sorted),
           cex.names = 0.6,
@@ -222,13 +271,13 @@ library_size_boxplot <- function(dds_object, data_list) {
 }
 
 # Dispersion
-dispersion_estimation <- function(ddsObjet) {
+dispersion_estimation <- function(ddsObjet, group, refCond) {
   ddsEstim = DESeq(ddsObjet)
   resDESeq = results(ddsEstim, contrast = c("condition", "CondB", "CondA"))
   
   mcols(resDESeq, use.names = TRUE)
   dds = estimateDispersions(ddsObjet)
-  plotDispEsts(dds)
+  plotDispEsts(dds, main = paste0(refCond, " vs ", group), legend = "FALSE")
   
   return(resDESeq)
 }
@@ -237,188 +286,256 @@ dispersion_estimation <- function(ddsObjet) {
 find_means <- function(dds_object, data_list) {
   normalized_counts <- counts(dds_object, normalized = TRUE)
   # Control mean
-  if (data_list$nb_col_condA > 1) {
+  if (sum(data_list$nb_col_refCond )> 1) {
     CT_Mean <-
-      data.frame(apply(normalized_counts[, 1:(data_list$nb_col_condA)], 1, mean))
+      data.frame(apply(normalized_counts[, 1:(sum(data_list$nb_col_refCond))], 1, mean))
   } else {
     CT_Mean <- data.frame(normalized_counts[, 1])
   }
   # Tested condition mean
-  if (data_list$nb_col_condB > 1) {
+  if (sum(data_list$nb_col_conditions) > 1) {
     Mut_Mean <-
-      data.frame(apply(normalized_counts[, (data_list$nb_col_condA + 1):dim(normalized_counts)[2]], 1, mean))
+      data.frame(apply(normalized_counts[, (sum(data_list$nb_col_refCond) + 1):dim(normalized_counts)[2]], 1, mean))
   } else {
     Mut_Mean <-
-      data.frame(normalized_counts[, (data_list$nb_col_condA + 1)])
+      data.frame(normalized_counts[, (sum(data_list$nb_col_refCond) + 1)])
   }
+  names(CT_Mean)[1] <- "CT_Mean"
+  names(Mut_Mean)[1] <- "Mut_Mean"
   
   return(list(CT_Mean = CT_Mean, Mut_Mean = Mut_Mean))
 }
 
 # logFC frequency
-frequency_histogram <- function(deseq_results) {
+frequency_histogram <- function(deseq_results, group, refCond) {
   hist(
     deseq_results$log2FoldChange,
     nclass = 200,
     xlab = "logFC values",
-    main = "Frequency / LogFC"
+    main = "Frequency / LogFC",
+    sub = paste0(refCond, " vs ", group)
   )
   abline(v = 2, col = "red")
   abline(v = -2, col = "red")
 }
 
 # p-value
-pval_distribution <- function(deseq_results) {
+pval_distribution <- function(deseq_results, group, refCond) {
   hist(deseq_results[, "pvalue"],
        nclass = 100,
        xlab = "p-values",
-       main = "Histogram of p-values (DESeq2)")
+       main = "Histogram of p-values (DESeq2)",
+       sub = paste0(refCond, " vs ", group))
 }
 
 # adjusted p-value
-padj_distribution <- function(deseq_results) {
+padj_distribution <- function(deseq_results, group, refCond) {
   hist(deseq_results[, "padj"],
        nclass = 100,
        xlab = "padj",
-       main = "Histogram adjusted p-values")
+       main = "Histogram adjusted p-values",
+       sub = paste0(refCond, " vs ", group))
 }
 
-ma_plot <- function(deseq_results, data_list) { # MA-plot function
+ma_plot <- function(deseq_results, data_list, group, refCond) {
   data = data.frame(deseq_results)
+  # thresholds
   fdr = Var_padj
   fc = Var_log2FC
   
-  detection_call = rep(1, nrow(data))
+  data$baseMean <- log2(data$baseMean +1) # log2 transformation of baseMean for plotting
   
-  data$baseMean <- log2(data$baseMean +1)
   genenames <- rownames(data)
   
+  # Significance levels (3 : NS, 2 : Down, 1 : Up : 2)
   sig <- rep(3, nrow(data))
-  sig[which(data$padj <= fdr & data$log2FoldChange < 0 & abs(data$log2FoldChange) >= log2(fc) & detection_call ==1)] = 2
-  sig[which(data$padj <= fdr & data$log2FoldChange > 0 & abs(data$log2FoldChange) >= log2(fc) & detection_call ==1)] = 1
+  sig[which(data$padj <= fdr & data$log2FoldChange < fc & abs(data$log2FoldChange) >= log2(fc))] = 2
+  sig[which(data$padj <= fdr & data$log2FoldChange > fc & abs(data$log2FoldChange) >= log2(fc))] = 1
   data <- data.frame(name = genenames, mean = data$baseMean, lfc = data$log2FoldChange, padj = data$padj, sig = sig)
-  
   . <- NULL
   data$sig <- as.factor(data$sig)
   .lev <- levels(data$sig) %>% as.numeric()
-  new.levels <- c(paste0("Up: ", sum(sig == 1)), paste0("Down: ", sum(sig == 2)), "NS") %>% .[.lev]
-  
+  new.levels <- c("Up", "Down", "NS") %>% .[.lev]
   data$sig <- factor(data$sig, labels = new.levels)
   
   data <- data[order(data$padj), ]
   
   complete_data <- stats::na.omit(data)
-  labs_data <- subset(complete_data, padj <= fdr & name!="" & abs(lfc) >= log2(fc))
-  labs_data <- utils::head(labs_data, 5)
-  
-  # Plot
+  filtered_data <- subset(complete_data, padj <= fdr & name!="" & abs(lfc) >= log2(fc))
+
+  # Sort by padj and log2fc in ascending order and select top 5
+  best_up <- utils::head(filtered_data[order(filtered_data$lfc, filtered_data$padj, decreasing=c(TRUE, FALSE)), ], 3)
+  # Sort by padj in ascending order and log2fc in descending order and select top 5
+  best_down <- utils::head(filtered_data[order(filtered_data$lfc, filtered_data$padj,  decreasing=c(FALSE, FALSE)), ], 3)
+
+  # Combine the rows
+  labs_data <- rbind(best_up, best_down)
   mean <- lfc <- sig <- name <- padj <-  NULL
-  
+
+  # Plot creation
   ma_plot <- ggplot(data, aes(x = mean, y = lfc)) +
-    geom_point(aes(alpha = sig, colour=sig, fill=sig, size=sig), shape=21) +
-    scale_colour_manual(values = c("red", "red", "grey")) +
-    scale_size_manual(values= c(1, 1, 0.5), guide = guide_legend(override.aes = list(size = 5))) +
-    scale_alpha_manual(values = c(1, 1, 0.5)) +
-    scale_fill_manual(values = c("red", "red", "grey")) +
-    ggrepel::geom_label_repel(data = labs_data, mapping = aes(label = name),
-                              box.padding = unit(0.35, "lines"),
-                              point.padding = unit(0.3, "lines"),
-                              force = 1, seed = 42, fontface = "plain",
-                              size = 12/3, color = "black",
-                              max.overlaps = Inf,
-                              show.lgend = FALSE) + 
+    geom_point(aes(alpha = sig, colour = sig, fill = sig, size = sig), shape=21) +
+    # color of the border of points
+    scale_colour_manual(values = c("Up" = "red", "Down" = "blue", "NS" = "grey")) + 
+    # size of points
+    scale_size_manual(values= c("Up" = 1, "Down" = 1, "NS" = 0.5)) +
+    # transparency of points
+    scale_alpha_manual(values = c("Up" = 1, "Down" = 1, "NS" = 0.5)) +
+    # fill color of points
+    scale_fill_manual(values = c("Up" = "red", "Down" = "blue", "NS" = "grey")) +
+    # adding labels for most significant element
+    ggrepel::geom_label_repel(
+      data = labs_data, aes(label = name),
+      box.padding = unit(0.35, "lines"),
+      segment.alpha = 0.8,
+      fill = alpha(c("white"),0.4),
+      point.padding = unit(0.3, "lines"),
+      nudge_y = ifelse(labs_data$lfc > 0, 2, -2),
+      min.segment.length = unit(0, 'lines'),
+      force = 0.8, fontface = "plain",
+      size = 2.5, color = "black",
+      max.overlaps = Inf,
+      show.legend = FALSE) + 
+    # changing axis scale
     scale_x_continuous(breaks=seq(0, max(data$mean), 2)) +
-    labs(x = "Mean of normalized counts",
-         y = "log2FC", 
-         title = paste0("MA-plot - ",data_list$Cond[data_list$nb_col_condB+1]," vs ", data_list$Cond[1]), 
-         color = "Expression change")+ # to remove legend title use color = ""
-    geom_hline(yintercept = c(0, -log2(fc), log2(fc)), linetype = c(1, 2, 2),
-               color = c("black", "black", "black")) + 
+    # adding titles 
+    labs(
+      # axis titles
+      x = "Mean of normalized counts",
+      y = "log2FC",
+      # main title
+      title = "MA-plot",
+      subtitle = paste0(refCond," vs ", group),
+      # legend title
+      color = "Expression change") +
+    # adding horizontal line(s) for log2FC threshold
+    geom_hline(yintercept = c(0, -log2(fc), log2(fc)), linetype = c(1, 2, 2), color = c("black", "black", "black")) +
+    # legend settings
     guides(
       color = FALSE,  # Remove the legend for color
       alpha = FALSE,  # Remove the legend for alpha
-      size = FALSE
-    ) + 
+      size = FALSE,   # Remove the legend for size
+      fill = guide_legend(override.aes = list(size=6)) # Incresing point size in legend
+      ) + 
+    # Remove secondary axis
     theme_classic() +
-    theme(legend.position="bottom",
-          plot.title = element_text(face = "bold", hjust=0.5, size=20),
-          panel.border = element_rect(colour = "black", fill = NA, size= 0.5),    
-          panel.grid.minor = element_blank(),
-          panel.grid.major = element_blank(),
-          axis.text=element_text(size=12),
-          axis.title=element_text(size=14,face="bold"),
-          legend.title = element_blank(),
-          legend.text=element_text(size=12))
+    theme(
+      # graphical options for legend
+      legend.position="bottom",
+      legend.title = element_blank(),
+      legend.text=element_text(size=14),
+      plot.title = element_text(face = "bold", hjust=0.5, size=15),
+      plot.subtitle = element_text(hjust=0.5),
+      panel.border = element_rect(colour = "black", fill = NA, size= 0.5),    
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_blank(),
+      axis.text=element_text(size=12),
+      axis.title=element_text(size=14,face="bold"))
   
   return(ma_plot)
 }
 
+
 # Volcano plot global
-volcano_plot <- function(deseq_results, data_list) { # Volcano plot function
-  deseq_results_modified <- data.frame(deseq_results) # Create a new dataframe with the results of DESeq2
-  deseq_results_modified$diffexpressed <- ifelse( # Add a new column with the expression change
-    abs(deseq_results_modified$log2FoldChange) > Var_log2FC & deseq_results_modified$padj < Var_padj,
-    "Significant", # If the gene is differentially expressed
-    "NS") # If the gene is not differentially expressed
+volcano_plot <- function(deseq_results, data_list, group, refCond) { # Volcano plot function
+    
+  data <- data.frame(deseq_results)
+  fdr <- Var_padj
+  fc <- Var_log2FC
+
+  data$diffexpressed <- 
+    ifelse( # Add a new column with the expression change
+        abs(data$log2FoldChange) > fc & data$padj <= fdr, # If the gene is differentially expressed
+            ifelse(data$log2FoldChange > fc, 
+                "Up",
+                "Down"), # If the gene is up-regulated or down-regulated
+        "NS") # If the gene is not differentially expressed
+        
+  data$diffexpressed[is.na(data$diffexpressed)] <- "NS" # Replace the NA values with "NS"
   
-  limit_x <- max(abs(ceiling(range(deseq_results_modified$log2FoldChange[!is.na(deseq_results_modified$log2FoldChange)])))) # Set the limit of the x-axis
-  limit_y <- -log10(range(deseq_results_modified$padj[!is.na(deseq_results_modified$padj)])) # Set the limit of the y-axis
-  
-  top_significant_values <- deseq_results_modified %>% filter(padj %in% sort(deseq_results_modified$padj)[1:5]) # Select the 5 most significant values
-  
-  up_genes <- nrow(subset(deseq_results_modified, log2FoldChange > Var_log2FC & padj < Var_padj)) # Count the number of up-regulated genes
-  down_genes <- nrow(subset(deseq_results_modified, log2FoldChange < Var_log2FC & padj < Var_padj)) # Count the number of down-regulated genes
-  
-  volcano_plot_global <- ggplot(deseq_results_modified, aes(x = log2FoldChange, y = -log10(padj))) + # Create the volcano plot object
-    geom_point(aes(colour = diffexpressed, alpha = diffexpressed, size = diffexpressed), shape = 16) + # Add the values
-    geom_point(data = top_significant_values, aes(colour = "Significant"), shape = 21, size = 3, fill = "red", colour = "black") + # Add the 5 most significant values
-    geom_hline(yintercept = -log10(Var_padj), linetype = "dashed") + # Horizontal line at p-value = 0.05
-    geom_vline(xintercept = c(-Var_log2FC, Var_log2FC), linetype = "dashed") + # Vertical line at log2FC = 1
-    geom_label_repel(
-      data = top_significant_values, # Add labels for the 5 most significant values
-      aes(x = log2FoldChange, y = -log10(padj), label = row.names(top_significant_values)),
-      force = 2,
-      nudge_y = 1
+  limit_x <- max(abs(ceiling(range(data$log2FoldChange[!is.na(data$log2FoldChange)])))) # Set the limit of the x-axis
+  limit_y <- -log10(range(data$padj[!is.na(data$padj)])) # Set the limit of the y-axis
+
+  up <- subset(data, diffexpressed == "Up") # Select the up-regulated genes
+  down <- subset(data, diffexpressed == "Down") # Select the down-regulated genes
+
+  up <- up[order(up$lfc, decreasing=TRUE), ] # Order the up-regulated genes by padj
+  down <- down[order(down$lfc, decreasing=FALSE), ] # Order the down-regulated genes by padj
+
+  best_up <- utils::head(up[order(up$padj, decreasing=FALSE), ], 3)
+  best_down <- utils::head(down[order(down$padj, decreasing=FALSE), ], 3)
+  top_significant_values <- rbind(best_up, best_down)
+  top_significant_values$colour <- ifelse(top_significant_values$diffexpressed == "Up", "red", "blue")
+
+  up_genes <- nrow(subset(data, log2FoldChange > fc & padj < fdr)) # Count the number of up-regulated genes
+  down_genes <- nrow(subset(data, log2FoldChange < fc & padj < fdr)) # Count the number of down-regulated genes
+
+  volcano_plot_global <- ggplot(data, aes(x = log2FoldChange, y = -log10(padj))) + # Create the volcano plot object
+    geom_point(aes(colour = diffexpressed, alpha = diffexpressed, size = diffexpressed), shape = 16) +
+    scale_colour_manual(values = c("Up" = "red", "Down" = "blue", "NS" = "grey"), name = NULL) + 
+    scale_alpha_manual(values = c("Up" = 1, "Down" = 1, "NS" = 0.5), name = NULL) +
+    scale_size_manual(values = c("Up" = 2, "Down" = 2, "NS" = 1), name = NULL) +
+    scale_fill_manual(values = c("Up" = "red", "Down" = "blue", "NS" = "grey"), name = "Expression change") +
+    # Add the most significant values
+    geom_point(data = top_significant_values, shape = 21, size = 3, fill=top_significant_values$colour, colour = "black") +
+    # Horizontal line for padj corresponding to padj threshold
+    geom_hline(yintercept = -log10(fdr), linetype = "dashed") +
+    # Vertical line for log2(fold change) corresponding to log2FC threshold
+    geom_vline(xintercept = c(-fc, fc), linetype = "dashed") +
+    # Add labels for the most significant values
+    ggrepel::geom_label_repel(
+        data = top_significant_values,
+        aes(x = log2FoldChange, y = -log10(padj)), 
+        size = 2.5,
+        segment.alpha = 0.8,
+        fill = alpha(c("white"),0.4),
+        box.padding = unit(0.35, "lines"),
+        point.padding = unit(0.3, "lines"),
+        fontface = "plain",
+        label = row.names(top_significant_values),
+        force = 0.8,
+        min.segment.length = unit(0, 'lines'),
+        max.overlaps = Inf,
+        show.legend = FALSE
     ) +
-    scale_colour_manual(values = c("Significant" = "red", "NS" = "grey"), name =NULL) + 
-    scale_alpha_manual(values = c("Significant" = 1, "NS" = 0.5), name =NULL) +
-    scale_size_manual(values = c("Significant" = 2, "NS" = 1), name =NULL) +
-    scale_fill_manual(values = c("Significant" = "red", "NS"="grey"), name="Expression change") + # If you want the fill color for significant points
-    scale_x_continuous(breaks = c(seq(-limit_x, limit_x, 5)), limits = c(-limit_x, limit_x)) + # Set the limits of the x-axis 
-    guides(
-      color = guide_legend(override.aes = list(size = 5)) # Remove the legend for the alpha aesthetic
-    ) +
+    # Set the limits of the x-axis 
+    scale_x_continuous(breaks = c(seq(-limit_x, limit_x, 5)), limits = c(-limit_x, limit_x)) +
+    # Remove the legend for the color aesthetic
+    guides(color = guide_legend(override.aes = list(size = 5))) +
     labs(
-      title = paste0("Volcano plot - ", data_list$Cond[data_list$nb_col_condB + 1], " vs ", data_list$Cond[1]),
-      x = "log2(fold change)",
-      y = "-log10(adjusted P-value)",
-      colour = "Expression change"
+        title = "Volcano plot",
+        subtitle = paste0(refCond," vs ", group),
+        x = "log2(fold change)",
+        y = "-log10(adjusted P-value)",
+        colour = "Expression change"
     ) +
-    geom_text(x = Inf, y = Inf, label = paste("Up:", up_genes, "\n Down:", down_genes), hjust = 1, vjust = 1.5, size = 4, color = "black") +
+    geom_text(x = Inf, y = Inf, label = paste("Up:", up_genes, "\n Down:", down_genes),
+        hjust = 1, vjust = 1.5, size = 4, color = "black") +
     theme_bw() +
     theme(
       legend.position = "bottom",
-      plot.title = element_text(face = "bold", hjust = 0.5, size = 20),
+      legend.text = element_text(size = 14),
+      plot.title = element_text(face = "bold", hjust = 0.5, size = 15),
+      plot.subtitle = element_text(hjust=0.5),
       panel.border = element_rect(colour = "black", fill = NA, size = 0.5),    
       panel.grid.minor = element_blank(),
       panel.grid.major = element_blank(),
       axis.text = element_text(size = 12),
-      axis.title = element_text(size = 14, face = "bold"),
-      legend.title = element_blank(),
-      legend.text = element_text(size = 12)
+      axis.title = element_text(size = 14, face = "bold")
     )
-  
+
   return(volcano_plot_global)
 }
 
 # Zoomed Volcano plot function
-volcano_plot_zoom <- function(deseq_results, data_list) {
+volcano_plot_zoom <- function(deseq_results, data_list, group, refCond) {
   limite <- Var_padj/(10^(-log10(Var_padj)*2)) # Set the limit of the y-axis
   
-  zoomed_in_volcano_plot <- volcano_plot(deseq_results, data_list) + # Create the zoomed volcano plot object
+  zoomed_in_volcano_plot <- volcano_plot(deseq_results, data_list, group, refCond) + # Create the zoomed volcano plot object
     scale_y_continuous(limits = c(0, -log10(limite))) + # Set the limits of the y-axis
     geom_point(data = data.frame(subset(data.frame(deseq_results), padj < limite)), aes(y=-log10(limite)), colour="red", alpha = 0.5, shape = 17, size = 3) +
-    labs(title = paste0("Volcano plot Zoom - ",data_list$Cond[data_list$nb_col_condB+1]," vs ",data_list$Cond[1]))
+    labs(title = "Volcano plot Zoom",
+      subtitle = paste0(refCond," vs ", group))
   
   return(zoomed_in_volcano_plot)
 }
@@ -490,8 +607,45 @@ tables_creation <-
   )
 }
 
+main_function <- function(data, refCond, groups) {
+  
+  expData_sorted_gene_list <- c()
+  for (i in c(1:length(groups))) {
+    name <- groups[i]
+    expData_gene <- data %>% select(contains(c(refCond, name)))
+    expData_sorted_gene_list[[i]]  <- sort_columns_by_sample(expData_gene, refCond)
+  }
+  return(expData_sorted_gene_list)
+}
+
+deseq_list <- function(expData_sorted_gene_list) {
+  deseq_object_list <- c()
+  for (i in c(1:length(expData_sorted_gene_list))){
+    dds <- deseq_object(expData_sorted_gene_list[[i]])
+    deseq_object_list[[i]] <- dds
+  }
+  return(deseq_object_list)
+}
+
+dispersion_object_list <- function(dds_object_gene_list, groups, refCond) {
+  dispersion_list <- c()
+  for (i in c(1:length(dds_object_gene_list))){
+    dispersion_list[[i]] <-  dispersion_estimation(dds_object_gene_list[[i]], groups[i], refCond)
+  }
+  return(dispersion_list)
+}
+
+mean_list <- function(dds_object_gene_list, expData_sorted_gene_list) {
+  means_list <- c()
+  for (i in c(1:length(expData_sorted_gene_list))){
+    means <- find_means(dds_object_gene_list[[i]], expData_sorted_gene_list[[i]])
+    means_list[[i]] <- means
+  }
+  return(means_list)
+}
+
 # Write tables
-write_DE_tables <- function(tables_list, gene_transcript = "gene") {
+write_DE_tables <- function(tables_list, gene_transcript = "gene", refCond, group) {
   if (gene_transcript == "gene") {
     path_to_tables <- paths_list$DESeq2_gene
   } else {
@@ -499,7 +653,7 @@ write_DE_tables <- function(tables_list, gene_transcript = "gene") {
   }
   write.table(
     tables_list$allGenes,
-    file = paste0(path_to_tables, gene_transcript, "_complete.csv"),
+    file = paste0(path_to_tables, gene_transcript, "_complete_", refCond, "-", group, ".csv"),
     quote = F,
     sep = "\t",
     row.names = F
@@ -507,7 +661,7 @@ write_DE_tables <- function(tables_list, gene_transcript = "gene") {
   
   write.table(
     tables_list$inducedGenes,
-    file = paste0(path_to_tables, gene_transcript, "_up.csv"),
+    file = paste0(path_to_tables, gene_transcript, "_up_", refCond, "-", group, ".csv"),
     quote = F,
     sep = "\t",
     row.names = F
@@ -515,7 +669,7 @@ write_DE_tables <- function(tables_list, gene_transcript = "gene") {
   
   write.table(
     tables_list$repressedGenes,
-    file = paste0(path_to_tables, gene_transcript, "_down.csv"),
+    file = paste0(path_to_tables, gene_transcript, "_down_", refCond, "-", group, ".csv"),
     quote = F,
     sep = "\t",
     row.names = F
