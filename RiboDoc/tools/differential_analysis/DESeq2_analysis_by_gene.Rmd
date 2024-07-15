@@ -12,7 +12,7 @@ Sys.setenv(RSTUDIO_PANDOC="/RiboDoc/miniconda3/envs/RiboDoc_env/bin/pandoc")
 ```{r rm Global environment, include=FALSE}
 rm(list=ls())
 local_path <- "/data/"
-deseq2_functions <- "/RiboDoc/RiboDoc/tools/DESeq2_analysis_functions.R"
+deseq2_functions <- "/RiboDoc/RiboDoc/tools/differential_analysis/DESeq2_analysis_functions.R"
 ```
 
 ```{r packages, echo=FALSE, include=FALSE}
