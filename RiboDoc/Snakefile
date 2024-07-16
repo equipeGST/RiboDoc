@@ -32,6 +32,8 @@ SAMPLES, = glob_wildcards(local_path + "fastq/{sample}.fastq.gz")
 SAMPLES.sort()
 LENGTHS = list(map(str,range(int(config['readsLength_min']),int(config['readsLength_max'])+1)))
 
+REFERENCE_COND = str(config['reference_condition'])
+OTHERS_COND = [config['conditions']]
 
 # Strings with minimum and maximum read lengths to be used in file names
 frag_length_S = "." + LENGTHS[0]
@@ -571,18 +573,18 @@ rule DESeq2_analysis_gene:
     input:
         by_gene = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/count_matrix_by_gene.csv"
     output:
-        complete = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/gene_complete.csv",
-        up = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/gene_up.csv",
-        down = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/gene_down.csv",
-        report = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html"
+        complete = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/gene_complete_" + REFERENCE_COND + "-{cond}.csv",
+        up = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/gene_up_" + REFERENCE_COND + "-{cond}.csv",
+        down = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/gene_down_" + REFERENCE_COND + "-{cond}.csv",
+        report = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + "_" + REFERENCE_COND + "-{cond}.Final_report.html"
     log:
-        control = logs_path + "DESeq2_analysis_gene/header_control.log",
-        deseq2 = logs_path + "DESeq2_analysis_gene/DESeq2_analysis.log"
+        control = logs_path + "DESeq2_analysis_gene/header_control_" + REFERENCE_COND + "-{cond}.log",
+        deseq2 = logs_path + "DESeq2_analysis_gene/DESeq2_analysis_" + REFERENCE_COND + "-{cond}.log"
     benchmark:
-        local_path + "benchmarks/DESeq2_analysis_gene/DESeq2_analysis.benchmark.txt"
+        local_path + "benchmarks/DESeq2_analysis_gene/DESeq2_analysis.benchmark_" + REFERENCE_COND + "-{cond}.txt"
     params:
         reportPath = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/",
-        reportName = config['project_name'] + ".Final_report.html"
+        reportName = config['project_name'] + "_" + REFERENCE_COND + "-{cond}.Final_report.html"
     shell:
         "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "differential_analysis/DESeq2_analysis_by_gene.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2}"
 
@@ -590,18 +592,18 @@ rule DESeq2_analysis_transcript:
     input:
         by_transcript = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/count_matrix_by_transcript.csv"
     output:
-        complete = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/transcript_complete.csv",
-        up = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/transcript_up.csv",
-        down = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/transcript_down.csv",
-        report = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html"
+        complete = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/transcript_complete_" + REFERENCE_COND + "-{cond}.csv",
+        up = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/transcript_up_" + REFERENCE_COND + "-{cond}.csv",
+        down = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/transcript_down_" + REFERENCE_COND + "-{cond}.csv",
+        report = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + "_" + REFERENCE_COND + "-{cond}.Final_report.html"
     log:
-        control = logs_path + "DESeq2_analysis_transcript/header_control.log",
-        deseq2 = logs_path + "DESeq2_analysis_transcript/DESeq2_analysis.log"
+        control = logs_path + "DESeq2_analysis_transcript/header_control_" + REFERENCE_COND + "-{cond}.log",
+        deseq2 = logs_path + "DESeq2_analysis_transcript/DESeq2_analysis_" + REFERENCE_COND + "-{cond}.log"
     benchmark:
-        local_path + "benchmarks/DESeq2_analysis_transcript/DESeq2_analysis.benchmark.txt"
+        local_path + "benchmarks/DESeq2_analysis_transcript/DESeq2_analysis.benchmark_" + REFERENCE_COND + "-{cond}.txt"
     params:
         reportPath = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/",
-        reportName = config['project_name'] + ".Final_report.html"
+        reportName = config['project_name'] + "_" + REFERENCE_COND + "-{cond}.Final_report.html"
     shell:
         "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "differential_analysis/DESeq2_analysis_by_transcript.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2}"
 
@@ -924,15 +926,58 @@ rule periodicity_rgb:
     shell:
         "Rscript " + ribodoc_tools + "ribowaltz/change_riboWaltz_periodicity_graphs_to_RGB_by_length.R -w " + local_path + " 2> {log.rscript}"
 
+# Creates codon occupancy graphs
+rule codon_occupancy_per_length:
+    input:
+        psite_table = local_path + "RESULTS/riboWaltz" + frag_length_L + "/psite_offset.csv",
+        seqbedCount = expand(rules.quality_controls_bedcount.output.readsLengthRepartitionBed, sample=SAMPLES, taille=LENGTHS)
+    output:
+        graph_sample    = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/graphs_by_length/" + config['reference_condition'] + "_vs_{conds}_{taille}_by_sample.tiff",
+        log_ratio       = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/graphs_by_length/" + config['reference_condition'] + "_vs_{conds}_{taille}_log-ratio.tiff",
+        mean_codon      = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/graphs_by_length/" + config['reference_condition'] + "_vs_{conds}_{taille}_mean_by_codon.tiff",
+        mean_error      = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/graphs_by_length/" + config['reference_condition'] + "_vs_{conds}_{taille}_mean_with_error.tiff"
+    log:
+        rscript = logs_path + "codon_occupancy/" + config['reference_condition'] + "_vs_{conds}_{taille}_Rscript.log"
+    benchmark:
+        local_path + "benchmarks/codon_occupancy/" + config['reference_condition'] + "_vs_{conds}_{taille}_benchmark.txt"
+    params:
+        condition = "{conds}",
+        read_length = "{taille}"
+    shell:
+        "Rscript " + ribodoc_tools + "codon_occupancy/Occupancy_per_length.R -O {input.psite_table} -F " + ribodoc_tools + "codon_occupancy/ -N " + config['reference_condition'] + " -n {params.condition} -r 0 -m " + LENGTHS[len(LENGTHS)-1] + " -M " + LENGTHS[0] + " -e " + config['elongation'] + " -s " + config['site'] + " -f TRUE -p " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ -o " + local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/ 2> {log.rscript} ;"
+
+rule codon_occupancy:
+    input:
+        psite_table = local_path + "RESULTS/riboWaltz" + frag_length_L + "/psite_offset.csv",
+        seqbedCount = expand(rules.quality_controls_bedcount.output.readsLengthRepartitionBed, sample=SAMPLES, taille=LENGTHS)
+    output:
+        mean_codon_all_reads        = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_mean_by_codon_all_reads.tiff",
+        mean_aa_all_reads           = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_mean_by_amino-acid_all_reads.tiff",
+        norm_counts_cond_aa         = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_normalized_counts_by_condition_by_aa.csv",
+        norm_counts_cond_codon      = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_normalized_counts_by_condition_by_codon.csv",
+        percentage_aa_all_reads     = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_percentage_by_amino-acid_all_reads.csv",
+        percentage_cond_all_reads   = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_percentage_by_condition_all_reads.csv",
+        percentage_sample_all_reads = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_percentage_by_sample_all_reads.csv",
+    log:
+        rscript = logs_path + "codon_occupancy/" + config['reference_condition'] + "_vs_{conds}_Rscript.log"
+    benchmark:
+        local_path + "benchmarks/codon_occupancy/" + config['reference_condition'] + "_vs_{conds}_benchmark.txt"
+    params:
+        condition = "{conds}",
+    shell:
+        "Rscript " + ribodoc_tools + "codon_occupancy/Occupancy_all.R -O {input.psite_table} -F " + ribodoc_tools + "codon_occupancy/ -N " + config['reference_condition'] + " -n {params.condition} -r 0 -m " + LENGTHS[len(LENGTHS)-1] + " -M " + LENGTHS[0] + " -e " + config['elongation'] + " -s " + config['site'] + " -f TRUE -p " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ -o " + local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/ 2> {log.rscript} ;"
+
 # Creates periodicity graphs
 rule main_output_folder:
     input:
         stats_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
         report_table = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Table_summary" + frag_length_L + ".csv",
-        deseq2_transcript = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + ".Final_report.html",
-        deseq2_gene = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + ".Final_report.html",
+        deseq2_transcript = expand(local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + "_" + REFERENCE_COND + "-{cond}.Final_report.html",cond=OTHERS_COND),
+        deseq2_gene = expand(local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + "_" + REFERENCE_COND + "-{cond}.Final_report.html",cond=OTHERS_COND),
         qualitative_lengths = rules.riboWaltz_transcriptome.output if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_length.output,sample=SAMPLES,taille=LENGTHS),
-        qualitative_perio = rules.periodicity_rgb.output if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_periodicity.output,sample=SAMPLES,taille=LENGTHS)
+        qualitative_perio = rules.periodicity_rgb.output if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_periodicity.output,sample=SAMPLES,taille=LENGTHS),
+        codon_occupancy_per_length = expand(rules.codon_occupancy_per_length.output,conds=OTHERS_COND,taille=LENGTHS) if config['codon_occupancy']=="yes" else (),
+        codon_occupancy = expand(rules.codon_occupancy.output,conds=OTHERS_COND) if config['codon_occupancy']=="yes" else ()
     output:
         local_path + "MAIN_RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
         local_path + "MAIN_RESULTS/Qualitative_analysis_riboWaltz/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/transcriptome_elongated." + SAMPLES[0] + "/length" + LENGTHS[0] + "_start.tiff" if config['qualitative_analysis']=="ribowaltz" else local_path + "MAIN_RESULTS/Qualitative_analysis_TRiP/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/" + SAMPLES[0] + "." + LENGTHS[0] + ".periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg"
