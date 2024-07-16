@@ -1,6 +1,6 @@
 FROM ubuntu:20.04
 
-LABEL version="0.9.0"
+LABEL version="0.9.1"
 
 ENV LC_ALL=C
 
