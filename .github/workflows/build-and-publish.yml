@@ -2,10 +2,7 @@ name: Publish a Docker image
 
 on:
   push:
-    branches:
-      - "**"
-    tags:
-      - "*.*.*"
+    branches: ['main']
 
 jobs:
   push_to_registry:
@@ -32,10 +29,6 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
 
       - name: Build and push Docker image
         id: push
