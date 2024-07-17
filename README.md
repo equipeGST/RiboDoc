@@ -1,3 +1,10 @@
+
+## Introduction
+
+**RiboDoc** is a bioinformatics pipepline for Ribosome sequencing (Ribo-seq) data. It can be used to perform quality control, trimming, alignment and downstream qualitative and quantitative analysis.
+
+This pipeline is built using [Snakemake](https://snakemake.readthedocs.io/en/stable/), a workflow management system to create reproducible and scalable data analyses. It used Docker or Singularity containers to make installation and analysis meet principles of findability, accessibility, interoperability, and reusability (FAIR).
+
 # Step by step tutorial
 
 Welcome to the RiboDoc tool tutorial !  
