@@ -71,6 +71,16 @@ window_utr: "30"
 window_cds: "90"
 
 
+# Codon Occupancy
+# Do you want to make the codon occupancy analysis ? 'yes' or 'no'
+codon_occupancy: ""
+
+# Ribosomal decoding site to analyze ('A' or 'P')
+site: ""
+
+# Length of sequence elongation for transcriptome creation. Default : 50")
+elongation: "50"
+
 ########## OPTIONAL ##########
 # Does UTR covering has to be calculated ("yes" or "no")
 UTR: "no"
