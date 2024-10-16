@@ -3,52 +3,68 @@
 # This script only saves transcripts containing 5-prime UTRs in GFF for metaprofiles, as they give a better view of the periodicity in complexe genomes
 # Command example : > bash filter_5UTR.sh -g RESULTS/annex_database/NamedCDS_Homo_sapiens.GRCh38.104.gff3 -o Homo_sapiens.GRCh38.104.5UTR_genes_only.gff -r mRNA -u five_prime_UTR -t 0.25 -p RESULTS/annex_database/
 
-usage() { echo "Usage: $0 -g <Input GFF> -o <Output GFF> -p <Path to features output folder> -r <transcript name in GFF> -u <5-prime-UTR name in GFF> -t <5-prime-UTR threshold>" 1>&2
-    echo -e "\n -g\tInput GFF\n -o\tPath and name for the output GFF\n -p\tPath to output folder for counts of each gff features\n -r\tFeature name for a transcript in GFF file. Default : 'mRNA'\n -u\tFeature name for 5-prime-UTR name in GFF. Default : 'five_prime_UTR'\n -t\tMinimum proportion of 5-prime-UTR lines compared to transcript lines. Default : 0.25\n"
+Help()
+{
+    echo "This script filters transcripts containing 5-prime UTRs in GFF for metaprofiles, as they give a better view of the periodicity in complexe genomes"
+    echo
+    echo "report_table [-g|h|p|r|o|t|u]"
+    echo "options:"
+    echo "-g GFF            --gff           Input GFF File"
+    echo "-h HELP           --help          Print this Help."
+    echo "-p PATH           --path          Path to output folder for counts of each gff feature"
+    echo "-r TRANSCRIPT     --transcript    Feature name for a transcript in GFF file. Default : 'mRNA'."
+    echo "-o OUTPUT         --output        Name of output file"
+    echo "-t THRESHOLD      --threshold     Minimum proportion of 5-prime-UTR lines compared to transcript lines. Default : 0.25"
+    echo "-u UTR            --utr           Feature name for 5-prime-UTR name in GFF. Default : 'five_prime_UTR'"
+    echo
+
     exit 1
 }
 
-#init variables
 while getopts ":g:o:p:r:u:t:" option; do
     case "${option}" in
-        g)
-            g="${OPTARG}"
+        g) # Path to the GFF file
+            g=${OPTARG}
             ;;
-        o)
-            o="${OPTARG}"
+        o) # Path to the output file
+            o=${OPTARG}
             ;;
-        p)
-			p="${OPTARG}"
+        p) # Path to output folder
+			p=${OPTARG}
 			;;
-		r)
-			r="${OPTARG}"
+		r) # Feature name for a transcript in GFF file. 
+			r=${OPTARG}
 			;;
-		u)
-			u="${OPTARG}"
+		u) # 5-prime UTR threshold 
+			u=${OPTARG}
 			;;
-		t)
-			t="${OPTARG}"
+		t) # 5-prime UTR name in GFF 
+			t=${OPTARG}
 			;;
-        *)
-            usage
+        h) # display Help
+            Help
+            ;;
+        \?) # Invalid option
+            echo "Error: Invalid option"
+            exit
             ;;
     esac
 done
 
-#testing if arguments are non-empty
-shift $((OPTIND-1))
 if [ -z "${g}" ] || [ -z "${o}" ] || [ -z "${p}" ]; then
-    usage
+    Help
 fi;
 
 if [ -z "${r}" ]; then
     rna="mRNA"
 fi;
+
 if [ -z "${u}" ]; then
     utr="five_prime_UTR"
 fi;
+
 if [ -z "${t}" ]; then
-    t="0.25";
+    t="0.25"
 fi;
 
 # Look for the proportion of each feature in the GFF
@@ -56,6 +72,7 @@ awk '{printf("%s\n",$3)}' $g | sort | uniq -c > "${p}gff_features_counts.txt";
 
 # Find the number of 5UTR and transcripts in the GFF
 transcript_nbr=$(grep "$r" "${p}gff_features_counts.txt" | awk '{printf("%s\n",$1)}');
+
 utr_nbr=$(grep "$u" "${p}gff_features_counts.txt" | awk '{printf("%s\n",$1)}');
 
 # Calculate the minimum number of 5UTR lines compared to transcript lines to select only transcript with 5UTR
