@@ -9,9 +9,11 @@ fasta: ""
 # Name of the gff file with genome or transcriptome annotations
 gff: ""
 
-# Fasta file with not interesting sequences (can be left empty if no sequence has to be removed)
-fasta_outRNA: ""
+# Fasta file with unwanted ribosomal RNA sequences (can be left empty)
+rRNA: ""
 
+# Fasta file with unwanted tRNA sequences (can be left empty)
+tRNA: ""
 
 ##### TRIMMING #####
 # Are the sequencing adapters already removed in fastq files ? 'yes' or 'no'
@@ -72,14 +74,11 @@ window_cds: "90"
 
 
 # Codon Occupancy
-# Do you want to make the codon occupancy analysis ? 'yes' or 'no'
+# Do you want to perform codon occupancy analysis ? 'yes' or 'no'
 codon_occupancy: ""
 
 # Ribosomal decoding site to analyze ('A' or 'P')
 site: ""
-
-# Length of sequence elongation for transcriptome creation. Default : 50")
-elongation: "50"
 
 ########## OPTIONAL ##########
 # Does UTR covering has to be calculated ("yes" or "no")
