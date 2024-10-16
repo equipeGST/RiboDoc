@@ -66,16 +66,16 @@ For example, for the yeast genome annotations, you can look for [S. cerevisiae g
 >If you do not want to remove any sequence, just leave the outRNA parameter of the configuration file empty (`fasta_outRNA: ""`).
 
 Folder architecture example at this step:
-Project_name
-├── fastq 
-│&emsp;&emsp;├── Wild_Type.1.fastq.gz 
-│&emsp;&emsp;├── Wild_Type.2.fastq.gz 
-│&emsp;&emsp;├── Mutant.1.fastq.gz 
-│&emsp;&emsp;└── Mutant.2.fastq.gz
-└── database 
-&emsp;&emsp;&emsp;├── reference_genome_sequences.fa
-&emsp;&emsp;&emsp;├── reference_genome_annotations.gff3
-&emsp;&emsp;&emsp;└── RNA_to_remove.fa
+Project_name  
+├── fastq  
+│&emsp;&emsp;├── Wild_Type.1.fastq.gz  
+│&emsp;&emsp;├── Wild_Type.2.fastq.gz  
+│&emsp;&emsp;├── Mutant.1.fastq.gz  
+│&emsp;&emsp;└── Mutant.2.fastq.gz  
+└── database  
+&emsp;&emsp;&emsp;├── reference_genome_sequences.fa  
+&emsp;&emsp;&emsp;├── reference_genome_annotations.gff3  
+&emsp;&emsp;&emsp;└── RNA_to_remove.fa  
 
 c. Create a configuration file `config.yaml`. It contains some parameters about your data, how you want to process it and which RiboDoc analysis you want to perform. You must download it [here](https://raw.githubusercontent.com/equipeGST/RiboDoc/main/config.yaml) and open it with a text editor as a text file. It must be carefully completed and be present in the project directory everytime you want to run RiboDoc. A copy of this file will be made in the `RESULTS/` folder to keep a trace of the parameters you chose for your last analysis for reproductibility. 
 
