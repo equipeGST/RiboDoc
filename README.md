@@ -1,7 +1,7 @@
 
 ## Introduction
 
-**RiboDoc** is a bioinformatics pipeline for Ribosome sequencing (Ribo-seq) data. It can be used to perform quality control, trimming, alignment and downstream qualitative and quantitative analysis.
+**RiboDoc** is a bioinformatics pipeline for Ribosome sequencing (Ribo-seq) data made to perform quality control, trimming, alignment and downstream qualitative and quantitative analysis.
 
 It can be used with multiple operating systems, and it's goal is to standardize the general steps that must be performed systematically in Ribo-seq analysis, together with the statistical analysis and quality control of the sample. The data generated can then be exploited with more specific tools.
 
