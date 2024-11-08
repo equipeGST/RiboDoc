@@ -73,7 +73,7 @@ rule all:
         # Call of make_fastqc rule
         expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
         expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
-        expand(local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html", sample=SAMPLES) if config['fasta_outRNA']=="" else expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
+        expand(local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html", sample=SAMPLES) if config['rRNA']=="" else expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
 
         # Folder with main outputs
         local_path + "MAIN_RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
@@ -225,7 +225,7 @@ rule make_fastqc_after_trimming:
 # Builds the index of bowtie2 mapping on sequences for reads remove
 rule bowtie2_build_outRNA:
     input:
-        outRNA = local_path + "database/" + os.path.basename(config['fasta_outRNA'])
+        outRNA = local_path + "database/" + os.path.basename(config['rRNA'])
     output:
         local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2.1.bt2"
     log:
@@ -312,7 +312,7 @@ rule run_mapping:
     input:
         local_path + "RESULTS/annex_database/index_files/index_hisat2.1.ht2",
         local_path + "RESULTS/annex_database/index_files/index_bowtie2.1.bt2",
-        fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz" if config['fasta_outRNA']=="" else local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
+        fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz" if config['rRNA']=="" else local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
         fastq = temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.fastq.gz"),
         sam_hisat2 = temp(local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam"),
@@ -388,7 +388,7 @@ rule stats_report:
         stat_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt"
     run:
         # List of interesting logs to make the report
-        if config['fasta_outRNA'] == "":
+        if config['rRNA'] == "":
             logs_names = ["adapt_trimming","run_mapping_hisat2","run_mapping_bowtie2"]
         else:
             logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2"]
@@ -707,7 +707,7 @@ rule run_mapping_transcriptome:
     input:
         local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2.1.ht2",
         local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2.1.bt2",
-        fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz" if config['fasta_outRNA']=="" else local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
+        fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz" if config['rRNA']=="" else local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
     output:
         sam_hisat2 = temp(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam"),
         sam_bowtie2 = temp(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam"),
