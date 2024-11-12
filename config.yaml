@@ -86,4 +86,7 @@ UTR: "no"
 
 # Feature defining a 3-prime_UTR in GFF file (usually "three_prime_UTR" or "3UTR")
 gff_3UTR_feature: "three_prime_UTR"
+
+# Number of nucleotides before the start and after the stop codon to keep for transcript elongation
+elongation: "50"
 ##############################
