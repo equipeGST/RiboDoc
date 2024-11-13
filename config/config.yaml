@@ -1,7 +1,7 @@
 # Name for the experiment
 project_name: ""
 
-
+samples: config/samplesheet.tsv
 ##### REFERENCE FILES #####
 # Name of the genome or transcriptome fasta file to align on
 fasta: ""

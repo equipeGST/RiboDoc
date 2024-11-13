@@ -1,0 +1,7 @@
+sample	replicate	fastq1	fastq2	strandedness	barcode	adapter	fasta	gff
+Mutant	1	Mutant.1.fastq.gz		forward		AGATCGGAAGAGCACACGTCTGAACTCCAGTCA	Mus_musculus.GRCm39.dna.primary_assembly.fa	Mus_musculus.GRCm39.103.gff
+Mutant	2	Mutant.1.fastq.gz		forward		AGATCGGAAGAGCACACGTCTGAACTCCAGTCA	Mus_musculus.GRCm39.dna.primary_assembly.fa	Mus_musculus.GRCm39.103.gff
+Mutant	3	Mutant.1.fastq.gz		forward		AGATCGGAAGAGCACACGTCTGAACTCCAGTCA	Mus_musculus.GRCm39.dna.primary_assembly.fa	Mus_musculus.GRCm39.103.gff
+WT	1	WT.1.fastq.gz		forward		AGATCGGAAGAGCACACGTCTGAACTCCAGTCA	Mus_musculus.GRCm39.dna.primary_assembly.fa	Mus_musculus.GRCm39.103.gff
+WT	2	WT.2.fastq.gz		forward		AGATCGGAAGAGCACACGTCTGAACTCCAGTCA	Mus_musculus.GRCm39.dna.primary_assembly.fa	Mus_musculus.GRCm39.103.gff
+WT	3	WT.3.fastq.gz		forward		AGATCGGAAGAGCACACGTCTGAACTCCAGTCA	Mus_musculus.GRCm39.dna.primary_assembly.fa	Mus_musculus.GRCm39.103.gff

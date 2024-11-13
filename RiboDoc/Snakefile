@@ -1,14 +1,13 @@
-configfile: "/data/config.yaml"
-
-
-ribodoc_version = "0.9.2"
-
-
-# Imports
+import pandas as pd
 from optparse import OptionParser
 import gffutils
 import re
 import os
+
+configfile: 
+    'config/config.yaml'
+
+ribodoc_version = "0.9.2"
 
 
 # Sets the number of threads for multi-threading steps
