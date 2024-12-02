@@ -855,7 +855,7 @@ rule quality_controls_readsLengthRepartition:
         sample_names = "{sample}"
     shell:
         "set +o pipefail ;"
-        "wc -l {params.path}{params.sample_names}* 2> {log.wc} | sed 's/\./ /g' 2> {log.sed1} | awk -F ' ' '{{print $(NF-1),$1}}' 2> {log.awk} | sed 's/ /\\t/g' 2> {log.sed2} | head -n -1 2> {log.head}  > {output} ;"
+        "wc -l {params.path}{params.sample_names}*.bed 2> {log.wc} | sed 's/\./ /g' 2> {log.sed1} | awk -F ' ' '{{print $(NF-1),$1}}' 2> {log.awk} | sed 's/ /\\t/g' 2> {log.sed2} | head -n -1 2> {log.head}  > {output} ;"
 
 # Looks how many reads start on each base to find if there is a periodicity signal
 rule quality_controls_periodicity:

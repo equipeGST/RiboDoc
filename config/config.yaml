@@ -51,10 +51,10 @@ gff_name_attribut: "Name"
 
 ##### DIFFERENTIAL ANALYSIS #####
 # Name of the reference condition (same as file name) for DESeq2
-reference_condition: ""
+reference_condition: "NI"
 
 # Other conditions to compare to the reference condition above for DESeq2
-conditions: ""
+conditions: "P1,P2,P3,P4,P5"
 
 # Thresholds to adjust for differential expression analysis
 p-val: "0.01"
