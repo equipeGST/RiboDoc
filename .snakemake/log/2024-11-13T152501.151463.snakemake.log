@@ -1,0 +1,3 @@
+NameError in file /data/Enora/RiboDoc/Snakefile, line 31:
+name 'PRINT' is not defined
+  File "/data/Enora/RiboDoc/Snakefile", line 31, in <module>

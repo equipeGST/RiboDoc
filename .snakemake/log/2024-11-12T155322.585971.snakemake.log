@@ -1,0 +1,3 @@
+KeyError in file /data/Enora/RiboDoc/Snakefile, line 19:
+'samples'
+  File "/data/Enora/RiboDoc/Snakefile", line 19, in <module>

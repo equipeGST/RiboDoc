@@ -1,6 +1,7 @@
 # Name for the experiment
 project_name: ""
 
+samples: config/samplesheet.tsv
 
 ##### REFERENCE FILES #####
 # Name of the genome or transcriptome fasta file to align on
@@ -9,27 +10,37 @@ fasta: ""
 # Name of the gff file with genome or transcriptome annotations
 gff: ""
 
-# Fasta file with unwanted ribosomal RNA sequences (can be left empty)
-rRNA: ""
+#### RIBOSOMAL RNA #####
+# Remove ribosomal RNA sequences from the reads
+skip_depletion: True
+
+# Keep reads that align to rRNA sequences
+save_rRNA: False
+
+# If you want to remove rRNA sequences, you need to provide a fasta file with the rRNA sequences
+rRNA: "/data/Enora/RiboDoc/database/GRCh38_rDNA.fa"
 
 # Fasta file with unwanted tRNA sequences (can be left empty)
 tRNA: ""
 
 ##### TRIMMING #####
-# Are the sequencing adapters already removed in fastq files ? 'yes' or 'no'
-already_trimmed: ""
 
-# Adapter sequence (Example sequence for Illumina TruSeq™ single or CD index : "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA")
-# Put "" if unknown, RiboDoc_BAM2Reads will try to find it for you
-adapt_sequence: ""
+# Which trimming tool to use ? "trimgalore" or "cutadapt"
+trimmer: "trimgalore"
 
+paired_end: False
+
+# Are the sequencing adapters already removed in fastq files ? 'True' or 'False'
+skip_trimming: False
+
+extra_trimgalore_args: null
 
 ##### LENGTHS SELECTION #####
 # Minimum read length kept for ribosome profiling
-readsLength_min: "25"
+readsLength_min: 25
 
 # Maximum read length kept for ribosome profiling
-readsLength_max: "35"
+readsLength_max: 35
 
 
 ##### GFF #####
@@ -51,10 +62,7 @@ gff_name_attribut: "Name"
 
 ##### DIFFERENTIAL ANALYSIS #####
 # Name of the reference condition (same as file name) for DESeq2
-reference_condition: ""
-
-# Other conditions to compare to the reference condition above for DESeq2
-conditions: ""
+reference_condition: "WT"
 
 # Thresholds to adjust for differential expression analysis
 p-val: "0.01"

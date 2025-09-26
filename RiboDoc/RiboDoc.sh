@@ -24,6 +24,6 @@ else
 
     # To be sure the hidden '.snakemake/' folder is in the working directory, snakemake must be invoqued in '/data/'
     cd /data/
-    snakemake -s /RiboDoc/RiboDoc/Snakefile --rerun-incomplete -j --dag -np --forceall | dot -Tsvg > /data/dag_all.svg
+    snakemake -s /RiboDoc/RiboDoc/Snakefile --rerun-incomplete -j --dag -np --forceall --benchmark-extended | dot -Tsvg > /data/dag_all.svg
     snakemake -s /RiboDoc/RiboDoc/Snakefile -k --rerun-incomplete -j ${cpu_use}
 fi
