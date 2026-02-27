@@ -1,0 +1,6 @@
+Building DAG of jobs...
+MissingInputException in rule check_samplesheet in file /home/enora.corler/RiboDoc/RiboDoc/Snakefile, line 120:
+Missing input files for rule check_samplesheet:
+    output: RESULTS/samplesheet.tsv
+    affected files:
+        samplesheet.tsv

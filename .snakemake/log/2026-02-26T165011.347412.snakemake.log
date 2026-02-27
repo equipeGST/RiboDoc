@@ -1,0 +1,5 @@
+Building DAG of jobs...
+FileNotFoundError in file /home/enora.corler/RiboDoc/RiboDoc/Snakefile, line 66:
+[Errno 2] No such file or directory: '/home/enora.corler/RIBODOC_TEST/RESULTS/samplesheet.tsv'
+  File "/home/enora.corler/RiboDoc/RiboDoc/Snakefile", line 107, in star_index_outputs
+  File "/home/enora.corler/RiboDoc/RiboDoc/Snakefile", line 66, in get_fasta

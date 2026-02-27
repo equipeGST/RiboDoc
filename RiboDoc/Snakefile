@@ -7,6 +7,9 @@ import os
 configfile: 
     'config/config.yaml'
 
+# Load the configuration file into the config variable
+config = config
+
 ribodoc_version = "0.9.2"
 
 
@@ -18,975 +21,366 @@ utr_threshold = "0.25"
 
 
 # Sets paths for inside the container
-local_path = "/data/"
-ribodoc_tools = "/RiboDoc/RiboDoc/tools/"
+local_path      = ""
+ribodoc_tools   = "tools/" #"/data/Enora/RiboDoc/RiboDoc/tools"
 
 stats_path = local_path + "stats/"
 logs_path = local_path + "logs/"
 snakemake_log_path = local_path + ".snakemake/log/"
 
-
-# Wildcards definition
-SAMPLES, = glob_wildcards(local_path + "fastq/{sample}.fastq.gz")
-SAMPLES.sort()
+REFERENCE_COND  = str(config['reference_condition'])
+# OTHERS_COND     = list(set([SAMPLE.split("_")[0] for SAMPLE in SAMPLES if SAMPLE.split("_")[0] != REFERENCE_COND]))
 LENGTHS = list(map(str,range(int(config['readsLength_min']),int(config['readsLength_max'])+1)))
-
-REFERENCE_COND = str(config['reference_condition'])
-OTHERS_COND = [config['conditions']]
 
 # Strings with minimum and maximum read lengths to be used in file names
 frag_length_S = "." + LENGTHS[0]
 frag_length_L = "." + LENGTHS[0] + "-" + LENGTHS[len(LENGTHS)-1]
 
+paired_nums = [1, 2] if config['paired_end'] == True else [1]
+folder_sortmerna = ["aligned", "non_aligned"] if config['save_rRNA'] == True else ["non_aligned"]
 
-# Mean number of isoforms in the genome (for transcriptome multi-alignment parameter)
-isoform_nbr = "10"
 
-# Check if attributes specified by the user are present in the gff file
-htseq_additional = ""
-htseq_header = 'ID\t'
-fields = "1,2"
+def extract_column(file, column_index):
+    with open(file, "r") as f:
+        lines = f.read().strip().split("\n")[1:]  # Skip the header
+        return [line.split("\t")[column_index] for line in lines]
 
-f = open(local_path + "database/" + config['gff'],"r")
-for l in f:
-    is_name = re.search("^([^\t]+\t){8}.*" + config['gff_name_attribut'],l)
-    if is_name:
-        name_in_gff = True
+def find_fastq_path(wildcards):
+    for line in open(local_path + "RESULTS/samplesheet.tsv").read().strip().split("\n")[1:]:
+        parts = line.strip().split("\t")
+        if parts[0] == wildcards.sample:
+            return [p for p in parts[1:3] if p != ""]
+    return []
 
-        features_of_interest = [config['gff_cds_feature']]
-        if config['UTR'] == "yes":
-            features_of_interest.extend([config['gff_5UTR_feature'],config['gff_3UTR_feature']])
+def get_adapter(wildcards):
+    for line in open(local_path + "RESULTS/samplesheet.tsv").read().strip().split("\n")[1:]:
+        parts = line.strip().split("\t")
+        if parts[0] == wildcards.sample:
+            if len(parts[4]) > 0:
+                return parts[4:6]
+            else:
+                raise ValueError(f"Adapter sequence not found for sample {wildcards.sample}.")
+    raise ValueError(f"Sample {wildcards.sample} not found in samplesheet.")
 
-        htseq_additional = "--additional-attr " + config['gff_name_attribut']
-        htseq_header = 'ID\tName\t'
-        fields = "1,3"
-        break
-    else:
-        name_in_gff = False
+def get_fasta(wildcards):
+    for line in open(local_path + "RESULTS/samplesheet.tsv").read().strip().split("\n")[1:]:
+        parts = line.strip().split("\t")
+        sample = get_samples(wildcards)
+        if parts[0] == wildcards.sample:
+            if len(parts[6]) > 0:
+                return parts[6]
+            else:
+                raise ValueError(f"Annotation file (FASTA format) not found for sample {wildcards.sample}.")
+    raise ValueError(f"Sample {wildcards.sample} not found in samplesheet.")
 
-f.close()
+def fastqc_before_trimming_outputs(wildcards):
+    return expand(
+        local_path + "RESULTS/fastqc/before_trimming/{sample}_R{num}_fastqc.html",
+        sample=get_samples(wildcards),
+        num=paired_nums
+    )
 
+def trimgalore_outputs(wildcards):
+    return expand(
+        local_path + "RESULTS/trimgalore/{sample}_R{num}_trimgalore.fastq.gz",
+        sample=get_samples(wildcards),
+        num=paired_nums
+    )
+
+def fastqc_after_trimming_outputs(wildcards):
+    return expand(
+        local_path + "RESULTS/fastqc/after_trimming/{sample}_R{num}_fastqc.html",
+        sample=get_samples(wildcards),
+        num=paired_nums
+    )
+
+def sortmerna_outputs(wildcards):
+    return expand(
+        local_path + "RESULTS/sortMeRNA/{folder}/{sample}_R{num}.fastq.gz",
+        sample=get_samples(wildcards),
+        folder=folder_sortmerna,
+        num=paired_nums)
+
+def star_index_outputs(wildcards):
+    return expand(
+        local_path + "RESULTS/annex_database/index/{fasta_basename}",
+        # fasta=get_fasta(wildcards),
+        sample=get_samples(wildcards),
+        fasta_basename=os.path.splitext(os.path.basename(get_fasta(wildcards)))[0])
 
 rule all:
     input:
-        # Call of make_fastqc rule
-        expand(local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html", sample=SAMPLES),
-        expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
-        expand(local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html", sample=SAMPLES) if config['rRNA']=="" else expand(local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html", sample=SAMPLES),
+        local_path + "RESULTS/samplesheet.tsv",
+        fastqc_before_trimming_outputs,
+        trimgalore_outputs,
+        fastqc_after_trimming_outputs,
+        sortmerna_outputs,
+        star_index_outputs
+        # local_path + "RESULTS/annex_database/index/" + "{fasta_basename}", 
 
-        # Folder with main outputs
-        local_path + "MAIN_RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
-        local_path + "MAIN_RESULTS/Qualitative_analysis_riboWaltz/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/transcriptome_elongated." + SAMPLES[0] + "/length" + LENGTHS[0] + "_start.tiff" if config['qualitative_analysis']=="ribowaltz" else local_path + "MAIN_RESULTS/Qualitative_analysis_TRiP/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/" + SAMPLES[0] + "." + LENGTHS[0] + ".periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg"
-
-# When RiboDoc starts
-onstart:
-    # In case the user is using a Macintosh computer, hidden files are removed
-    shell("find " + local_path + " -depth -name '.DS_Store' -exec rm -f {{}} \;")
-    shell("find " + local_path + " -depth -name '.AppleDouble' -exec rm -rf {{}} \;")
-    shell("mkdir -p " + logs_path)
-    shell("echo 'RiboDoc version : " + ribodoc_version + "' > " + logs_path + "RiboDoc_package_versions.txt")
-    shell("conda list >> " + logs_path + "RiboDoc_package_versions.txt")
-
-# When the jobs are all done
-onsuccess:
-    # Copy config file to keep trace of parameters used
-    shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/")
-    # Remove useless directories if the pipeline does not stop because of an error
-    shell("rm -f -r " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ " + local_path + "RESULTS/qualitativeAnalysis/*tempoR.Rout")
-    shell("rm -f -r " + local_path + "RESULTS/no-outRNA/ " + local_path + "RESULTS/cutadapt/ " + local_path + "*tempoR.Rout")
-    # Make a folder with old snakemake logs and put the last one in the 'logs' folder
-    shell("mkdir -p " + logs_path + "old_snakemake_logs/")
-    shell("[ -f " + logs_path + "*.log ] && mv " + logs_path + "*.log " + logs_path + "old_snakemake_logs/ || true")
-    shell("log=$(ls -t " + local_path + ".snakemake/log/ | head -n 1); cp " + local_path + ".snakemake/log/${{log}} " + logs_path + " || true")
-
-# If anything goes wrong
-onerror:
-    # Copy config file to keep trace of parameters used
-    shell("cp " + local_path + "config.yaml " + local_path + "RESULTS/")
-    # Make a folder with old snakemake logs and put the last one in the 'logs' folder
-    shell("mkdir -p " + logs_path + "old_snakemake_logs/")
-    shell("[ -f " + logs_path + "*.log ] && mv " + logs_path + "*.log " + logs_path + "old_snakemake_logs/ || true")
-    shell("log=$(ls -t " + local_path + ".snakemake/log/ | head -n 1); cp " + local_path + ".snakemake/log/${{log}} " + logs_path + " || true")
-
-
-# Find the adapter sequence if not set in config file
-rule find_adapter_sequence:
+checkpoint check_samplesheet:
     input:
-        fastq = local_path + "fastq/{sample}.fastq.gz"
+        local_path + "config/samplesheet.tsv"
     output:
-        adapter = local_path + "RESULTS/adapter_lists/{sample}.txt"
-    log:
-        rscript = logs_path + "find_adapter_sequence/{sample}.rscript.log",
-        sed = logs_path + "find_adapter_sequence/{sample}.sed.log",
-        echo = logs_path + "find_adapter_sequence/{sample}.echo.log",
-        touch = logs_path + "find_adapter_sequence/{sample}.touch.log"
+        local_path + "RESULTS/samplesheet.tsv"
     shell:
-        "touch {output.adapter} 2> {log.touch} ;"
-        "if [ -z " + config['adapt_sequence'] + " ]; then "
-        "Rscript " + ribodoc_tools + "others/find_adapter_sequence.R {input.fastq} 2> {log.rscript} ;"
-        "elif [ '" + config['already_trimmed'] + "' = 'no' ]; then echo " + config['adapt_sequence'] + " 1> {output.adapter} 2> {log.echo} ;"
-        "fi"
+        "python3 {ribodoc_tools}/others/check_samplesheet.py {input} {output}"
 
-# Adds transcript names and gene IDs to the CDS and exon lines if possible
-rule name_CDS:
-    input:
-        gff = local_path + "database/" + os.path.basename(config['gff'])
-    output:
-        gff_namedCDS = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
-    run:
-        gene_id_bool = True
-        if name_in_gff == True:
-            db = gffutils.create_db(input.gff, ':memory:', merge_strategy='create_unique', keep_order=True)
-            with open(output.gff_namedCDS, 'w') as fout:
-                for d in db.directives:
-                    fout.write('##{0}\n'.format(d))
-                for feature in db.all_features():
-                    if feature.featuretype in features_of_interest or feature.featuretype == 'exon':
-                        parent = list(db.parents(feature, level=1))
-                        if len(parent) > 0:
-                            parent = parent[0]
-                            if parent.attributes.get(config['gff_name_attribut']) and not feature.attributes.get(config['gff_name_attribut']):
-                                feature.attributes[config['gff_name_attribut']] = [i.replace("mRNA","cds") for i in parent.attributes.get(config['gff_name_attribut'])]
-                                feature.attributes[config['gff_name_attribut']][0] + "_name"
-                            if parent.attributes.get('ID') and not feature.attributes.get('ID'):
-                                feature.attributes["ID"] = parent.attributes["ID"]
-                                feature.attributes['ID'] = feature.attributes['ID'][0] + "_CDS"
-                            if parent.attributes.get('ID') and not parent.attributes.get(config['gff_name_attribut']):
-                                feature.attributes[config['gff_name_attribut']] = parent.attributes["ID"]
-                                feature.attributes[config['gff_name_attribut']][0] + "_name"
-                        if feature.attributes.get(config['gff_name_attribut']):
-                            fout.write(str(feature) + ';\n')
-                    else:
-                        fout.write(str(feature) + '\n')
-        else:
-            shell("cp {input.gff} {output.gff_namedCDS}")
-        if gene_id_bool:
-            print("'gene_id' attributes are present.")
-        else:
-            print("Missing at least some 'gene_id' attribute in this gff.")
-        shell("sed -i -E 's/\\s/\\t/8' {output.gff_namedCDS}")
-        shell('sed -i -E "s/\\"//g" {output.gff_namedCDS}')
+def get_samples(wildcards):
+    checkpoint_output = checkpoints.check_samplesheet.get(**wildcards).output[0]
+    return extract_column(checkpoint_output, 0)
 
-# Quality control of data : build of the fastqc on raw data
-rule make_fastqc_before_trimming:
+rule fastqc_before_trimming:
     input:
-        local_path + "fastq/{sample}.fastq.gz"
+        fastq_files = lambda wildcards: find_fastq_path(wildcards)
     output:
-        local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.zip",
-        local_path + "RESULTS/fastqc/fastqc_before_trimming/{sample}_fastqc.html"
+        r1_zip  = local_path + "RESULTS/fastqc/before_trimming/{sample}_R1_fastqc.zip",
+        r1_html = local_path + "RESULTS/fastqc/before_trimming/{sample}_R1_fastqc.html",
+        r2_zip  = local_path + "RESULTS/fastqc/before_trimming/{sample}_R2_fastqc.zip" if config['paired_end'] == True else [], 
+        r2_html = local_path + "RESULTS/fastqc/before_trimming/{sample}_R2_fastqc.html" if config['paired_end'] == True else []
     log:
-        logs_path + "make_fastqc_before_trimming/{sample}.log"
+        logs_path + "fastqc_before_trimming/{sample}.log"
     benchmark:
-        local_path + "benchmarks/make_fastqc_before_trimming/{sample}.benchmark.txt"
+        local_path + "benchmarks/fastqc_before_trimming/{sample}.benchmark.txt"
     params:
-       outdir = local_path + "RESULTS/fastqc/fastqc_before_trimming/"
+        outdir = local_path + "RESULTS/fastqc/before_trimming/tmp_fastqc_{sample}"
     shell:
-        "fastqc {input} --outdir {params.outdir} 2> {log}"
+        """
+        mkdir -p {params.outdir}
+
+        files=({input.fastq_files})
+
+        r1=${{files[0]}}
+        r2=${{files[1]:-""}}
+
+        fastqc $r1 --outdir {params.outdir} >> {log} 2>&1
+        mv {params.outdir}/$(basename $r1 .fastq.gz)_fastqc.zip {output.r1_zip}
+        mv {params.outdir}/$(basename $r1 .fastq.gz)_fastqc.html {output.r1_html}
+
+        if [ -n "$r2" ]; then
+            fastqc $r2 --outdir {params.outdir} >> {log} 2>&1
+            mv {params.outdir}/$(basename $r2 .fastq.gz)_fastqc.zip {output.r2_zip}
+            mv {params.outdir}/$(basename $r2 .fastq.gz)_fastqc.html {output.r2_html}
+        fi
+
+        rm -r {params.outdir}
+        """
 
 # Removes/cuts potential adapters on the reads
-rule adapt_trimming:
+rule trimgalore:
     input:
-        fastq = local_path + "fastq/{sample}.fastq.gz",
-        adapt_seq = local_path + "RESULTS/adapter_lists/{sample}.txt"
+        fastq_files = lambda wildcards: find_fastq_path(wildcards),
     output:
-        cut_fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
+        r1 = local_path + "RESULTS/trimgalore/{sample}_R1_trimgalore.fastq.gz",
+        r2 = local_path + "RESULTS/trimgalore/{sample}_R2_trimgalore.fastq.gz" if config['paired_end'] == True else []
     log:
-        trim_value = logs_path + "adapt_trimming/{sample}_trim_value.log",
-        cutadapt = logs_path + "adapt_trimming/{sample}_cutadapt.log",
-        cutadapt_out = stats_path + "{sample}_adapt_trimming.log"
+        trimming = logs_path + "trimming/{sample}_trimgalore.log",
     benchmark:
-        local_path + "benchmarks/adapt_trimming/{sample}.benchmark.txt"
+        local_path + "benchmarks/trimming/{sample}.benchmark.txt"
     resources:
         mem_mb = mem_mb_resources
     threads:
         multi_threads_nbr
-    shell:
-        "adapter_sequence=`cat {input.adapt_seq}` ;"
-        "if [ '" + config['already_trimmed'] + "' = 'no' ]; then trim=\"-a ${{adapter_sequence}} --trimmed-only\"; else trim=''; fi 2> {log.trim_value} ;"
-        "cutadapt ${{trim}} -e 0.125 -j {threads} --max-n=1 -m " + config['readsLength_min'] + " -M " + config['readsLength_max'] + " -o {output.cut_fastq} {input.fastq} 1>> {log.cutadapt_out} 2> {log.cutadapt} ;"
-
-# Quality control of data : build of the fastqc after adapter trimming
-rule make_fastqc_after_trimming:
-    input:
-        local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
-    output:
-        local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.zip",
-        local_path + "RESULTS/fastqc/fastqc_after_trimming/{sample}.cutadapt" + frag_length_L + "_fastqc.html"
-    log:
-        logs_path + "make_fastqc_after_trimming/{sample}.log"
-    benchmark:
-        local_path + "benchmarks/make_fastqc_after_trimming/{sample}.benchmark.txt"
     params:
-       outdir = local_path + "RESULTS/fastqc/fastqc_after_trimming/"
-    shell:
-        "fastqc {input} --outdir {params.outdir} 2> {log}"
+        min_len             = config['readsLength_min'],
+        max_len             = config['readsLength_max'],
+        skip_trimming       = config['skip_trimming'],
+        outdir              = local_path + "RESULTS/trimgalore/",
+        adapter_sequence    = lambda wildcards: get_adapter(wildcards),
 
-# Builds the index of bowtie2 mapping on sequences for reads remove
-rule bowtie2_build_outRNA:
+    shell:  
+        """
+        adapter_sequence=({params.adapter_sequence});
+        a1="${{adapter_sequence[0]}}";
+        a2="${{adapter_sequence[1]:-""}}";
+
+        min_len={params.min_len};
+        max_len={params.max_len};
+        
+        files=({input.fastq_files});
+        r1=${{files[0]}};
+        r2=${{files[1]:-""}};
+        
+        if [[ "{wildcards.sample}" == *"riboseq"* ]]; then
+            len_args="--length ${{min_len}} --max_length ${{max_len}}";
+        else
+            len_args="";
+        fi 
+        
+        if [ {params.skip_trimming} = "True" ]; then
+            trim="";
+        else
+            if [ -n "$r2" ]; then
+                trim="-a ${{a1}} -a2 ${{a2}}";
+            else
+                trim="-a ${{a1}}";
+            fi
+        fi 
+        
+        if [ -n "$r2" ]; then
+            mode="--paired ${{r1}} ${{r2}}";
+        else
+            mode="${{r1}}";
+        fi;
+        
+        trim_galore ${{trim}} -e 0.125 -j {threads} --max_n 1 ${{len_args}} -o {params.outdir} ${{mode}} --no_report_file &> {log.trimming};
+        if [ -n "$r2" ]; then
+            mv {params.outdir}$(basename $r1 .fastq.gz)_val_1.fq.gz {output.r1};
+            mv {params.outdir}$(basename $r2 .fastq.gz)_val_2.fq.gz {output.r2};
+        else
+            mv {params.outdir}$(basename $r1 .fastq.gz)_trimmed.fq.gz {output.r1};
+        fi
+        """
+
+rule fastqc_after_trimming:
     input:
-        outRNA = local_path + "database/" + os.path.basename(config['rRNA'])
+        r1 = local_path + "RESULTS/trimgalore/{sample}_R1_trimgalore.fastq.gz",
+        r2 = local_path + "RESULTS/trimgalore/{sample}_R2_trimgalore.fastq.gz" if config['paired_end'] == True else []
+        # fastq_files = lambda wildcards: [local_path + f"RESULTS/{config['trimmer']}/{wildcards.sample}_trimmed.fastq.gz"]
     output:
-        local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2.1.bt2"
+        r1_zip  = local_path + "RESULTS/fastqc/after_trimming/{sample}_R1_fastqc.zip",
+        r1_html = local_path + "RESULTS/fastqc/after_trimming/{sample}_R1_fastqc.html",
+        r2_zip  = local_path + "RESULTS/fastqc/after_trimming/{sample}_R2_fastqc.zip" if config['paired_end'] == True else [], 
+        r2_html = local_path + "RESULTS/fastqc/after_trimming/{sample}_R2_fastqc.html" if config['paired_end'] == True else []
     log:
-        logs_path + "bowtie2_build_outRNA/bowtie2_build_outRNA.log"
+        logs_path + "fastqc_after_trimming/{sample}.log"
     benchmark:
-        local_path + "benchmarks/bowtie2_build_outRNA/bowtie2_build_outRNA.benchmark.txt"
-    threads:
-        multi_threads_nbr
+        local_path + "benchmarks/fastqc_after_trimming/{sample}.benchmark.txt"
     params:
-        outNames = local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2"
+        skip_depletion  = config['skip_depletion'],
+        outdir          = local_path + "RESULTS/fastqc/after_trimming/tmp_fastqc_{sample}"
     shell:
-        "bowtie2-build --threads {threads} {input.outRNA} {params.outNames} &> {log}"
+        """
+        mkdir -p {params.outdir}
 
-# Mapping of non-coding RNA
-rule bowtie2_run_outRNA:
-    input:
-        local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2.1.bt2",
-        fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz"
-    output:
-        local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
-    log:
-        bt2 = stats_path + "{sample}_bowtie2_run_outRNA.log"
-    benchmark:
-        local_path + "benchmarks/bowtie2_run_outRNA/{sample}.benchmark.txt"
-    resources:
-        mem_mb = mem_mb_resources
-    threads:
-        multi_threads_nbr
-    shell:
-        "bowtie2 -x " + local_path + "RESULTS/annex_database/index_files/outRNA_bowtie2 --threads {threads} -U {input.fastq} --un-gz {output} > /dev/null 2>> {log.bt2}"
+        r1={input.r1}
+        r2={input.r2}
 
-# Quality control of data : build of the fastqc after depletin rRNA as ribosomal RNA can have an impact on the data's profiles (ATGC content)
-rule make_fastqc_after_outRNA_depletion:
+        fastqc $r1 --outdir {params.outdir} >> {log} 2>&1
+        mv {params.outdir}/$(basename $r1 .fastq.gz)_fastqc.zip {output.r1_zip}
+        mv {params.outdir}/$(basename $r1 .fastq.gz)_fastqc.html {output.r1_html}
+
+        if [ -n "$r2" ]; then
+            fastqc $r2 --outdir {params.outdir} >> {log} 2>&1
+            mv {params.outdir}/$(basename $r2 .fastq.gz)_fastqc.zip {output.r2_zip}
+            mv {params.outdir}/$(basename $r2 .fastq.gz)_fastqc.html {output.r2_html}
+        fi
+
+        rm -r {params.outdir}
+        """
+        
+rule rrna_depletion:
     input:
-        local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
+        r1 = local_path + "RESULTS/trimgalore/{sample}_R1_trimgalore.fastq.gz",
+        r2 = local_path + "RESULTS/trimgalore/{sample}_R2_trimgalore.fastq.gz" if config['paired_end'] == True else [],
+        rrna = config['rRNA']
     output:
-        local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.zip",
-        local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/{sample}" + frag_length_L + ".no-outRNA_fastqc.html"
+        # local_path + "RESULTS/annex_database/idx/",
+        r1_aligned      = local_path + "RESULTS/sortMeRNA/aligned/{sample}_R1.fastq.gz" if config['save_rRNA'] == True else [],
+        r2_aligned      = local_path + "RESULTS/sortMeRNA/aligned/{sample}_R2.fastq.gz" if config['save_rRNA'] == True and config['paired_end'] == True else [],
+        r1_non_aligned  = local_path + "RESULTS/sortMeRNA/non_aligned/{sample}_R1.fastq.gz",
+        r2_non_aligned  = local_path + "RESULTS/sortMeRNA/non_aligned/{sample}_R2.fastq.gz" if config['paired_end'] == True else []
     log:
-        logs_path + "make_fastqc_after_outRNA_depletion/{sample}.log"
+        logs_path + "sortmerna/{sample}.log"
     benchmark:
-        local_path + "benchmarks/make_fastqc_after_outRNA_depletion/{sample}.benchmark.txt"
+        local_path + "benchmarks/sortmerna/{sample}.benchmark.txt"
     params:
-       outdir = local_path + "RESULTS/fastqc/make_fastqc_after_outRNA_depletion/"
+        workdir = local_path + "RESULTS",
     shell:
-        "fastqc {input} --outdir {params.outdir} 2> {log}"
+        """
+        if [ -n "{input.r2}" ]; then
+            reads="--reads {input.r1} --reads {input.r2} --out2"
+        else
+            reads="--reads {input.r1}"
+        fi
 
-# Builds the index of bowtie2 mapping for all RNA
-rule bowtie2_build:
+        mkdir "{params.workdir}/annex_database/index/sortMeRNA/"
+
+        sample_name="{wildcards.sample}"
+        sortmerna \\
+            --ref {input.rrna} \\
+            --threads {threads} \\
+            $reads \\
+            --fastx \\
+            --aligned {params.workdir}/sortMeRNA/aligned/${{sample_name}} \\
+            --other {params.workdir}/sortMeRNA/non_aligned/${{sample_name}} \\
+            --workdir {params.workdir}/ \\
+            --idx-dir {params.workdir}/annex_database/index/sortMeRNA/ \\
+            --kvdb {params.workdir}/sortMeRNA/${{sample_name}}/kvdb/ \\
+            --readb {params.workdir}/sortMeRNA/${{sample_name}}/readb/ \\
+            > {log} 2>&1
+
+        if [ ! -d {params.workdir}/sortMeRNA/aligned ]; then
+            mv {params.workdir}/sortMeRNA/aligned/${{sample_name}}.fq.gz {output.r1_aligned}
+        fi
+
+        mv {params.workdir}/sortMeRNA/non_aligned/${{sample_name}}.fq.gz {output.r1_non_aligned}
+
+        if [ -n "{input.r2}" ]; then
+            mv {params.workdir}/sortMeRNA/non_aligned/${{sample_name}}.fq.gz {output.r2_non_aligned}
+            if [ ! -d {params.workdir}/sortMeRNA/aligned ]; then
+                mv {params.workdir}/sortMeRNA/aligned/${{sample_name}}.fq.gz {output.r2_aligned}
+            fi
+        fi
+
+        rm -rf {params.workdir}/sortMeRNA/${{sample_name}}/
+    """
+
+rule STAR_index:
     input:
-        fasta = local_path + "database/" + os.path.basename(config['fasta'])
+        fasta = lambda wildcards: get_fasta(wildcards)
     output:
-        local_path + "RESULTS/annex_database/index_files/index_bowtie2.1.bt2"
+        directory(local_path + "RESULTS/annex_database/index/" + "{fasta_basename}")
     log:
-        logs_path + "bowtie2_build/bowtie2_build.log"
+        logs_path + "STAR/{fasta_basename}_index.log"
     benchmark:
-        local_path + "benchmarks/bowtie2_build/bowtie2_build.benchmark.txt"
-    threads:
-        multi_threads_nbr
+        local_path + "benchmarks/STAR/{fasta_basename}_index.benchmark.txt"
     params:
-        outNames = local_path + "RESULTS/annex_database/index_files/index_bowtie2"
-    shell:
-        "bowtie2-build --threads {threads} {input.fasta} {params.outNames} &> {log}"
-
-# Builds the index of hisat2 mapping for all RNA
-rule hisat2_build:
-    input:
-        fasta = local_path + "database/" + os.path.basename(config['fasta'])
-    output:
-        local_path + "RESULTS/annex_database/index_files/index_hisat2.1.ht2"
-    log:
-        logs_path + "hisat2_build/hisat2_build.log"
-    benchmark:
-        local_path + "benchmarks/hisat2_build/hisat2_build.benchmark.txt"
-    threads:
-        multi_threads_nbr
-    params:
-        outNames = local_path + "RESULTS/annex_database/index_files/index_hisat2"
-    shell:
-        "hisat2-build --threads {threads} {input.fasta} {params.outNames} &> {log}"
-
-# Mapping of all RNA by bowtie2 and hisat2
-rule run_mapping:
-    input:
-        local_path + "RESULTS/annex_database/index_files/index_hisat2.1.ht2",
-        local_path + "RESULTS/annex_database/index_files/index_bowtie2.1.bt2",
-        fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz" if config['rRNA']=="" else local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
-    output:
-        fastq = temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.fastq.gz"),
-        sam_hisat2 = temp(local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam"),
-        sam_bowtie2 = temp(local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam")
-    log:
-        hisat2_out = stats_path + "{sample}_run_mapping_hisat2.log",
-        bowtie2_out = stats_path + "{sample}_run_mapping_bowtie2.log"
-    benchmark:
-        local_path + "benchmarks/run_mapping/{sample}.benchmark.txt"
-    resources:
-        mem_mb = mem_mb_resources
-    params:
-        index_names_hisat2 = local_path + "RESULTS/annex_database/index_files/index_hisat2",
-        index_names_bowtie2 = local_path + "RESULTS/annex_database/index_files/index_bowtie2"
-    threads:
-        multi_threads_nbr
-    shell:
-        "hisat2 -x {params.index_names_hisat2} --threads {threads} --no-softclip --no-unal -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
-        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} --end-to-end --no-unal --no-hd -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out}"
-
-# Creates bam and sam files
-rule samtools_filter:
-    priority: 50
-    input:
-        sam_hisat2 = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam",
-        sam_bowtie2 = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam"
-    output:
-        bam = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam"
-    log:
-        view_header_hisat2 = logs_path + "samtools_filter/{sample}.grep_hisat2.log",
-        view_core_hisat2 =  logs_path + "samtools_filter/{sample}.grep_core_hisat2.log",
-        ZS_filter_hisat2 = logs_path + "samtools_filter/{sample}.NH_filter_hisat2.log",
-        XM_filter_hisat2 = logs_path + "samtools_filter/{sample}.XM_filter_hisat2.log",
-        XS_filter_bowtie2 = logs_path + "samtools_filter/{sample}.XS_filter_bowtie2.log",
-        XM_filter_bowtie2 = logs_path + "samtools_filter/{sample}.XM_filter_bowtie2.log",
-        view_bam = logs_path + "samtools_filter/{sample}.view_bam.log",
-        sort_bam = logs_path + "samtools_filter/{sample}.sort_bam.log",
-        rm = logs_path + "samtools_filter/{sample}.rm.log"
-    benchmark:
-        local_path + "benchmarks/samtools_filter/{sample}.benchmark.txt"
-    resources:
-        mem_mb = round(mem_mb_resources / 3)
-    params:
-        sam = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".sam"
-    threads:
-        multi_threads_nbr
-    shell:
-        "set +o pipefail ;"
-        "samtools view -H {input.sam_hisat2} 2> {log.view_header_hisat2} 1> {params.sam} ;"
-        "samtools view {input.sam_hisat2} 2> {log.view_core_hisat2} | grep -v 'ZS:i:' 2> {log.ZS_filter_hisat2} | egrep -vi 'XM:i:[2-9]' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
-        "grep -v 'XS:i:' {input.sam_bowtie2} 2> {log.XS_filter_bowtie2} | egrep -vi 'XM:i:[2-9]' 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
-        "samtools view -@ {threads} -F 3844 -q 1 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ {threads} -o {output.bam} 2> {log.sort_bam} ;"
-        "rm -rf {params.sam} 2> {log.rm} ;"
-
-# Index BAMs
-rule index_bam:
-    input:
-        bam = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam"
-    output:
-        bai = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam.bai"
-    log:
-        index_bam = logs_path + "index_bam/{sample}.index_bam.log"
-    benchmark:
-        local_path + "benchmarks/index_bam/{sample}.benchmark.txt"
-    shell:
-        "samtools index {input.bam} 2> {log.index_bam}"
-
-# Creates an analysis report with trimming and alignment statistics
-rule stats_report:
-    input:
-        ready = expand(rules.samtools_filter.output, sample=SAMPLES)
-    output:
-        stat_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt"
-    run:
-        # List of interesting logs to make the report
-        if config['rRNA'] == "":
-            logs_names = ["adapt_trimming","run_mapping_hisat2","run_mapping_bowtie2"]
-        else:
-            logs_names = ["adapt_trimming","bowtie2_run_outRNA","run_mapping_hisat2","run_mapping_bowtie2"]
-
-        # File for the statistical report
-        data_report = open(output.stat_report,"w")
-        for sample in SAMPLES:
-            # Data treatment report creation
-            data_report.write("##################\n## NEXT SAMPLE ##\n##################\n\n\t" + sample + "\n")
-            for log in logs_names:
-                data_report.write("\n" + ("#" * (len(log)+6)) + "\n## " + log + " ##\n" + ("#" * (len(log)+6)) + "\n")
-                logs_files = open(stats_path + sample + "_" + log + ".log","r")
-                # Keep only lines of interest from cutadapt report1,2
-                i=-1
-                if log=="adapt_trimming":
-                    lines_to_read = range(19)
-                    for position, line in enumerate(logs_files):
-                        if position in lines_to_read:
-                            data_report.write(line)
-                        else:
-                            break
-                else:
-                    for line in logs_files:
-                        data_report.write(line)
-                logs_files.close()
-            data_report.write("\n\n\n")
-        data_report.close()
-
-# Combine important stats into a summary table
-rule generate_report:
-    input:
-        path = expand(rules.samtools_filter.output, sample=SAMPLES)
-    output:
-        report_table = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Table_summary" + frag_length_L + ".csv"
-    log:
-        report = logs_path + "generate_report/report.log"
-    benchmark:
-        local_path + "benchmarks/generate_report/benchmark.txt"
-    shell:
-        "bash " + ribodoc_tools + "others/report_table.sh -r " + stats_path + " -D " + local_path + " -o " + local_path + "RESULTS/" + config['project_name'] + ".Analysis_Table_summary" + frag_length_L + ".csv 2> {log.report}"
-
-# Counts reads on each transcript
-rule htseqcount_cds:
-    input:
-        bam = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam",
-        bai = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam.bai",
-        gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
-    output:
-        htseq_table = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_cds_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt"
-    log:
-        echo = logs_path + "htseqcount_cds/{sample}.echo.log",
-        sed = logs_path + "htseqcount_cds/{sample}.sed.log",
-        htseqcount = logs_path + "htseqcount_cds/{sample}.htseqcount.log",
-        head = logs_path + "htseqcount_cds/{sample}.head.log",
-        awk = logs_path + "htseqcount_cds/{sample}.awk.log"
-    benchmark:
-        local_path + "benchmarks/htseqcount_cds/{sample}.benchmark.txt"
-    params:
-        tmp_file = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_cds_feature'] + "/{sample}_tmp.txt"
+        star_dir = local_path + "RESULTS/annex_database/index/STAR",
+        fasta_basename=lambda wildcards: os.path.splitext(os.path.basename(get_fasta(wildcards)))[0]
     threads:
         multi_threads_nbr
     shell:
-        "set +o pipefail ;"
-        "echo -e '" + htseq_header + "' 2> {log.echo} > {output.htseq_table} ;"
-        "sed -i '1s/$/{wildcards.sample}/' {output.htseq_table} 2> {log.sed} ;"
-        "htseq-count -n {threads} -f bam -t " + config['gff_cds_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount} > {params.tmp_file} ;"
-        """head -n -5 {params.tmp_file} 2> {log.head} | awk -F '\t+' '{{if($3 >= 0) {{print($0)}} else {{printf("%s\\tNA\\t%s\\n",$1,$2)}}}}' 2> {log.awk} >> {output.htseq_table} ;"""
-        "rm -f {params.tmp_file} ;"
+        """
+        if [[ $file == *.gff3 ]]
+        then
+            annotation="--sjdbGTFtagExonParentTranscript Parent"
+        else
+            annotation="--sjdbGTFtagExonParentTranscript transcript"
+        fi
 
-# Counts reads on each 5prime, 3prime or CDS part of each transcript
-rule htseqcount_utr:
-    input:
-        bam = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam",
-        bai = local_path + "RESULTS/BAM" + frag_length_L + "/{sample}" + frag_length_L + ".bam.bai",
-        gff = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff']),
-        htseqcount_cds = rules.htseqcount_cds.output
-    output:
-        htseq_table_threeprime = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_3UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_3UTR_feature'] + ".txt",
-        htseq_table_fiveprime = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_5UTR_feature'] + "/{sample}" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_5UTR_feature'] + ".txt"
-    log:
-        header_5prime = logs_path + "htseqcount_utr/{sample}.header_5prime.log",
-        htseqcount_5prime = logs_path + "htseqcount_utr/{sample}.htseqcount_5prime.log",
-        head_5prime = logs_path + "htseqcount_utr/{sample}.head_5prime.log",
-        awk_5prime = logs_path + "htseqcount_utr/{sample}.awk_5prime.log",
-        header_3prime = logs_path + "htseqcount_utr/{sample}.header_3prime.log",
-        htseqcount_3prime = logs_path + "htseqcount_utr/{sample}.htseqcount_3prime.log",
-        head_3prime = logs_path + "htseqcount_utr/{sample}.head_3prime.log",
-        awk_3prime = logs_path + "htseqcount_utr/{sample}.awk_3prime.log"
-    benchmark:
-        local_path + "benchmarks/htseqcount_utr/{sample}.benchmark.txt"
-    params:
-        tmp_file = local_path + "RESULTS/{sample}_tmp.txt"
-    threads:
-        multi_threads_nbr
-    shell:
-        "set +o pipefail ;"
+        filename=$(basename {input.fasta})
+        index_folder="${filename%.*}"
+        if [ ! -d {params.star_dir}/$index_folder ];
+        then
+            mkdir -p {params.star_dir}/$index_folder
+            
+            STAR \\
+            --runMode genomeGenerate \\
+            --genomeDir {params.star_dir}/ \\
+            --genomeFastaFiles {input.fasta} \\
+            # --sjdbGTFfile {input.gtf} \\
+            ${{annotation}} \\
+            --runThreadN {threads} \\
+            --outFileNamePrefix {output}
+        fi
+        """
 
-        "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.htseq_table_fiveprime} 2> {log.header_5prime} ;"
-        "htseq-count -n {threads} -f bam -t " + config['gff_5UTR_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_5prime} > {params.tmp_file} ;"
-        """head -n -5 {params.tmp_file} 2> {log.head_5prime} | awk -F '\t+' '{{if($3 >= 0) {{print($0)}} else {{printf("%s\\tNA\\t%s\\n",$1,$2)}}}}' 2> {log.awk_5prime} >> {output.htseq_table_fiveprime} ;"""
-        "rm -f {params.tmp_file} ;"
-
-        "echo -e 'ID\\tName\\t{wildcards.sample}' > {output.htseq_table_threeprime} 2> {log.header_3prime} ;"
-        "htseq-count -n {threads} -f bam -t " + config['gff_3UTR_feature'] + " -i "  + config['gff_parent_attribut'] + " " + htseq_additional + " -m intersection-strict --nonunique fraction {input.bam} {input.gff} 2> {log.htseqcount_3prime} > {params.tmp_file} ;"
-        """head -n -5 {params.tmp_file} 2> {log.head_3prime} | awk -F '\t+' '{{if($3 >= 0) {{print($0)}} else {{printf("%s\\tNA\\t%s\\n",$1,$2)}}}}' 2> {log.awk_3prime} >> {output.htseq_table_threeprime} ;"""
-        "rm -f {params.tmp_file} ;"
-
-# Creates the row names (genes/transcript names) of the count matrix
-rule count_matrix_initialization:
-    input:
-        ready = expand(rules.htseqcount_utr.output, sample=SAMPLES) if config['UTR']=="yes" else expand(rules.htseqcount_cds.output, sample=SAMPLES),
-        counts = local_path + "RESULTS/HTSeq-counts/htseqcount_" + config['gff_cds_feature'] + "/" + SAMPLES[0] + "" + frag_length_L + ".no-outRNA.htseqcount_" + config['gff_cds_feature'] + ".txt"
-    output:
-        transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.csv"
-    log:
-        header = "logs/count_matrix_initialization/head.log",
-        cut = "logs/count_matrix_initialization/cut.log",
-        sort = logs_path + "count_matrix_initialization/sort.log"
-    benchmark:
-        local_path + "benchmarks/count_matrix_initialization/count_matrix_initialization.benchmark.txt"
-    run:
-        shell("set +o pipefail ;")
-        if name_in_gff == True:
-            shell("""
-            echo -e 'ID\\tTranscript_name\\tGene_name' 2> {log.header} > {output.transcript_list}
-            tail +2 {input.counts} | cut -f 1,2 2> {log.cut} | LC_COLLATE=C sort 2> {log.sort} >> {output.transcript_list}
-            sed -i -E 's/\\t([^\\t]+)(-[0-9]{{3}})/\\t\\1\\2\\t\\1/' {output.transcript_list}
-            sed -i -E 's/^([^\\t]+)\\t([^\t]+)$/\\1\\t\\2\\t\\2/' {output.transcript_list}
-            """)
-        else:
-            shell("""
-            echo -e 'ID' 2> {log.header} > {output.transcript_list}
-            tail +2 {input.counts} | cut -f 1,2 2> {log.cut} | LC_COLLATE=C sort 2> {log.sort} >> {output.transcript_list}
-            """)
-
-# Adds the read counts of each sample to the matrix
-rule count_matrix_creation:
-    input:
-        transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.csv"
-    output:
-        counts_matrix = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/count_matrix_by_transcript_IDs.csv"
-    log:
-        cut = logs_path + "count_matrix_creation/cut.log",
-        cat_cds = logs_path + "count_matrix_creation/cat.log",
-        join_utr = logs_path + "count_matrix_creation/join_utr.log"
-    benchmark:
-        local_path + "benchmarks/count_matrix_creation/count_matrix_creation.benchmark.txt"
-    params:
-        tmp_file = local_path + "RESULTS/tmp.txt"
-    run:
-        for region in features_of_interest:
-            shell("cut -f 1 {input.transcript_list} 2> {log.cut} > " + local_path + "RESULTS/HTSeq-counts/htseqcount_" + region + "/count_matrix_by_transcript.csv")
-            for sample in SAMPLES:
-                if name_in_gff == True:
-                    fields = "1,3"
-                else:
-                    fields = "1,2"
-                shell("cut -f " + fields + " " + local_path + "RESULTS/HTSeq-counts/htseqcount_" + region + "/" + sample + frag_length_L + ".no-outRNA.htseqcount_" + region + ".txt | LC_COLLATE=C join --header -t $'\t' " + local_path + "RESULTS/HTSeq-counts/htseqcount_" + region + "/count_matrix_by_transcript.csv - > {params.tmp_file} 2>> {log.cut}")
-                shell("cat {params.tmp_file} 1> " + local_path + "RESULTS/HTSeq-counts/htseqcount_" + region + "/count_matrix_by_transcript.csv 2> {log.cat_cds}")
-            shell("LC_COLLATE=C join --header -t $'\t' {params.tmp_file} {input.transcript_list} 1> " + local_path + "RESULTS/HTSeq-counts/htseqcount_" + region + "/count_matrix_by_transcript.csv 2> {log.join_utr}")
-            shell("rm -f {params.tmp_file}")
-            if region == features_of_interest[0]:
-                shell("cp " + local_path + "RESULTS/HTSeq-counts/htseqcount_" + region + "/count_matrix_by_transcript.csv {output.counts_matrix}")
-
-# Create a count matrix by transcript and a count matrix by gene
-rule matrices_by_gene_or_transcript:
-    input:
-        transcript_list = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/names_correspondence_list.csv",
-        counts_matrix = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/count_matrix_by_transcript_IDs.csv"
-    output:
-        by_gene = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/count_matrix_by_gene.csv",
-        by_transcript = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/count_matrix_by_transcript.csv"
-    log:
-        logs_path + "matrices_by_gene_or_transcript/matrices_creation.log"
-    benchmark:
-        local_path + "benchmarks/matrices_by_gene_or_transcript/matrices_creation.benchmark.txt"
-    shell:
-        "Rscript " + ribodoc_tools + "differential_analysis/by_gene_or_trancript_count_matrices.R -w " + local_path + " -f " + ribodoc_tools + "differential_analysis/"
-
-# Performs differential analysis
-rule DESeq2_analysis_gene:
-    input:
-        by_gene = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/count_matrix_by_gene.csv"
-    output:
-        complete = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/gene_complete_" + REFERENCE_COND + "-{cond}.csv",
-        up = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/gene_up_" + REFERENCE_COND + "-{cond}.csv",
-        down = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/gene_down_" + REFERENCE_COND + "-{cond}.csv",
-        report = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + "_" + REFERENCE_COND + "-{cond}.Final_report.html"
-    log:
-        control = logs_path + "DESeq2_analysis_gene/header_control_" + REFERENCE_COND + "-{cond}.log",
-        deseq2 = logs_path + "DESeq2_analysis_gene/DESeq2_analysis_" + REFERENCE_COND + "-{cond}.log"
-    benchmark:
-        local_path + "benchmarks/DESeq2_analysis_gene/DESeq2_analysis.benchmark_" + REFERENCE_COND + "-{cond}.txt"
-    params:
-        reportPath = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/",
-        reportName = config['project_name'] + "_" + REFERENCE_COND + "-{cond}.Final_report.html"
-    shell:
-        "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "differential_analysis/DESeq2_analysis_by_gene.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2}"
-
-rule DESeq2_analysis_transcript:
-    input:
-        by_transcript = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/count_matrix_by_transcript.csv"
-    output:
-        complete = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/transcript_complete_" + REFERENCE_COND + "-{cond}.csv",
-        up = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/transcript_up_" + REFERENCE_COND + "-{cond}.csv",
-        down = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/transcript_down_" + REFERENCE_COND + "-{cond}.csv",
-        report = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + "_" + REFERENCE_COND + "-{cond}.Final_report.html"
-    log:
-        control = logs_path + "DESeq2_analysis_transcript/header_control_" + REFERENCE_COND + "-{cond}.log",
-        deseq2 = logs_path + "DESeq2_analysis_transcript/DESeq2_analysis_" + REFERENCE_COND + "-{cond}.log"
-    benchmark:
-        local_path + "benchmarks/DESeq2_analysis_transcript/DESeq2_analysis.benchmark_" + REFERENCE_COND + "-{cond}.txt"
-    params:
-        reportPath = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/",
-        reportName = config['project_name'] + "_" + REFERENCE_COND + "-{cond}.Final_report.html"
-    shell:
-        "Rscript -e \"rmarkdown::render('" + ribodoc_tools + "differential_analysis/DESeq2_analysis_by_transcript.Rmd', output_format='html_document', output_file='{params.reportName}', output_dir='{params.reportPath}', intermediates_dir = '{params.reportPath}')\" 2> {log.deseq2}"
-
-
-# Quality controls :
-# Filter the transcripts to only keep those with a 5-prime UTR if there are enough of them
-rule filter_by_5UTR:
-    input:
-        gff_namedCDS = local_path + "RESULTS/annex_database/NamedCDS_" + os.path.basename(config['gff'])
-    output:
-        gff_5UTR_filtered = temp(local_path + "RESULTS/annex_database/gff_5UTR_filtered_" + os.path.basename(config['gff'])),
-        gff_features = local_path + "RESULTS/annex_database/gff_features_counts.txt"
-    log:
-        logs_path + "filter_by_5UTR/filtering.log"
-    benchmark:
-        local_path + "benchmarks/filter_by_5UTR/filtering.benchmark.txt"
-    params:
-        annex_path = local_path + "RESULTS/annex_database/"
-    shell:
-        "bash " + ribodoc_tools + "others/filter_5UTR.sh -g {input.gff_namedCDS} -o {output.gff_5UTR_filtered} -p {params.annex_path} -r " + config["gff_mRNA_feature"] + " -u " + config["gff_5UTR_feature"] + " -t " + utr_threshold + " 2> {log}"
-
-# In case there are no UTRs in the original GFF, call for ORFget functions
-rule ORFget:
-    input:
-        fasta = local_path + "database/" + os.path.basename(config['fasta']),
-        gff = local_path + "RESULTS/annex_database/gff_5UTR_filtered_" + os.path.basename(config['gff'])
-    output:
-        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta",
-        gff = local_path + "RESULTS/annex_database/transcriptome_elongated.gff"
-    log:
-        orf_get = logs_path + "ORFget/orf_get.log"
-    benchmark:
-        local_path + "benchmarks/ORFget/ORFget.benchmark.txt"
-    params:
-        path = local_path + "RESULTS/annex_database/transcriptome"
-    shell:
-        "python3 " + ribodoc_tools + "orfget/ORFget.py -fna {input.fasta} -gff {input.gff} -features_include " + config['gff_cds_feature'] + " -name_attribute " + config['gff_name_attribut'] + " -o {params.path} -type nucl -elongate 50 -check 2> {log.orf_get}"
-
-# Create GTF file for riboWaltz
-rule transcriptome_construction_gtf:
-    input:
-        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta",
-        gff = local_path + "RESULTS/annex_database/transcriptome_elongated.gff"
-    output:
-        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_" + os.path.basename(config['fasta']),
-        gtf = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_" + os.path.basename(config['gff']) + ".gtf"
-    log:
-        samtools_index = logs_path + "transcriptome_construction_gtf/samtools_index.log",
-        gffread_gtf = logs_path + "transcriptome_construction_gtf/gffread.log",
-        sed = logs_path + "transcriptome_construction_gtf/sed.log",
-        awk = logs_path + "transcriptome_construction_gtf/awk.log"
-    benchmark:
-        local_path + "benchmarks/transcriptome_construction_gtf/transcriptome_construction_gtf.benchmark.txt"
-    params:
-        tmp_gtf = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_tmp.gtf"
-    shell:
-        "samtools faidx {input.fasta} 2> {log.samtools_index} ;"
-        "gffread -F -T -w {output.fasta} -o {params.tmp_gtf} -g {input.fasta} {input.gff} 2> {log.gffread_gtf} ;"
-        "sed -i 's/description[^\;]*\;//' {params.tmp_gtf} 2>> {log.sed} ;"
-        "sed -i 's/\\t[A-Z]*[_]*gene_segment\\t/\\ttranscript\\t/' {params.tmp_gtf} 2>> {log.sed} ;"
-        """awk -F '\\t' '{{if(NF<=9) {{print($0);}} else {{for(field=1;field<9;field++) {{printf("%s\\t",$field);}} for(field=9;field<=NF;field++) {{printf("%s ",$field);}} printf("\\n");}}}}' {params.tmp_gtf} > {output.gtf} 2>> {log.awk} ;"""
-        "rm -f {params.tmp_gtf} ;"
-        "sed -i 's/\\s$//' {output.gtf} 2>> {log.sed} ;"
-
-# Builds the index of bowtie2 mapping for all RNA
-rule bowtie2_build_transcriptome:
-    input:
-        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta"
-    output:
-        local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2.1.bt2"
-    log:
-        logs_path + "bowtie2_build_transcriptome/bowtie2_build.log"
-    benchmark:
-        local_path + "benchmarks/bowtie2_build_transcriptome/transcriptome_index_bowtie2.benchmark.txt"
-    params:
-        index_names = local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2"
-    threads:
-        multi_threads_nbr
-    shell:
-        "bowtie2-build --threads {threads} {input.fasta} {params.index_names} &> {log}"
-
-# Builds the index of hisat2 mapping for all RNA
-rule hisat2_build_transcriptome:
-    input:
-        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta"
-    output:
-        local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2.1.ht2"
-    log:
-        logs_path + "hisat2_build_transcriptome/hisat2_build.log"
-    benchmark:
-        local_path + "benchmarks/hisat2_build_transcriptome/hisat2_build_transcriptome.benchmark.txt"
-    params:
-        index_names = local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2"
-    threads:
-        multi_threads_nbr
-    shell:
-        "hisat2-build --threads {threads} {input.fasta} {params.index_names} &> {log}"
-
-# Performs mapping on transcriptome
-rule run_mapping_transcriptome:
-    input:
-        local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2.1.ht2",
-        local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2.1.bt2",
-        fastq = local_path + "RESULTS/cutadapt/{sample}.cutadapt" + frag_length_L + ".fastq.gz" if config['rRNA']=="" else local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.fastq.gz"
-    output:
-        sam_hisat2 = temp(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam"),
-        sam_bowtie2 = temp(local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam"),
-        fastq = temp(local_path + "RESULTS/no-outRNA/{sample}" + frag_length_L + ".no-outRNA.notAlign.transcriptome.fastq.gz")
-    log:
-        hisat2_out = logs_path + "run_mapping_transcriptome/{sample}_run_mapping_transcriptome_hisat2.log",
-        bowtie2_out = logs_path + "run_mapping_transcriptome/{sample}_run_mapping_transcriptome_bowtie2.log"
-    benchmark:
-        local_path + "benchmarks/run_mapping_transcriptome/{sample}.benchmark.txt"
-    resources:
-        mem_mb = mem_mb_resources
-    params:
-        index_names_hisat2 = local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_hisat2",
-        index_names_bowtie2 = local_path + "RESULTS/annex_database/index_files/transcriptome_elongated.transcriptome_index_bowtie2"
-    threads:
-        multi_threads_nbr
-    shell:
-        "hisat2 -x {params.index_names_hisat2} --threads {threads} -k " + isoform_nbr + " --no-softclip --no-unal -U {input.fastq} --un-gz {output.fastq} -S {output.sam_hisat2} 2>> {log.hisat2_out} ;"
-        "bowtie2 -x {params.index_names_bowtie2} --threads {threads} -k " + isoform_nbr + " --end-to-end --no-unal --no-hd -U {output.fastq} -S {output.sam_bowtie2} 2>> {log.bowtie2_out}"
-
-# Creates bam and sam files
-rule samtools_filter_transcriptome:
-    priority: 50
-    input:
-        sam_hisat2 = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".hisat2.sam",
-        sam_bowtie2 = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".bowtie2.sam"
-    output:
-        bam = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam"
-    log:
-        view_header_hisat2 = logs_path + "samtools_filter_transcriptome/{sample}.grep_hisat2.log",
-        uniq_header = logs_path + "samtools_filter_transcriptome/{sample}.uniq_header.log",
-        view_core_hisat2 =  logs_path + "samtools_filter_transcriptome/{sample}.grep_core_hisat2.log",
-        XM_filter_hisat2 = logs_path + "samtools_filter_transcriptome/{sample}.XM_filter_hisat2.log",
-        XM_filter_bowtie2 = logs_path + "samtools_filter_transcriptome/{sample}.XM_filter_bowtie2.log",
-        view_bam = logs_path + "samtools_filter_transcriptome/{sample}.view_bam.log",
-        sort_bam = logs_path + "samtools_filter_transcriptome/{sample}.sort_bam.log"
-    benchmark:
-        local_path + "benchmarks/samtools_filter_transcriptome/{sample}.benchmark.txt"
-    resources:
-        mem_mb = round(mem_mb_resources / 3)
-    params:
-        sample = "{sample}",
-        sam = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/{sample}" + frag_length_L + ".sam"
-    threads:
-        multi_threads_nbr
-    shell:
-        "set +o pipefail ;"
-        "samtools view -H {input.sam_hisat2}  2> {log.view_header_hisat2} | uniq 2> {log.uniq_header} 1> {params.sam} ;"
-        "samtools view {input.sam_hisat2} 2> {log.view_core_hisat2} | egrep -vi 'XM:i:[2-9]' 2> {log.XM_filter_hisat2} 1>> {params.sam} ;"
-        "egrep -vi 'XM:i:[2-9]' {input.sam_bowtie2} 2> {log.XM_filter_bowtie2} 1>> {params.sam} ;"
-        "samtools view -@ {threads} -F 3588 -h -b {params.sam} 2> {log.view_bam} | samtools sort -@ {threads} -o {output.bam} 2> {log.sort_bam} ;"
-        "rm -f {params.sam} ;"
-
-# Index BAMs
-rule index_bam_transcriptome:
-    input:
-        bam = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam"
-    output:
-        bai = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam.bai"
-    log:
-        index_bam = logs_path + "index_bam_transcriptome/{sample}.index_bam.log"
-    benchmark:
-        local_path + "benchmarks/index_bam_transcriptome/{sample}.benchmark.txt"
-    shell:
-        "samtools index {input.bam} 2> {log.index_bam}"
-
-
-# riboWaltz pipeline
-# Performs qualitative analysis with riboWaltz
-rule riboWaltz_transcriptome:
-    input:
-        transcriptome_gtf = local_path + "RESULTS/annex_database/transcriptome_elongated.exons_" + os.path.basename(config['gff']) + ".gtf",
-        transcriptome_bam = expand(rules.index_bam_transcriptome.output, sample=SAMPLES)
-    output:
-        psite_table = local_path + "RESULTS/riboWaltz" + frag_length_L + "/psite_offset.csv",
-        metaprofile = local_path + "RESULTS/riboWaltz" + frag_length_L + "/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff"
-    log:
-        periodicity = logs_path + "riboWaltz_transcriptome/riboWaltz.log"
-    resources:
-        mem_mb = mem_mb_resources*100
-    benchmark:
-        local_path + "benchmarks/riboWaltz_transcriptome/riboWaltz.benchmark.txt"
-    shell:
-        "touch {output.psite_table} ;"
-        "Rscript " + ribodoc_tools + "ribowaltz/periodicity_riboWaltz_transcriptome.R -w " + local_path + " -f " + ribodoc_tools + "ribowaltz/ -g {input.transcriptome_gtf} 2> {log} ;"
-        "rm -f " + local_path + "Rplots.pdf ;"
-
-
-# TRiP pipeline
-# Divisions of SAM file according to read length and turns it into BAM
-rule quality_controls_bamDivision:
-    input:
-        bam = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam",
-        bai = local_path + "RESULTS/BAM_transcriptome" + frag_length_L + "/transcriptome_elongated.{sample}" + frag_length_L + ".bam.bai"
-    output:
-        bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
-        bai = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam.bai"
-    log:
-        logs_path + "quality_controls_bamDivision/{sample}.{taille}.BamDivision.log"
-    benchmark:
-        local_path + "benchmarks/quality_controls_bamDivision/{sample}.{taille}.benchmark.txt"
-    threads:
-        multi_threads_nbr
-    params:
-        sample_names = "{sample}",
-        read_length = "{taille}"
-    shell:
-        "bash " + ribodoc_tools + "trip/BamDivision.sh -N {params.sample_names} -l {params.read_length} -B {input.bam} -T {threads} -o " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log}"
-
-# Creates bed files from fasta files
-rule quality_controls_bedcount:
-    input:
-        bam = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam",
-        bai = local_path + "RESULTS/qualitativeAnalysis/bamDivision/{sample}.{taille}.uniq.sort.bam.bai",
-        fasta = local_path + "RESULTS/annex_database/transcriptome_elongated.nfasta"
-    output:
-        sequenceBedCount = local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/{sample}.{taille}.count.sequence.bed",
-        readsLengthRepartitionBed = temp(local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed"),
-        bed = temp(local_path + "RESULTS/qualitativeAnalysis/bedCount/{sample}.{taille}.count.bed")
-    log:
-        logs_path + "quality_controls_bedcount/{sample}.{taille}.readsLengthRepartition.log"
-    benchmark:
-        local_path + "benchmarks/quality_controls_bedcount/{sample}.{taille}.benchmark.txt"
-    params:
-        sample_names = "{sample}",
-        read_length = "{taille}"
-    shell:
-        "bash " + ribodoc_tools + "trip/readsLengthRepartition.sh -N {params.sample_names} -l {params.read_length} -F {input.fasta} -D " + local_path + "RESULTS/qualitativeAnalysis/bamDivision/ -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log}"
-
-# Outputs the number of reads on each reads length
-rule quality_controls_readsLengthRepartition:
-    input:
-        expand(rules.quality_controls_bedcount.output.readsLengthRepartitionBed, sample=SAMPLES, taille=LENGTHS)
-    output:
-        local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.readsLengthRepartition.txt"
-    log:
-        wc = logs_path + "quality_controls_readsLengthRepartition/{sample}.wc.log",
-        sed1 = logs_path + "quality_controls_readsLengthRepartition/{sample}.sed1.log",
-        awk = logs_path + "quality_controls_readsLengthRepartition/{sample}.awk.log",
-        sed2 = logs_path + "quality_controls_readsLengthRepartition/{sample}.sed2.log",
-        head = logs_path + "quality_controls_readsLengthRepartition/{sample}.head.log"
-    benchmark:
-        local_path + "benchmarks/quality_controls_readsLengthRepartition/{sample}.benchmark.txt"
-    params:
-        path = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/",
-        sample_names = "{sample}"
-    shell:
-        "set +o pipefail ;"
-        "wc -l {params.path}{params.sample_names}*.bed 2> {log.wc} | sed 's/\./ /g' 2> {log.sed1} | awk -F ' ' '{{print $(NF-1),$1}}' 2> {log.awk} | sed 's/ /\\t/g' 2> {log.sed2} | head -n -1 2> {log.head}  > {output} ;"
-
-# Looks how many reads start on each base to find if there is a periodicity signal
-rule quality_controls_periodicity:
-    input:
-        readsLengthRepartitionBed = local_path + "RESULTS/qualitativeAnalysis/readsLengthRepartition/{sample}.{taille}.bed",
-        bed = local_path + "RESULTS/qualitativeAnalysis/bedCount/{sample}.{taille}.count.bed",
-        gff = local_path + "RESULTS/annex_database/transcriptome_elongated.gff"
-    output:
-        start = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".txt",
-        stop = local_path + "RESULTS/qualitativeAnalysis/periodicity/{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".txt"
-    log:
-        start = logs_path + "quality_controls_periodicity/{sample}.{taille}.log",
-        stop = logs_path + "quality_controls_periodicity/{sample}.{taille}.log"
-    benchmark:
-        local_path + "benchmarks/quality_controls_periodicity/{sample}.{taille}.benchmark.txt"
-    params:
-        sample_names = "{sample}",
-        read_length = "{taille}"
-    shell:
-        "bash " + ribodoc_tools + "trip/periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'start' -t '" + config['gff_cds_feature'] + "' -m " + config['window_utr'] + " -M " + config['window_cds'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.start} ;"
-        "bash " + ribodoc_tools + "trip/periodicity.sh -N {params.sample_names} -l {params.read_length} -G {input.gff} -D " + local_path + "RESULTS/qualitativeAnalysis/bedCount/ -p 'stop' -t '" + config['gff_cds_feature'] + "' -m " + config['window_cds'] + " -M " + config['window_utr'] + " -r 'metagene' -O " + local_path + "RESULTS/qualitativeAnalysis/ 2> {log.stop} ;"
-
-# Creates graphs of reads length repartition
-rule graphs_length:
-    input:
-        length = rules.quality_controls_readsLengthRepartition.output
-    output:
-        length = local_path + "RESULTS/qualitativeAnalysis/graphes/readsLengthRepartition/{sample}.readsLengthRepartition.jpeg"
-    params:
-        sample_name = "{sample}"
-    log:
-        rscript = logs_path + "quality_controls_graphs_length/{sample}.rscript.log"
-    benchmark:
-        local_path + "benchmarks/quality_controls_graphs_length/{sample}.benchmark.txt"
-    shell:
-        "Rscript " + ribodoc_tools + "trip/generationGraph_length.R --work_dir " + local_path + " --sample_name {params.sample_name} 2> {log.rscript}"
-
-# Creates periodicity graphs
-rule graphs_periodicity:
-    input:
-        perio = rules.quality_controls_periodicity.output
-    output:
-        perioStart = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg",
-        perioStop = local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr'] + ".jpeg"
-    params:
-        name_start = "{sample}.{taille}.periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'],
-        name_stop = "{sample}.{taille}.periodicity.stop." + config['gff_cds_feature'] + ".-" + config['window_cds'] + "+" + config['window_utr']
-    log:
-        start = logs_path + "quality_controls_graphs_periodicity/{sample}.{taille}.start.log",
-        stop = logs_path + "quality_controls_graphs_periodicity/{sample}.{taille}.stop.log"
-    benchmark:
-        local_path + "benchmarks/quality_controls_graphs_periodicity/{sample}.{taille}.benchmark.txt"
-    shell:
-        "Rscript " + ribodoc_tools + "trip/generationGraph_perio.R --work_dir " + local_path + " --name {params.name_start} --feature_type " + config['gff_cds_feature'] + " --start_or_stop 'start' --length_before '" + config['window_utr'] + "' --Length_after '" + config['window_cds'] + "' 2> {log.start} ;"
-        "Rscript " + ribodoc_tools + "trip/generationGraph_perio.R --work_dir " + local_path + " --name {params.name_stop} --feature_type " + config['gff_cds_feature'] + " --start_or_stop 'stop' --length_before '" + config['window_cds'] + "' --Length_after '" + config['window_utr'] + "' 2> {log.stop} ;"
-
-# Creates periodicity graphs from riboWaltz outputs
-rule periodicity_rgb:
-    input:
-        metaprofile = local_path + "RESULTS/riboWaltz" + frag_length_L + "/transcriptome_elongated." + SAMPLES[0] + "/metaprofile_psite_-" + config['window_utr'] + "+" + config['window_cds'] + ".tiff"
-    output:
-        rgb_graph = local_path + "RESULTS/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/transcriptome_elongated." + SAMPLES[0] + "/length" + LENGTHS[0] + "_start.tiff"
-    log:
-        rscript = logs_path + "periodicity_rgb/Rscript.log"
-    benchmark:
-        local_path + "benchmarks/periodicity_rgb/benchmark.txt"
-    shell:
-        "Rscript " + ribodoc_tools + "ribowaltz/change_riboWaltz_periodicity_graphs_to_RGB_by_length.R -w " + local_path + " 2> {log.rscript}"
-
-# Creates codon occupancy graphs
-rule codon_occupancy_per_length:
-    input:
-        psite_table = local_path + "RESULTS/riboWaltz" + frag_length_L + "/psite_offset.csv",
-        seqbedCount = expand(rules.quality_controls_bedcount.output.readsLengthRepartitionBed, sample=SAMPLES, taille=LENGTHS)
-    output:
-        graph_sample    = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/graphs_by_length/" + config['reference_condition'] + "_vs_{conds}_{taille}_by_sample.tiff",
-        log_ratio       = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/graphs_by_length/" + config['reference_condition'] + "_vs_{conds}_{taille}_log-ratio.tiff",
-        mean_codon      = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/graphs_by_length/" + config['reference_condition'] + "_vs_{conds}_{taille}_mean_by_codon.tiff",
-        mean_error      = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/graphs_by_length/" + config['reference_condition'] + "_vs_{conds}_{taille}_mean_with_error.tiff"
-    log:
-        rscript = logs_path + "codon_occupancy/" + config['reference_condition'] + "_vs_{conds}_{taille}_Rscript.log"
-    benchmark:
-        local_path + "benchmarks/codon_occupancy/" + config['reference_condition'] + "_vs_{conds}_{taille}_benchmark.txt"
-    params:
-        condition = "{conds}",
-        read_length = "{taille}"
-    shell:
-        "Rscript " + ribodoc_tools + "codon_occupancy/Occupancy_per_length.R -O {input.psite_table} -F " + ribodoc_tools + "codon_occupancy/ -N " + config['reference_condition'] + " -n {params.condition} -r 0 -m " + LENGTHS[len(LENGTHS)-1] + " -M " + LENGTHS[0] + " -e " + config['elongation'] + " -s " + config['site'] + " -f TRUE -p " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ -o " + local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/ 2> {log.rscript} ;"
-
-rule codon_occupancy:
-    input:
-        psite_table = local_path + "RESULTS/riboWaltz" + frag_length_L + "/psite_offset.csv",
-        seqbedCount = expand(rules.quality_controls_bedcount.output.readsLengthRepartitionBed, sample=SAMPLES, taille=LENGTHS)
-    output:
-        mean_codon_all_reads        = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_mean_by_codon_all_reads.tiff",
-        mean_aa_all_reads           = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_mean_by_amino-acid_all_reads.tiff",
-        norm_counts_cond_aa         = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_normalized_counts_by_condition_by_aa.csv",
-        norm_counts_cond_codon      = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_normalized_counts_by_condition_by_codon.csv",
-        percentage_aa_all_reads     = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_percentage_by_amino-acid_all_reads.csv",
-        percentage_cond_all_reads   = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_percentage_by_condition_all_reads.csv",
-        percentage_sample_all_reads = local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/" + config['site'] + "site/" + config['reference_condition'] + "_vs_{conds}_percentage_by_sample_all_reads.csv",
-    log:
-        rscript = logs_path + "codon_occupancy/" + config['reference_condition'] + "_vs_{conds}_Rscript.log"
-    benchmark:
-        local_path + "benchmarks/codon_occupancy/" + config['reference_condition'] + "_vs_{conds}_benchmark.txt"
-    params:
-        condition = "{conds}",
-    shell:
-        "Rscript " + ribodoc_tools + "codon_occupancy/Occupancy_all.R -O {input.psite_table} -F " + ribodoc_tools + "codon_occupancy/ -N " + config['reference_condition'] + " -n {params.condition} -r 0 -m " + LENGTHS[len(LENGTHS)-1] + " -M " + LENGTHS[0] + " -e " + config['elongation'] + " -s " + config['site'] + " -f TRUE -p " + local_path + "RESULTS/qualitativeAnalysis/sequenceBedCount/ -o " + local_path + "RESULTS/qualitativeAnalysis/codon_occupancy/ 2> {log.rscript} ;"
-
-# Creates periodicity graphs
-rule main_output_folder:
-    input:
-        stats_report = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
-        report_table = local_path + "RESULTS/" + config['project_name'] + ".Analysis_Table_summary" + frag_length_L + ".csv",
-        deseq2_transcript = expand(local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_transcript/" + config['project_name'] + "_" + REFERENCE_COND + "-{cond}.Final_report.html",cond=OTHERS_COND),
-        deseq2_gene = expand(local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L + "/DESeq2_by_gene/" + config['project_name'] + "_" + REFERENCE_COND + "-{cond}.Final_report.html",cond=OTHERS_COND),
-        qualitative_lengths = rules.riboWaltz_transcriptome.output if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_length.output,sample=SAMPLES,taille=LENGTHS),
-        qualitative_perio = rules.periodicity_rgb.output if config['qualitative_analysis']=="ribowaltz" else expand(rules.graphs_periodicity.output,sample=SAMPLES,taille=LENGTHS),
-        codon_occupancy_per_length = expand(rules.codon_occupancy_per_length.output,conds=OTHERS_COND,taille=LENGTHS) if config['codon_occupancy']=="yes" else (),
-        codon_occupancy = expand(rules.codon_occupancy.output,conds=OTHERS_COND) if config['codon_occupancy']=="yes" else ()
-    output:
-        local_path + "MAIN_RESULTS/" + config['project_name'] + ".Analysis_Report" + frag_length_L + ".txt",
-        local_path + "MAIN_RESULTS/Qualitative_analysis_riboWaltz/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/transcriptome_elongated." + SAMPLES[0] + "/length" + LENGTHS[0] + "_start.tiff" if config['qualitative_analysis']=="ribowaltz" else local_path + "MAIN_RESULTS/Qualitative_analysis_TRiP/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/" + SAMPLES[0] + "." + LENGTHS[0] + ".periodicity.start." + config['gff_cds_feature'] + ".-" + config['window_utr'] + "+" + config['window_cds'] + ".jpeg"
-    params:
-        deseq2_folder = local_path + "RESULTS/DESeq2_" + config['gff_cds_feature'] + frag_length_L,
-        graphs_folder = local_path + "RESULTS/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] if config['qualitative_analysis']=="ribowaltz" else local_path + "RESULTS/qualitativeAnalysis/graphes/periodicity_-" + config['window_utr'] + "+" + config['window_cds'] + "/",
-        ribowaltz_folder = local_path + "RESULTS/riboWaltz" + frag_length_L + "/"
-    log:
-        bash = logs_path + "main_output_folder/bash.log"
-    benchmark:
-        local_path + "benchmarks/main_output_folder/benchmark.txt"
-    shell:
-        "bash " + ribodoc_tools + "others/main_results_folder_maker.sh -p " + local_path + " -P " + ribodoc_tools + "others/ -q " + config['qualitative_analysis'] + " -s {input.stats_report} -d {params.deseq2_folder} -g {params.graphs_folder} -r {params.ribowaltz_folder} -t {input.report_table} 2> {log.bash}"
+# rule STAR_ALIGN:
+#     input:
+#         local_path + "RESULTS/trimgalore/{sample}.trimmed" + frag_length_L + ".fastq.gz"
+#     output:
+#         ...
+#     log:
+#         logs_path + "STAR/{sample}.log"
+#     benchmark:
+#         local_path + "benchmarks/STAR/{sample}.benchmark.txt"
+#     shell:
+#         """
+#         STAR \\
+#             --genomeDir $index \\
+#             --readFilesIn {input} \\
+#             --runThreadN {threads} \\
+#             --outFileNamePrefix {output} \\
+#             --outSAMtype 
+#         """
