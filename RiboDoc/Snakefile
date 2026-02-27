@@ -108,6 +108,12 @@ def star_index_outputs(wildcards):
         sample=get_samples(wildcards),
         fasta_basename=os.path.splitext(os.path.basename(get_fasta(wildcards)))[0])
 
+def star_align_outputs(wildcards):
+    return expand(
+        local_path + "RESULTS/STAR/{sample}.sortedByCoord.out.bam",
+        sample=get_samples(wildcards),
+        fasta_basename=os.path.splitext(os.path.basename(get_fasta(wildcards)))[0])
+
 rule all:
     input:
         local_path + "RESULTS/samplesheet.tsv",
@@ -115,7 +121,8 @@ rule all:
         trimgalore_outputs,
         fastqc_after_trimming_outputs,
         sortmerna_outputs,
-        star_index_outputs
+        star_index_outputs,
+        star_align_outputs
         # local_path + "RESULTS/annex_database/index/" + "{fasta_basename}", 
 
 checkpoint check_samplesheet:
@@ -342,7 +349,7 @@ rule STAR_index:
         multi_threads_nbr
     shell:
         """
-        if [[ $file == *.gff3 ]]
+        if [[ {input.fasta} == *.gff3 ]]
         then
             annotation="--sjdbGTFtagExonParentTranscript Parent"
         else
@@ -350,7 +357,7 @@ rule STAR_index:
         fi
 
         filename=$(basename {input.fasta})
-        index_folder="${filename%.*}"
+        index_folder="${{filename%.*}}"
         if [ ! -d {params.star_dir}/$index_folder ];
         then
             mkdir -p {params.star_dir}/$index_folder
@@ -366,21 +373,26 @@ rule STAR_index:
         fi
         """
 
-# rule STAR_ALIGN:
-#     input:
-#         local_path + "RESULTS/trimgalore/{sample}.trimmed" + frag_length_L + ".fastq.gz"
-#     output:
-#         ...
-#     log:
-#         logs_path + "STAR/{sample}.log"
-#     benchmark:
-#         local_path + "benchmarks/STAR/{sample}.benchmark.txt"
-#     shell:
-#         """
-#         STAR \\
-#             --genomeDir $index \\
-#             --readFilesIn {input} \\
-#             --runThreadN {threads} \\
-#             --outFileNamePrefix {output} \\
-#             --outSAMtype 
-#         """
+rule STAR_ALIGN:
+    input:
+        # index = directory(local_path + "RESULTS/annex_database/index/{fasta_basename}"),
+        index = lambda wildcards: local_path + "RESULTS/annex_database/index/" + get_sample_to_fasta_mapping()[wildcards.sample],
+        r1 = local_path + "RESULTS/trimgalore/{sample}_R1_trimgalore.fastq.gz",
+        r2 = local_path + "RESULTS/trimgalore/{sample}_R2_trimgalore.fastq.gz" if config['paired_end'] == True else [],
+    output:
+        local_path + "RESULTS/STAR/{sample}.sortedByCoord.out.bam"
+    log:
+        logs_path + "STAR/{sample}.log"
+    benchmark:
+        local_path + "benchmarks/STAR/{sample}.benchmark.txt"
+    params:
+        out_prefix = local_path + "RESULTS/STAR/{sample}"
+    shell:
+        """
+        STAR \\
+            --genomeDir {input.index} \\
+            --readFilesIn {input.r1} {input.r2} \\
+            --runThreadN {threads} \\
+            --outFileNamePrefix {params.out_prefix} \\
+            --outSAMtype 
+        """
