@@ -231,17 +231,11 @@ missing_triplets <- function(data, counts, codons_table) {
 
 # General function for normalization, filtering and counting of each codon
 codon_counts <- function(data, min_nbr, codons_table, filter_first, in_frame, elong) {
-
     framed_data <- only_reading_frame(data = data, in_frame = in_frame, elong = elong)
-    
     data_filt_norm <- filt_norm(data = framed_data, min_nbr, filter_first = filter_first)
-    
     data_filt_norm <- remove_Ns(data = data_filt_norm)
-    
     codon_counts <- aggregate_codons(data = data_filt_norm)
-    
     complete_counts <- missing_triplets(data = data_filt_norm, counts = codon_counts, codons_table = df_triplets)
-    
     return(complete_counts)
   }
 

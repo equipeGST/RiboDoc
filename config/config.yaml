@@ -1,28 +1,22 @@
 # Name for the experiment
-project_name: ""
+project_name: "Test_RiboDoc"
 
-samples: config/samplesheet.tsv
-
-##### REFERENCE FILES #####
-# Name of the genome or transcriptome fasta file to align on
-fasta: ""
-
-# Name of the gff file with genome or transcriptome annotations
-gff: ""
+samplesheet: config/samplesheet.tsv
 
 #### RIBOSOMAL RNA #####
 # Remove ribosomal RNA sequences from the reads
-skip_depletion: True
+skip_depletion: False
 
 # Keep reads that align to rRNA sequences
 save_rRNA: False
 
 # If you want to remove rRNA sequences, you need to provide a fasta file with the rRNA sequences
-rRNA: "/data/Enora/RiboDoc/database/GRCh38_rDNA.fa"
+rRNA: "/stockage/EQUIPES/GST/Sauvegardes_NGS/databases/Homo_sapiens/Contaminants_RNA/GRCh38_rDNA.fa"
 
 # Fasta file with unwanted tRNA sequences (can be left empty)
 tRNA: ""
 
+other_contaminants: ""
 ##### TRIMMING #####
 
 # Which trimming tool to use ? "trimgalore" or "cutadapt"
@@ -33,15 +27,30 @@ paired_end: False
 # Are the sequencing adapters already removed in fastq files ? 'True' or 'False'
 skip_trimming: False
 
-extra_trimgalore_args: null
+trimming_args: null
 
 ##### LENGTHS SELECTION #####
 # Minimum read length kept for ribosome profiling
-readsLength_min: 25
+RPFLength_min: 25
 
 # Maximum read length kept for ribosome profiling
-readsLength_max: 35
+RPFLength_max: 35
 
+# Minimum read length kept for RNA sequencing
+mRNALength_min: 10
+
+# Maximum read length kept for RNA sequencing
+mRNALength_max: ""
+
+##### ALIGNMENT #####
+aligner: "STAR"
+
+save_unaligned: False
+
+transcript_fasta: ""
+
+##### QUANTIFICATION #####
+quantifier: "htseq_count"
 
 ##### GFF #####
 # Feature of the annotation file to select during counting (usually "CDS")
@@ -64,29 +73,27 @@ gff_name_attribut: "Name"
 # Name of the reference condition (same as file name) for DESeq2
 reference_condition: "WT"
 
+conditions: "mutant"
+
 # Thresholds to adjust for differential expression analysis
 p-val: "0.01"
 logFC: "0"
 
 
 ##### QUALITATIVE ANALYSIS #####
-# Choose between "ribowaltz" or "trip"
-# riboWaltz may require a lot of ressources but is more accurate and find Psite offsets
-qualitative_analysis: "ribowaltz"
 
 # Number of bases to look before the start and after the stop for periodicity (relative positions)
-window_utr: "30"
+window_utr: 30
 
 # Number of bases to look after the start and before the stop for periodicity (relative positions)
-window_cds: "90"
-
+window_cds: 90
 
 # Codon Occupancy
 # Do you want to perform codon occupancy analysis ? 'yes' or 'no'
-codon_occupancy: ""
+skip_occupancy: False
 
 # Ribosomal decoding site to analyze ('A' or 'P')
-site: ""
+site: "A"
 
 ########## OPTIONAL ##########
 # Does UTR covering has to be calculated ("yes" or "no")

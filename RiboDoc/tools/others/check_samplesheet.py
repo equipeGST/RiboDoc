@@ -77,7 +77,7 @@ def check_samplesheet(file_in:str, file_out:str) -> None:
     """
     This function checks that the samplesheet follows the following structure:
     
-    sample	replicate	type	fastq1	fastq2	strandedness	barcode	adapter	fasta	gff
+    condition	replicate	type	fastq1	fastq2	strandedness	barcode1	barcode2	adapter1	adapter2	fasta	gff
     Mutant	1	riboseq	Mutant.1.fastq.gz		forward		AGATCGGAAGAGCACACGTCTGAACTCCAGTCA	genome.fa	genome.gff
     Args:
         file_in (str)  :        Input samplesheet file.
@@ -90,7 +90,7 @@ def check_samplesheet(file_in:str, file_out:str) -> None:
     with open(file_in, "r") as f:
         ## Check header
         min_cols = 3
-        header = ["condition", "replicate", "type", "fastq1", "fastq2", "strandedness", "barcode", "adapter1", "adapter2",
+        header = ["condition", "replicate", "type", "fastq1", "fastq2", "strandedness", "barcode1", "barcode2", "adapter1", "adapter2",
                   "fasta", "gff"]
         line = f.readline().strip().split("\t")
         if line[: len(header)] != header:
@@ -111,7 +111,7 @@ def check_samplesheet(file_in:str, file_out:str) -> None:
                 print_error("Invalid number of populated columns (minimum = {})!".format(min_cols), "Line", line)
 
             ## Check group name entries
-            group, replicate, type, fastq1, fastq2, strandedness, barcode, adapter1, adapter2, fasta, gtf = lspl[: len(header)]
+            group, replicate, seq_type, fastq1, fastq2, strandedness, barcode1, barcode2, adapter1, adapter2, fasta, gtf = lspl[: len(header)]
             if group:
                 if group.find(" ") != -1:
                     print_error("Group entry contains spaces!", "Line", line)
@@ -127,10 +127,10 @@ def check_samplesheet(file_in:str, file_out:str) -> None:
             replicate = int(replicate)
 
             ## Check type name entries
-            if type:
-                if type.find(" ") != -1:
+            if seq_type:
+                if seq_type.find(" ") != -1:
                     print_error("Type entry contains spaces!", "Line", line)
-                if type not in ["riboseq", "rnaseq"]:
+                if seq_type not in ["riboseq", "rnaseq"]:
                     print_error("Type entry must be 'riboseq' or 'rnaseq'!", "Line",
                                 line)
             else:
@@ -169,11 +169,11 @@ def check_samplesheet(file_in:str, file_out:str) -> None:
                 print_error("Strandedness entry not specified!", "Line", line)
 
             ## Check barcode entry
-            if barcode:
-                if not barcode.isdigit():
-                    print_error("Barcode entry is not an integer!", "Line", line)
-                else:
-                    barcode = "barcode%s" % (barcode.zfill(2))
+            if barcode1:
+                # if not barcode1.isdigit():
+                #     print_error("Barcode entry is not an integer!", "Line", line)
+                # else:
+                barcode1 = "barcode%s" % (barcode1.zfill(2))
 
             ## Check adapter entry
             if adapter1:
@@ -181,8 +181,8 @@ def check_samplesheet(file_in:str, file_out:str) -> None:
                     print_error("Adapter entry contains spaces!", "Line", line)
                 if not all(x in ["A", "T", "C", "G"] for x in adapter1):
                     print_error("Adapter entry contains others characters than A, T, C or G ! ", "Line", line)
-            else:
-                print_error("adapter entry not specified!", "Line", line)
+            # else:
+            #     print_error("adapter entry not specified!", "Line", line)
 
             ## Check genome entries
             if fasta:
@@ -225,12 +225,12 @@ def check_samplesheet(file_in:str, file_out:str) -> None:
                     print_error("Genes annotation entry does not have extension '.gtf', 'gff', 'gtf.gz' or '.gff.gz'!", "Line", line)
 
             ## Create sample mapping dictionary = {group: {replicate : [ barcode, input_file, genome, gtf, is_transcripts, nanopolish_fast5 ]}}
-            sample_info = [fastq1, fastq2, barcode, adapter1, adapter2, fasta, gtf, is_transcripts]
+            sample_info = [fastq1, fastq2, barcode1, barcode2, adapter1, adapter2, fasta, gtf, is_transcripts]
             
-            if f"{group}_{type}" not in sample_info_dict:
-                sample_info_dict[f"{group}_{type}"] = {}
-            if replicate not in sample_info_dict[f"{group}_{type}"]:
-                sample_info_dict[f"{group}_{type}"][replicate] = sample_info
+            if f"{group}_{seq_type}" not in sample_info_dict:
+                sample_info_dict[f"{group}_{seq_type}"] = {}
+            if replicate not in sample_info_dict[f"{group}_{seq_type}"]:
+                sample_info_dict[f"{group}_{seq_type}"][replicate] = sample_info
             else:
                 print_error("Same replicate id provided multiple times!", "Line", line)
 
@@ -248,7 +248,7 @@ def check_samplesheet(file_in:str, file_out:str) -> None:
         make_dir(out_dir)
         with open(file_out, "w") as fout:
             fout.write(
-                "\t".join(["sample", "fastq1", "fastq2", "barcode", "adapter1", "adapter2", "fasta", "gtf", "is_transcripts"])
+                "\t".join(["sample", "fastq1", "fastq2", "barcode1", "barcode2", "adapter1", "adapter2", "fasta", "gtf", "is_transcripts"])
                 + "\n"
             )
             for sample in sorted(sample_info_dict.keys()):

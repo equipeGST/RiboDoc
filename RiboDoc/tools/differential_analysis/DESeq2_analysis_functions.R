@@ -1,18 +1,13 @@
 # Functions used for matrices creation and differential analysis
 
 # Scan config file and determine paths
-DESeq2_folder_paths <- function(path) {
+DESeq2_folder_paths <- function(path, type = "riboseq", feature="CDS") {
   DESeq2_folder <- paste0(
     path,
     "RESULTS/DESeq2_",
-    gsub(" ", "", params[which(params == "gff_cds_feature") +
-                           1], fixed = TRUE),
-    ".",
-    gsub(" ", "", params[which(params == "readsLength_min") +
-                           1], fixed = TRUE),
-    "-",
-    gsub(" ", "", params[which(params == "readsLength_max") +
-                           1], fixed = TRUE),
+    feature,
+    "/",
+    type,
     "/"
   )
   DESeq2_gene <- paste0(DESeq2_folder, "DESeq2_by_gene/")
@@ -23,7 +18,7 @@ DESeq2_folder_paths <- function(path) {
     DESeq2_gene = DESeq2_gene,
     DESeq2_transcript = DESeq2_transcript,
     pathway_matrix = paste0(DESeq2_folder, "count_matrix_by_transcript_IDs.csv"),
-    pathway_names = paste0(DESeq2_folder, "names_correspondence_list.csv")
+    pathway_names = paste0(path, "RESULTS/DESeq2_", feature, "/names_correspondence_list.csv")
   )
 }
 
@@ -550,8 +545,8 @@ tables_creation <-
            gene_transcript = "gene") {
   
   normalized_counts <- counts(dds_object, normalized = TRUE)
-  Bruts_Norm <- cbind(data_list$expData_Sorted, normalized_counts)
-  Names_Col <- colnames(data_list$expData_Sorted)
+  Bruts_Norm        <- cbind(data_list$expData_Sorted, normalized_counts)
+  Names_Col         <- colnames(data_list$expData_Sorted)
   
   Table_Complete <-
     data.frame(cbind(
