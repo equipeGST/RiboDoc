@@ -372,7 +372,7 @@ triplets <- row.names(df_triplets)
 
 # Names strains determination via offset.csv file
 fo <- read.table(file_offset, header = T)
-fo[,9] <- str_replace(fo[,9], "transcriptome_elongated.","")
+fo[,9] <- str_replace(fo[,9], "transcripts","")
 #doublons <- which(duplicated(fo[,9]))
 #names_strains <- fo[,9][-doublons]
 

@@ -24,8 +24,8 @@ params <- scan(file = paste0(local_path, "config.yaml"),
 
 qualitative_analysis <- gsub(" ", "", params[which(params=="qualitative_analysis")+1], fixed = TRUE)
 
-readsLength_min <- as.integer(gsub(" ", "", params[which(params=="readsLength_min")+1], fixed = TRUE))
-readsLength_max <- as.integer(gsub(" ", "", params[which(params=="readsLength_max")+1], fixed = TRUE))
+readsLength_min <- as.integer(gsub(" ", "", params[which(params=="RPFLength_min")+1], fixed = TRUE))
+readsLength_max <- as.integer(gsub(" ", "", params[which(params=="RPFLength_max")+1], fixed = TRUE))
 
 window_utr <- as.integer(gsub(" ", "", params[which(params=="window_utr")+1], fixed = TRUE))
 window_cds <- as.integer(gsub(" ", "", params[which(params=="window_cds")+1], fixed = TRUE))
@@ -55,7 +55,9 @@ if(window_cds %% 3 == 0) {
 # Add the "periodicity" folder to the "RESULTS" folder from RiboDoc
 dir.create(paste0(local_path, "RESULTS/periodicity_-", window_utr, "+", window_cds, "/"), showWarnings = F)
 
-samples <- list.dirs(paste0(local_path, "RESULTS/riboWaltz.", readsLength_min, "-", readsLength_max, "/"), full.names = F, recursive = F)
+samples <- list.dirs(paste0(local_path, "RESULTS/ribowaltz/"), full.names = F, recursive = F)
+
+print(samples)
 
 # For each sample
 for(sample in samples) {
@@ -66,7 +68,7 @@ for(sample in samples) {
   for(specific_length in readsLength_min:readsLength_max) {
     
     # Load data
-    pathway_metaprofile_table_specific <- paste0(local_path, "RESULTS/riboWaltz.", readsLength_min, "-", readsLength_max, "/", sample,"/results_by_length/metaprofiles_-", window_utr,"+", window_cds, "/metaprofile_psite_length", specific_length, "_-", window_utr,"+", window_cds, ".csv")
+    pathway_metaprofile_table_specific <- paste0(local_path, "RESULTS/ribowaltz/", sample,"/results_by_length/metaprofiles_-", window_utr,"+", window_cds, "/metaprofile_psite_length", specific_length, "_-", window_utr,"+", window_cds, ".tsv")
     perio_specific <- read.table(pathway_metaprofile_table_specific, header = TRUE, sep = "\t")
     
     # Select relative positions from start or stop
@@ -79,7 +81,7 @@ for(sample in samples) {
     
     # Save plots as tiff file
     tiff(paste0(local_path, "RESULTS/periodicity_-", window_utr, "+", window_cds, "/", sample, "/length", specific_length, "_start.tiff"))
-      barplot(perio_start_filtered_specific[,gsub("-","_",sample)],
+      barplot(perio_start_filtered_specific[,3],
               col = phase_color_start,
               names.arg = perio_start_filtered_specific$distance,
               cex.names = 0.75, las=3,
@@ -88,7 +90,7 @@ for(sample in samples) {
     dev.off()
     
     tiff(paste0(local_path, "RESULTS/periodicity_-", window_utr, "+", window_cds, "/", sample, "/length", specific_length, "_stop.tiff"))
-      barplot(perio_stop_filtered_specific[,gsub("-","_",sample)],
+      barplot(perio_stop_filtered_specific[,3],
               col = phase_color_stop,
               names.arg = perio_stop_filtered_specific$distance,
               cex.names = 0.75, las=3,

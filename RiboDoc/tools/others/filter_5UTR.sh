@@ -7,13 +7,14 @@ Help()
 {
     echo "This script filters transcripts containing 5-prime UTRs in GFF for metaprofiles, as they give a better view of the periodicity in complexe genomes"
     echo
-    echo "report_table [-g|h|p|r|o|t|u]"
+    echo "report_table [-g|h|p|r|o|O|t|u]"
     echo "options:"
     echo "-g GFF            --gff           Input GFF File"
     echo "-h HELP           --help          Print this Help."
     echo "-p PATH           --path          Path to output folder for counts of each gff feature"
     echo "-r TRANSCRIPT     --transcript    Feature name for a transcript in GFF file. Default : 'mRNA'."
     echo "-o OUTPUT         --output        Name of output file"
+    echo "-O FEATURES       --features      Name of file containing feature counts"
     echo "-t THRESHOLD      --threshold     Minimum proportion of 5-prime-UTR lines compared to transcript lines. Default : 0.25"
     echo "-u UTR            --utr           Feature name for 5-prime-UTR name in GFF. Default : 'five_prime_UTR'"
     echo
@@ -21,13 +22,16 @@ Help()
     exit 1
 }
 
-while getopts ":g:o:p:r:u:t:" option; do
+while getopts ":g:o:O:p:r:u:t:" option; do
     case "${option}" in
         g) # Path to the GFF file
             g=${OPTARG}
             ;;
         o) # Path to the output file
             o=${OPTARG}
+            ;;
+        O) # Path to the output file containing feature counts
+            O=${OPTARG}
             ;;
         p) # Path to output folder
 			p=${OPTARG}
@@ -51,7 +55,7 @@ while getopts ":g:o:p:r:u:t:" option; do
     esac
 done
 
-if [ -z "${g}" ] || [ -z "${o}" ] || [ -z "${p}" ]; then
+if [ -z "${g}" ] || [ -z "${o}" ] || [ -z "${O}" ] || [ -z "${p}" ]; then
     Help
 fi;
 
@@ -68,12 +72,12 @@ if [ -z "${t}" ]; then
 fi;
 
 # Look for the proportion of each feature in the GFF
-awk '{printf("%s\n",$3)}' $g | sort | uniq -c > "${p}gff_features_counts.txt";
+awk '{printf("%s\n",$3)}' $g | sort | uniq -c > "${O}";
 
 # Find the number of 5UTR and transcripts in the GFF
-transcript_nbr=$(grep "$r" "${p}gff_features_counts.txt" | awk '{printf("%s\n",$1)}');
+transcript_nbr=$(grep "$r" "${O}" | awk '{printf("%s\n",$1)}');
 
-utr_nbr=$(grep "$u" "${p}gff_features_counts.txt" | awk '{printf("%s\n",$1)}');
+utr_nbr=$(grep "$u" "${O}" | awk '{printf("%s\n",$1)}');
 
 # Calculate the minimum number of 5UTR lines compared to transcript lines to select only transcript with 5UTR
 min_utr=$(echo "${transcript_nbr}*${t}" | bc);

@@ -14,7 +14,8 @@ suppressPackageStartupMessages(library(ggplot2))
 # =========
 
 option_list = list(
-    make_option(c("-D", "--output_dir"), type="character", help="Output Directory"), 
+    make_option(c("-D", "--output_dir"), type="character", help="Output Directory"),
+    make_option(c("-r", "--reference_condition"), type="character", help="Reference condition"),
     make_option(c("-t", "--threads"), type="integer", help="Number of CPUs"),
     make_option(c("-b", "--bam"), type="character", help="Path to BAM alignment (transcripts) folder"),
     make_option(c("-g", "--gtf"), type="character", help="Path to the input GTF annotation file"),
@@ -33,15 +34,12 @@ opt = parse_args(OptionParser(option_list=option_list))
 output_dir     = opt$output_dir
 gtf            = opt$gtf
 bam_folder     = opt$bam
-
+config_file    = opt$config
 dir.create(output_dir, showWarnings = FALSE)
 
 palette <- c("#be95c4", "#5fa8d3", "#a7c957", "#ffbd00", "#e63946", "#e76f51")
-params <- scan(file = paste0("config/config.yaml"),
-               what = "character",
-               sep = ":")
 
-refCond         <- gsub(" ", "", params[which(params=="reference_condition")+1], fixed = TRUE)
+refCond         <- opt$reference_condition
 window_utr      <- opt$utr_window
 window_cds      <- opt$cds_window
 readsLength_min <- opt$min_len
@@ -138,8 +136,7 @@ for(i in seq_along(sample_names))
         reads_list,
         sample = sname)
     dir.create(paste0(output_dir, sname, "/"), showWarnings = FALSE)
-    col_selec <- c(1, (i*2), (i*2)+1)
-    write.table(length_dist$dt,
+    write.table(length_dist$count_dt,
                 paste0(output_dir, sname, "/reads_distribution_", sname, ".tsv"),
                 quote = FALSE, row.names = FALSE, sep = "\t")
     ggsave(filename = paste0(output_dir, sname, "/read_length_distribution_", sname, ".tiff"),
@@ -250,13 +247,9 @@ for(sname in sample_names)
         cl         = 85,
         colour     = "#bc3e46")
     
-    # Debug: afficher la structure
-    print(str(heatmap_sample))
-    print(names(heatmap_sample))
-    
     # Vérifier si $dt existe
-    if (!is.null(heatmap_sample$dt)) {
-        write.table(heatmap_sample$dt,
+    if (!is.null(heatmap_sample$count_dt)) {
+        write.table(heatmap_sample$count_dt,
                     paste0(output_dir, sname, "/heatmap_psite_length_", sname, ".tsv"),
                     quote = FALSE, row.names = FALSE, sep = "\t")
     }
@@ -286,7 +279,7 @@ frames <- frame_psite(
     colour       = c("#333f50", "#39827c"))
 ggsave(filename = paste0(output_dir, "/frame_psite.tiff"),
        plot = frames[["plot"]], device = "tiff", width = 12, height = 8)
-write.table(frames$dt, paste0(output_dir, "frame_psite.tsv"),
+write.table(frames$count_dt, paste0(output_dir, "frame_psite.tsv"),
             quote = FALSE, row.names = FALSE, sep = "\t")
 rm(frames)
 gc()
@@ -354,12 +347,15 @@ for(sname in sample_names)
             annotation_db_transcript,
             sample = sname,
             utr5l  = window_utr, utr3l = window_utr, cdsl = window_cds)
+        plot_name <- paste0("plot_", sname)
 
         ggsave(filename = paste0(output_dir, sname, "/results_by_length/metaprofiles_-", window_utr, "+", window_cds,
                                  "/metaprofile_psite_length", len, "_-", window_utr, "+", window_cds, ".tiff"),
-               plot = metaprofile_specific[["plot"]], device = "tiff", width = 12, height = 8)
-
-        write.table(metaprofile_specific$dt,
+               plot = metaprofile_specific[[plot_name]], device = "tiff", width = 12, height = 8)
+        
+        dt <- metaprofile_specific$count_dt[, c(3,2,4)]
+        colnames(dt) <- c("distance", "reg", sname)
+        write.table(dt,
                     paste0(output_dir, sname, "/results_by_length/metaprofiles_-", window_utr, "+", window_cds,
                            "/metaprofile_psite_length", len, "_-", window_utr, "+", window_cds, ".tsv"),
                     quote = FALSE, row.names = FALSE, sep = "\t")
@@ -374,16 +370,16 @@ for(sname in sample_names)
 # Codon usage (averaged per condition)
 # =========
 
-cu_barplot_all_conds <- codon_usage_psite(
-    reads_psite_list,
-    annotation_db_transcript,
-    sample                 = input_samples,
-    multisamples           = "average",
-    plot_style             = "facet",
-    fastapath              = opt$fasta,
-    fasta_genome           = FALSE,
-    frequency_normalization = FALSE)
-ggsave(filename = paste0(output_dir, "/codon_usage_psite.tiff"),
-       plot = cu_barplot_all_conds[["plot"]], device = "tiff", width = 12, height = 8)
-rm(cu_barplot_all_conds)
-gc()
+# cu_barplot_all_conds <- codon_usage_psite(
+#     reads_psite_list,
+#     annotation_db_transcript,
+#     sample                 = input_samples,
+#     multisamples           = "average",
+#     plot_style             = "facet",
+#     fastapath              = opt$fasta,
+#     fasta_genome           = FALSE,
+#     frequency_normalization = FALSE)
+# ggsave(filename = paste0(output_dir, "/codon_usage_psite.tiff"),
+#        plot = cu_barplot_all_conds[["plot"]], device = "tiff", width = 12, height = 8)
+# rm(cu_barplot_all_conds)
+# gc()

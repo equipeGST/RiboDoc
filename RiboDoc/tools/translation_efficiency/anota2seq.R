@@ -7,6 +7,7 @@ option_list = list(
     make_option(c("-f", "--folder"), type="character", help="Folder containing the input files"),
     make_option(c("-o", "--output_dir"), type="character", help="Output directory for the results"),
     make_option(c("-r", "--region"), type="character", help="Region used for the analysis, e.g. 'CDS' or '5UTR' or '3UTR'")
+    #make_option(c("-R", "--ref"), type="character", help="Reference condition")
     # make_option(c("-s", "--sample_file"), type="character", help="Number of CPUs"),
     # make_option(c("-t", "--sample_treatment_col"), type="character", help="Path to BAM alignment file of transcripts"),
     # make_option(c("-r", "--reference_level"), type="character", help="Path to the input GTF annotation file"),
@@ -24,6 +25,7 @@ opt = parse_args(OptionParser(option_list=option_list))
 folder      = opt$folder
 output_dir  = opt$output_dir
 region      = opt$region
+#refCond     = opt$ref
 
 files <- list.files(path = folder, pattern=".tsv", full.names=T)
 riboseq_df = data.frame()
@@ -61,59 +63,70 @@ print("Using the following design for contrast:")
 vec <- sapply(strsplit(colnames(riboseq_df), "_"), "[[", 1)
 print(vec)
 
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-setwd(output_dir)
+conditions <- unique(vec)
 
-print("Importing data into anota2seq...")
-ads <- anota2seqDataSetFromMatrix(
-    dataP = riboseq_df,
-    dataT = rnaseq_df,
-    phenoVec = vec,
-    dataType = "RNAseq",
-    normalize = TRUE)
+# Toutes les paires de conditions
+pairs <- combn(conditions, 2, simplify = FALSE)
 
-print("Running anota2seq...")
-ads <- anota2seqRun(ads)
+for (pair in pairs) {
+    cond_a <- pair[1]
+    cond_b <- pair[2]
+    pair_label <- paste0(cond_a, "_vs_", cond_b)
+    
+    message("\n========== Contrast: ", pair_label, " ==========")
+    
+    # Sélectionner uniquement les colonnes des deux conditions
+    sel_cols <- vec %in% c(cond_a, cond_b)
+    ribo_sub <- riboseq_df[, sel_cols, drop = FALSE]
+    rna_sub  <- rnaseq_df[,  sel_cols, drop = FALSE]
+    vec_sub  <- vec[sel_cols]
+    
+    # Créer le répertoire de sortie propre à la paire
+    pair_outdir <- file.path(output_dir, pair_label)
+    dir.create(pair_outdir, recursive = TRUE, showWarnings = FALSE)
+    setwd(pair_outdir)
 
-print("Plotting results...")
-print("Plotting p-values...")
-anota2seqPlotPvalues(ads, selContrast = 1, plotToFile = TRUE)
+    rep_by_cond <- table(vec_sub)
+    message("Replicates per condition: ")
+    print(rep_by_cond)
 
-print("Plotting fold changes...")
-anota2seqPlotFC(ads, selContrast = 1, plotToFile = TRUE)
+    if (all(rep_by_cond >= 3)) {
+        message("Importing data into anota2seq...")
+    } else {
+        message("anota2seq requires 3 replicate experiments per group if there are 2 conditions")
+        next
+    } 
+    ads <- anota2seqDataSetFromMatrix(
+        dataP    = ribo_sub,
+        dataT    = rna_sub,
+        phenoVec = vec_sub,
+        dataType = "RNAseq",
+        normalize = TRUE)
+    
+    message("Running anota2seq...")
+    if (all(rep_by_cond >= 3)) {
+        ads <- anota2seqRun(ads)
+    } else {
+      ads <- anota2seqRun(ads, onlyGroup = TRUE)
+    }
+    
+    message("Plotting results...")
+    anota2seqPlotPvalues(ads, selContrast = 1, plotToFile = TRUE)
+    anota2seqPlotFC(ads,      selContrast = 1, plotToFile = TRUE)
+    
+    message("Saving tables...")
+    for (analysis in c("buffering", "translation", "mRNA abundance", "total mRNA")) {
+        fname <- paste0("ANOTA2SEQ_", gsub(" ", "_", analysis), ".tsv")
+        tbl <- anota2seqGetOutput(
+            object      = ads,
+            output      = "full",
+            selContrast = 1,
+            analysis    = analysis,
+            getRVM      = TRUE)
+        write.table(tbl, fname, sep = "\t", quote = FALSE, row.names = FALSE)
+    }
+    
+    message("Done: ", pair_label)
+}
 
-print("Saving tables...")
-print("Saving buffering results...")
-buffering_table <- anota2seqGetOutput(
-    object = ads,
-    output="full",
-    selContrast = 1,
-    analysis="buffering",
-    getRVM = TRUE)
-write.table(buffering_table, "ANOTA2SEQ_buffering.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
-
-print("Saving translation results...")
-write.table(anota2seqGetOutput(
-    object = ads,
-    output="full",
-    selContrast = 1,
-    analysis="translation",
-    getRVM = TRUE), "ANOTA2SEQ_translation.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
-
-print("Saving mRNA abundance results...")
-write.table(anota2seqGetOutput(
-    object = ads,
-    output="full",
-    selContrast = 1,
-    analysis="mRNA abundance",
-    getRVM = TRUE), "ANOTA2SEQ_abundance.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
-
-print("Saving total mRNA results...")
-write.table(anota2seqGetOutput(
-    object = ads,
-    output="full",
-    selContrast = 1,
-    analysis="total mRNA",
-    getRVM = TRUE), "ANOTA2SEQ_total_mRNA.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
-
-print("Done!")
+message("\nAll pairwise contrasts completed.")

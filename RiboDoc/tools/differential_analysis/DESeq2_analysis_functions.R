@@ -25,6 +25,7 @@ DESeq2_folder_paths <- function(path, type = "riboseq", feature="CDS") {
 # Merge counts by gene or by transcript
 transcript_or_gene <- function(data) {
   expData_named_gene <- data[, -(dim(data)[2] - 1)]
+  print(head(expData_named_gene))
   expData_counts_by_gene <-
     aggregate(expData_named_gene[, -dim(expData_named_gene)[2]], expData_named_gene["Gene_name"], sum)
   expData_counts_by_gene[, 2:(dim(expData_counts_by_gene)[2])] <-

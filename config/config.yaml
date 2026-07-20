@@ -7,16 +7,19 @@ samplesheet: config/samplesheet.tsv
 # Remove ribosomal RNA sequences from the reads
 skip_depletion: False
 
+depletion_tool: "bowtie2"
+
 # Keep reads that align to rRNA sequences
 save_rRNA: False
 
 # If you want to remove rRNA sequences, you need to provide a fasta file with the rRNA sequences
-rRNA: "/stockage/EQUIPES/GST/Sauvegardes_NGS/databases/Homo_sapiens/Contaminants_RNA/GRCh38_rDNA.fa"
+rRNA: "data/Homo_sapiens/Contaminants_RNA/GRCh38_rDNA.fa"
 
 # Fasta file with unwanted tRNA sequences (can be left empty)
 tRNA: ""
 
 other_contaminants: ""
+
 ##### TRIMMING #####
 
 # Which trimming tool to use ? "trimgalore" or "cutadapt"
@@ -52,6 +55,10 @@ transcript_fasta: ""
 ##### QUANTIFICATION #####
 quantifier: "htseq_count"
 
+skip_quantification: False
+
+feature: "CDS"
+
 ##### GFF #####
 # Feature of the annotation file to select during counting (usually "CDS")
 gff_cds_feature: "CDS"
@@ -70,6 +77,9 @@ gff_name_attribut: "Name"
 
 
 ##### DIFFERENTIAL ANALYSIS #####
+
+skip_differential_analysis: False
+
 # Name of the reference condition (same as file name) for DESeq2
 reference_condition: "WT"
 
@@ -78,7 +88,6 @@ conditions: "mutant"
 # Thresholds to adjust for differential expression analysis
 p-val: "0.01"
 logFC: "0"
-
 
 ##### QUALITATIVE ANALYSIS #####
 

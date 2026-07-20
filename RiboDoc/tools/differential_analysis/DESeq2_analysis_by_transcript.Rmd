@@ -58,14 +58,14 @@ dir.create(paste0(paths_list$DESeq2_transcript,"Images/"))
 ```{r setup, echo=FALSE, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(include = TRUE, message = FALSE, warning = FALSE)
-knitr::opts_chunk$set(fig.path = paste0(paths_list$DESeq2_transcript,"Images/"), dev=c('png','tiff'))
+knitr::opts_chunk$set(fig.path = paste0(paths_list$DESeq2_transcript, "Images/", refCond, "_vs_", other_cond, "_"), dev = c('png','tiff'))
 ```
 
 
 ```{r data by transcript, echo=FALSE}
 expData_transcript_all <- read.table(paste0(paths_list$DESeq2_transcript,"count_matrix_by_transcript.csv"), header = T, row.names = 1, check.names = FALSE, sep="\t")
 expData_transcript_all <- expData_transcript_all %>%
-      select(starts_with(refCond) | starts_with(other_cond))
+      select(contains(refCond) | contains(other_cond))
 ```
 
 <div style="text-align: justify"> The present analysis report is part of RiboDoc tool, developed by the GST team, Université Paris-Saclay, CEA, CNRS, Institute for Integrative Biology of the Cell (I2BC), 91198, Gif-sur-Yvette, France. </div>

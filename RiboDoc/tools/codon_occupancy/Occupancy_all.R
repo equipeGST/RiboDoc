@@ -18,62 +18,50 @@ suppressPackageStartupMessages(library(ggtext))
 # Parameters
 #####################
 option_list = list(
-  
   make_option(c("-O", "--Offset"),
               default = "psite_offset.csv",
               type = "character",
-              help = "File containing P-site offsets. Default : 'psite_offset.csv"),
-
+              help = "File containing P-site offsets. Default : 'psite_offset.tsv'"),
   make_option(c("-F", "--Folder"),
               default = "./",
               type = 'character',
               help = "Path to designed R functions"),
-  
   make_option(c("-N", "--Name_ref"),
               default = "WT",
               type = 'character',
               help = "Name reference. Default : 'WT'"),
-  
-  make_option(c("-n", "--name_test"),
+  make_option(c("-n", "--name_mut"),
               default = "Mut",
               type = 'character',
               help = "Name mutant. Default : 'Mut'"),
-  
   make_option(c("-r", "--reads_occurence_threshold"),
               default = 0,
               type = "integer",
               help = "Minimum number of reads taken into account. Default : 0"),
-  
   make_option(c("-m", "--minimun_length"),
               default = 25,
               type = "integer",
               help = "Minimum length of reads taken into account. Default : 25"),
-  
   make_option(c("-M", "--Maximum_length"),
               default = 35,
               type = "integer",
               help = "Maximum length of reads taken into account. Default : 35"),
-
   make_option(c("-e", "--elongation"),
               default = 50,
               type = "integer",
               help = "Length of sequence elongation for transcriptome creation. Default : 50"),
-  
   make_option(c("-s", "--site"),
               default = "A",
               type = "character",
               help = "Ribosomal decoding site to analyze ('A' or 'P'). Default : 'A'"),
-  
   make_option(c("-f", "--frame"),
               default = "TRUE",
               type = "logical",
               help = "Select only reads with decoding site in a reading frame. Default : 'TRUE'"),
-  
   make_option(c("-p", "--pathway"),
               default = "sequenceBedCount/",
               type = 'character',
               help = "Pathway to the sequenceBedCount folder. Default : 'sequenceBedCount/'"),
-  
   make_option(c("-o", "--outpathway"),
               default = "codon_occupancy/",
               type = 'character',
@@ -88,28 +76,14 @@ function_folder <- opt$F
 pathway_functions <- paste0(function_folder,"check_pathway.R")
 triplets_pathway <- paste0(function_folder,"codons_and_aa.csv")
 
-name_ref <- opt$N
-name_test <- opt$n
-print(paste0("Name of the reference samples : ", name_ref))
-print(paste0("Name of the tested samples : ", name_test))
-
+name_ref <- paste0(opt$N, "_riboseq")
+name_mut <- paste0(opt$n, "_riboseq")
 minimal_read <- opt$r
-print(paste0("Minimal coverage threshold : ", minimal_read))
-
 min_length <- opt$m
-print(paste0("Minimal reads length : ", min_length))
 max_length <- opt$M
-print(paste0("Maximal reads length : ", max_length))
-
 elongation <- opt$e
-print(paste0("Transcripts elongation length  : ", elongation))
-
 site <- opt$s
-print(paste0("Decoding site of the ribosome : ", site))
-
 framed <- opt$f
-print(paste0("Selection of reads in reading frames only : ", framed))
-
 pathway_file_sequenceBedCount <- opt$p
 pathway_file_graphs <- opt$o
 
@@ -159,19 +133,18 @@ only_reading_frame <- function(data, in_frame, elong) {
 
 # Normalization by the total of reads (library size)
 normalization <- function(counts) {
-  cat("Normalizing counts... ")
+
   return(counts / sum(counts))
 }
 
 # Filter by minimal number of reads at a specific position
 filtering <- function(data, min_nbr = 0) {
-  cat(
+
     paste0(
       "Subsetting data to only keep positions with at least ",
       minimal_read,
       "reads... "
     )
-  )
   if (min_nbr > 0) {
     data_filtered <- subset(data, Counts >= min_nbr)
   } else {
@@ -239,7 +212,7 @@ codon_counts <- function(data, min_nbr, codons_table, filter_first, in_frame, el
     return(complete_counts)
   }
 
- createRectAnnotation <- function(data, facet = NULL, col_y = NULL, col_x, cond = NULL, x_min = NULL, x_max = NULL, y_min = 0, xmin_adjust = 1, xmax_adjust = xmin_adjust, ymin_adjust = 0, ymax_adjust = 0.005) {
+createRectAnnotation <- function(data, facet = NULL, col_y = NULL, col_x, cond = NULL, x_min = NULL, x_max = NULL, y_min = 0, xmin_adjust = 1, xmax_adjust = xmin_adjust, ymin_adjust = 0, ymax_adjust = 0.005) {
   max_y = max(data[[col_y]])
   if(is.null(x_min)) {
     if(!is.null(facet)) {
@@ -271,18 +244,16 @@ codon_counts <- function(data, min_nbr, codons_table, filter_first, in_frame, el
 }
 
 pvalues_calc <- function(data, col) {
-
-    data <- data.frame(data)
-    p_values <- c()
-    for (element in col) {
-        t <- t.test(data[col == element, grep(name_ref, names(data))], data[col == element, grep(name_test, names(data))])
-        p_values <- c(p_values, t$p.value)
-    }
-    return(p_values)
+  data <- data.frame(data)
+  p_values <- c()
+  for (element in col) {
+      t <- t.test(data[col == element, grep(name_ref, names(data))], data[col == element, grep(name_mut, names(data))])
+      p_values <- c(p_values, t$p.value)
+  }
+  return(p_values)
 }
 
 map_pvalue_to_label <- function(p_value) {
-
   if (p_value < 0.05) {
     if (p_value < 0.01) {
       if (p_value < 0.001) {
@@ -300,7 +271,6 @@ map_pvalue_to_label <- function(p_value) {
 }
 
 get_pos <- function(df){
-
   pos = 1
   list_pos = c(pos)
   for (i in c(2:length(df))) {
@@ -353,9 +323,6 @@ aa_stop <- "STOP"
 colors = c("red", rep("black", 19), "red")
 
 kmers <- seq(min_length, max_length)
-cat("List of read lengths in window :\n")
-cat(paste0("\t",kmers))
-cat("\n")
 
 # Check if pathways end with a "/" and create output folder
 pathway_file_sequenceBedCount <- pathway_handling(pathway_file_sequenceBedCount)
@@ -372,7 +339,8 @@ triplets <- row.names(df_triplets)
 
 # Names strains determination via offset.csv file
 fo <- read.table(file_offset, header = T)
-fo[,9] <- str_replace(fo[,9], "transcriptome_elongated.","")
+fo[,9] <- str_replace(fo[,9], ".transcripts","")
+
 #doublons <- which(duplicated(fo[,9]))
 #names_strains <- fo[,9][-doublons]
 
@@ -382,11 +350,11 @@ names_strains_sorted <- str_sort(names_strains, decreasing = F)
 
 # Determination number of ref strains and mutants
 occurence_ref <- str_count(names_strains_sorted, paste0("^",name_ref,".[0-9]+$"))
+occurence_mut <- str_count(names_strains_sorted, paste0("^",name_mut,".[0-9]+$"))
+
 nb_sample <- length(occurence_ref)
 number_WT <- sum(occurence_ref)
-print(paste0("Number of reference samples : ", number_WT))
-number_mut <- length(occurence_ref) - number_WT
-print(paste0("Number of tested samples : ", number_mut))
+number_mut <- sum(occurence_mut)
 
 # Search if ref names is in first position and change it if it is not the case
 if (occurence_ref[1] == 0) {
@@ -404,9 +372,7 @@ for (sample in 1: nb_sample){
   name_strain <- names_strains_sorted[sample]
   fo_select <- subset(fo, sample == name_strain)
   
-  for (kmer in seq(min_length, max_length)){
-    cat(paste0("Loading data from ", names_strains_sorted[sample],".",kmer,".count.sequence.bed... "))
-    
+  for (kmer in seq(min_length, max_length)){    
     seq_bed <- read.table(paste0(pathway_file_sequenceBedCount,names_strains_sorted[sample],".",kmer,".count.sequence.bed"), header = F)
     colnames(seq_bed) <- c("ID","Five_prime_pos","Three_prime_pos","Counts","Codons","Strand")
     
@@ -421,7 +387,6 @@ for (sample in 1: nb_sample){
         elong = elongation)
     
     assign(paste0(names_strains_sorted[sample],".",kmer), complete_counts)
-    cat("Done.\n")
   }
 }
 
@@ -441,14 +406,13 @@ for (kmer in kmers){
     assign(paste0("df_final_",kmer), df_final)
 }
 
+
 ############################
 # GRAPHS CREATION
 ############################
 dir.create(paste0(pathway_file_graphs,"graphs_by_length/"),showWarnings = F)
 
-cat("Length :\n")
 for (kmer in kmers){
-  cat(paste0("\t",kmer,"\n"))
 
   name_file_ref  <-  names_strains_sorted[1]
   df_final <- get(paste0("df_final_",kmer))
@@ -468,6 +432,8 @@ for (kmer in kmers){
   df_final <- cbind(df_final, triplets[,2])
   df_final[df_final$AA_three_letters %like% "STOP",ncol(df_final)] <- "STOP"
   
+  df_final <- df_final %>%
+        select(matches(paste0('Codon|AA_three_letters|', name_mut, "|", name_ref)))
   ###########################################
   # GRAPH NORMALISED
   ###########################################
@@ -494,7 +460,7 @@ for (kmer in kmers){
         text_x = elem_list_text(colour = colors),
         by_layer_x = FALSE
         )) +
-    labs(title = paste0(name_ref, " vs ", name_test, " - length=", kmer)) +
+    labs(title = paste0(name_ref, " vs ", name_mut, " - length=", kmer)) +
     scale_y_continuous(limits = c(0,max(df_occupancy$Occupancy)), expand = c(0, 0)) +
     scale_fill_manual(values = c("black", "red"))
 
@@ -508,14 +474,14 @@ for (kmer in kmers){
 
   df_final_moyenne <- data.frame(
     Codon = df_final$Codon, 
-    ref = df_final %>% select(starts_with(name_ref)) %>% rowMeans(), 
-    test = df_final %>% select(starts_with(name_test)) %>% rowMeans(),
+    ref = df_final %>% select(contains(name_ref)) %>% rowMeans(), 
+    test = df_final %>% select(contains(name_mut)) %>% rowMeans(),
     AA_three_letters = df_final$AA_three_letters
   )
 
   df_mean_per_type <- pivot_longer(df_final_moyenne, cols = c(ref, test), names_to = "Type", values_to = "Mean")
   df_mean_per_type[df_mean_per_type$Type == "ref", 3] <- name_ref
-  df_mean_per_type[df_mean_per_type$Type == "test", 3] <- name_test
+  df_mean_per_type[df_mean_per_type$Type == "test", 3] <- name_mut
   df_mean_per_type$AA_three_letters <- factor(df_mean_per_type$AA_three_letters, levels = unique(df_mean_per_type$AA_three_letters))
   df_mean_per_type$Type <- factor(df_mean_per_type$Type, levels = unique(df_mean_per_type$Type))
 
@@ -543,7 +509,7 @@ for (kmer in kmers){
         strip = strip_themed(
         text_x = elem_list_text(colour = colors),
         by_layer_x = FALSE)) +
-      labs(title = paste0(name_ref, " vs ", name_test, " - length=", kmer)) +
+      labs(title = paste0(name_ref, " vs ", name_mut, " - length=", kmer)) +
       scale_fill_manual(values = c("black", "red"))
 
   plot_mean_signif <- plot_mean + 
@@ -580,7 +546,7 @@ for (kmer in kmers){
   erreurs_fusion <- pivot_longer(erreurs_fusion, cols = c(ref, test), names_to = "Type", values_to = "sd")
   erreurs_fusion <- cbind(erreurs_fusion[order(match(erreurs_fusion$Codon, df_mean_per_type$Codon)),], Mean = df_mean_per_type$Mean, AA_three_letters = df_mean_per_type$AA_three_letters)
   erreurs_fusion[erreurs_fusion$Type == "ref", 2] <- name_ref
-  erreurs_fusion[erreurs_fusion$Type == "test", 2] <- name_test
+  erreurs_fusion[erreurs_fusion$Type == "test", 2] <- name_mut
   erreurs_fusion$Type <- factor(erreurs_fusion$Type, levels = unique(erreurs_fusion$Type))
 
   erreurs_fusion <- erreurs_fusion %>%
@@ -630,7 +596,7 @@ for (kmer in kmers){
     ggplot(aes(x = Codon, y = log_ratio)) +
       geom_bar(aes(fill = Codon), stat="identity", position = position_dodge(width = 0.9), width = 0.5, show.legend = FALSE) +
       scale_fill_manual(values = df_final_log_ordonne$colors) +
-      labs(title = paste0(name_ref, " vs ", name_test, " - length=", kmer)) +
+      labs(title = paste0(name_ref, " vs ", name_mut, " - length=", kmer)) +
       geom_hline(aes(yintercept=0)) +
       geom_text(aes(label = Codon, 
         y = ifelse(log_ratio > 0, -(max(abs(log_ratio)))/13, max(abs(log_ratio))/13)),
@@ -665,20 +631,20 @@ df_mean_by_sample <- means_in_df(data = df_final_all, mean_names = names_strains
 percentages_by_sample <- data.frame(apply(df_mean_by_sample, 2, FUN = function(x) (x*100)/sum(x)),
                                           row.names = row.names(df_mean_by_sample))
 write.csv(percentages_by_sample,
-          file = paste0(pathway_file_graphs,name_ref,"_vs_",name_test,"_percentage_by_sample_all_reads.csv"))
+          file = paste0(pathway_file_graphs,name_ref,"_vs_",name_mut,"_percentage_by_sample_all_reads.csv"))
 
 ###############################################
 # COUNTS WITH SIGNIFICANCE LEVELS (all lengths)
 ###############################################
-df_mean_all <- means_in_df(df_final_all, c(name_ref,name_test))
+df_mean_all <- means_in_df(df_final_all, c(name_ref,name_mut))
 
 percentages_by_condition <- data.frame(apply(df_mean_all, 2, FUN = function(x) (x*100)/sum(x)), row.names = row.names(df_mean_all))
 
 write.csv(percentages_by_condition,
-  file = paste0(pathway_file_graphs,name_ref,"_vs_",name_test,"_percentage_by_condition_all_reads.csv"))
+  file = paste0(pathway_file_graphs,name_ref,"_vs_",name_mut,"_percentage_by_condition_all_reads.csv"))
 
 write.csv(df_mean_all,
-  file = paste0(pathway_file_graphs,name_ref,"_vs_",name_test,"_normalized_counts_by_condition_by_codon.csv"),
+  file = paste0(pathway_file_graphs,name_ref,"_vs_",name_mut,"_normalized_counts_by_condition_by_codon.csv"),
   quote = F)
 
 data_mean_all <- gather(row_as_col(df_mean_all, "Codon"), key = "Condition", value = "Mean", -Codon)
@@ -711,7 +677,7 @@ plot_mean_all <- data_mean_all %>%
     "</span>", sep = "")) %>%
   ggplot(aes(x = Codon, y = Mean, group= interaction(Condition, AA_three_letters))) +
   geom_bar(aes(fill = Condition), stat="identity", position = position_dodge(width = 0.9), width = 0.5) +
-  labs(title = paste0(name_ref," vs ",name_test, " - all reads")) +
+  labs(title = paste0(name_ref," vs ",name_mut, " - all reads")) +
   facet_grid2(.~AA_three_letters,
     space = 'free_x', scales = 'free_x', switch = 'x',
     strip = strip_themed(
@@ -736,7 +702,7 @@ annotations <- list(
   createRectAnnotation(data = data_mean_all, col_x = "AA_three_letters", col_y = "Mean", cond = aa_start),
   createRectAnnotation(data = data_mean_all, col_x = "AA_three_letters", col_y = "Mean", cond = aa_stop, x_max = 3))
 
-tiff(file = paste0(pathway_file_graphs,name_ref,"_vs_",name_test,"_mean_by_codon_all_reads.tiff"),
+tiff(file = paste0(pathway_file_graphs,name_ref,"_vs_",name_mut,"_mean_by_codon_all_reads.tiff"),
      width = 1000,
      height = 500
 )
@@ -768,10 +734,10 @@ df_mean_all_aa <- data.frame(aggregate(x = cbind(df_mean_all, df_triplets)[,1:di
 percentages_by_aa <- data.frame(apply(df_mean_all_aa, 2, FUN = function(x) (x*100)/sum(x)),
                                        row.names = row.names(df_mean_all_aa))
 write.csv(percentages_by_aa,
-          file = paste0(pathway_file_graphs,name_ref,"_vs_",name_test,"_percentage_by_amino-acid_all_reads.csv"))
+          file = paste0(pathway_file_graphs,name_ref,"_vs_",name_mut,"_percentage_by_amino-acid_all_reads.csv"))
 
 write.csv(df_mean_all_aa,
-    file = paste0(pathway_file_graphs,name_ref,"_vs_",name_test,"_normalized_counts_by_condition_by_aa.csv"),
+    file = paste0(pathway_file_graphs,name_ref,"_vs_",name_mut,"_normalized_counts_by_condition_by_aa.csv"),
     quote = F)
 
 df_mean_all_aa <- row_as_col(df_mean_all_aa, "AA_three_letters")
@@ -810,7 +776,7 @@ plot_mean_aa <-
   ggplot(aes(x = AA_three_letters, y = Mean)) +
     geom_bar(aes(fill = Condition), stat="identity", position = position_dodge(width = 0.9), width = 0.7) +
     scale_fill_manual(values = c("black", "red")) + 
-    labs(title = paste0(name_ref," vs ",name_test, " - all reads")) +
+    labs(title = paste0(name_ref," vs ",name_mut, " - all reads")) +
     scale_y_continuous(limits = c(0,max(df_mean_all_aa$Mean + 0.005)), expand = c(0, 0)) +
     geom_signif(annotations = df_pvalues_by_aa$Significance, 
       xmin = df_pvalues_by_aa$BracketPosition - 0.5, 
@@ -821,7 +787,7 @@ plot_mean_aa <-
       vjust = 0.5,
       textsize = 6)
 
-tiff(file = paste0(pathway_file_graphs,name_ref,"_vs_",name_test,"_mean_by_amino-acid_all_reads.tiff"),
+tiff(file = paste0(pathway_file_graphs,name_ref,"_vs_",name_mut,"_mean_by_amino-acid_all_reads.tiff"),
      width = 1000,
      height = 500
 )
