@@ -591,7 +591,7 @@ def periodicity_outputs(wildcards):
     riboseq_samples = [s for s in samples if get_sample_type(s) == "riboseq"]
     window_suffix = "-" + str(config['window_utr']) + "+" + str(config['window_cds'])
     return expand(
-        local_path + "RESULTS/periodicity_" + window_suffix + "/{sample}.transcripts/length{kmer}_start.tiff",
+        local_path + "RESULTS/periodicity_" + window_suffix + "/",
         sample=riboseq_samples,
         kmer=LENGTHS
     )
@@ -1184,6 +1184,7 @@ rule STAR_index:
             --genomeFastaFiles {input.fasta} \
             --runThreadN {threads} \
             --outFileNamePrefix {params.index_dir} \
+            --limitBAMsortRAM 60000000000 \
             2> {log}
         """
 
@@ -1534,6 +1535,7 @@ rule STAR_index_transcriptome:
             --sjdbGTFfile {input.gff} \
             --runThreadN {threads} \
             --outFileNamePrefix {params.index_dir}/{params.fasta_basename}. \
+            --limitGenomeGenerateRAM 60000000000 \
             2> {log}
         """
 
@@ -1989,7 +1991,7 @@ rule count_matrix_creation:
                     " - > {params.tmp_file} 2>> {log.cut} && " +
                     "cat {params.tmp_file} > " + region_matrix + " 2> {log.cat_cds}"
                 )
-            shell("LC_COLLATE=C join --header -t $'\t' {params.tmp_file} {input.transcript_list} 1> " + region_matrix + " 2> {log.join_utr}")
+            shell("LC_COLLATE=C join --header -t $'\\t' {params.tmp_file} {input.transcript_list} 1> " + region_matrix + " 2> {log.join_utr}")
             if region == params.features_of_interest[0]:
                 shell("cp " + region_matrix + " {output.counts_matrix}")
         shell("rm -f {params.tmp_file}")
@@ -2234,10 +2236,10 @@ checkpoint periodicity_graph:
     input:
         metaprofile = ribowaltz_outputs
     output:
-        rgb_graph = local_path + "RESULTS/periodicity_-" + str(config['window_utr']) + "+" + str(config['window_cds']) + "/{sample}.transcripts/length{kmer}_start.tiff"
+        directory(local_path + "RESULTS/periodicity_-" + str(config['window_utr']) + "+" + str(config['window_cds']) + "/")
     log:
-        rscript = logs_path + "periodicity_rgb/periodicity_{sample}_{kmer}.log"
+        rscript = logs_path + "periodicity_rgb/periodicity.log"
     benchmark:
-        local_path + "benchmarks/periodicity_rgb/benchmark_{sample}_{kmer}.txt"
+        local_path + "benchmarks/periodicity_rgb/benchmark.txt"
     shell:
         "Rscript " + ribodoc_tools + "ribowaltz/change_riboWaltz_periodicity_graphs_to_RGB_by_length.R -w " + local_path + " 2> {log.rscript}"

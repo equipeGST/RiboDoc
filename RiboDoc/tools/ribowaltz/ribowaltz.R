@@ -69,6 +69,17 @@ print(samples)
 # Single load (no double bamtolist call)
 reads_list <- riboWaltz::bamtolist(bamfolder = bam_folder, annotation = annotation_db_transcript, name_samples = samples)
 
+min_reads_threshold <- 10000  # à ajuster selon ta profondeur habituelle
+
+read_counts <- sapply(reads_list, nrow)
+print(read_counts)
+
+samples_to_drop <- names(read_counts[read_counts < min_reads_threshold])
+if (length(samples_to_drop) > 0) {
+    warning(paste0("Samples dropped for insufficient reads (<", min_reads_threshold,
+                    "): ", paste(samples_to_drop, collapse = ", ")))
+    reads_list <- reads_list[!names(reads_list) %in% samples_to_drop]
+}
 # Sanitize names (replace "-" with "_")
 samples_renamed        <- gsub("-","_", samples)
 names(samples_renamed) <- gsub("-","_", names(samples_renamed))
