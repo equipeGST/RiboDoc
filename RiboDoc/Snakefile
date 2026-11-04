@@ -119,6 +119,14 @@ def get_adapter(wildcards):
                 raise ValueError("Adapter sequence not found for sample {wildcards.sample}.")
     raise ValueError("Sample {wildcards.sample} not found in samplesheet.")
 
+def get_strandedness(wildcards):
+    checkpoint_output = checkpoints.check_samplesheet.get(**wildcards).output[0]
+    for line in open(checkpoint_output).read().strip().split("\n")[1:]:
+        parts = [p.strip() for p in line.strip().split("\t")]
+        if parts[0] == wildcards.sample:
+            return parts[3]
+    raise ValueError("Sample {wildcards.sample} not found in samplesheet.")
+
 def samples_with_barcode(wildcards):
     checkpoint_output = checkpoints.check_samplesheet.get(**wildcards).output[0]
     samples = []
@@ -1764,10 +1772,21 @@ rule htseqcount_cds:
         cds_feature      = config["gff_cds_feature"],
         parent_attribut  = config["gff_parent_attribut"],
         htseq_additional = config["gff_name_attribut"],
+        strandedness     = lambda wildcards: get_strandedness(wildcards)
     threads:
         multi_threads_nbr
     shell:
         """
+        if ({params.strandedness} == "forward")
+        then
+            strandedness="yes"
+        elif ({params.strandedness} == "reverse")
+        then
+            strandedness="reverse"
+        else
+            strandedness="no"
+        fi
+
         echo -e "id\tname\t{wildcards.sample}" 2> {log.echo} > {output.htseq_table}
 
         htseq-count \
@@ -1777,6 +1796,7 @@ rule htseqcount_cds:
             -i {params.parent_attribut} \
             --additional-attr {params.htseq_additional} \
             -m intersection-strict \
+            -s $strandedness \
             --nonunique fraction \
             {input.bam} {input.gff} \
             2> {log.htseqcount} > {params.tmp_file}
@@ -1810,10 +1830,21 @@ rule htseqcount_utr:
         fiveprime_feature   = config["gff_5UTR_feature"],
         parent_attribut     = config["gff_parent_attribut"],
         htseq_additional    = config["gff_name_attribut"],
+        strandedness        = lambda wildcards: get_strandedness(wildcards)
     threads:
         multi_threads_nbr
     shell:
         """
+        if ({params.strandedness} == "forward")
+        then
+            strandedness="yes"
+        elif ({params.strandedness} == "reverse")
+        then
+            strandedness="reverse"
+        else
+            strandedness="no"
+        fi
+
         echo -e "id\tname\t{wildcards.sample}" 2> {log.echo} > {output.htseq_table_threeprime}
         htseq-count \
             -n {threads} \
@@ -1822,6 +1853,7 @@ rule htseqcount_utr:
             -i {params.parent_attribut} \
             --additional-attr {params.htseq_additional} \
             -m intersection-strict \
+            -s $strandedness \
             --nonunique fraction \
             {input.bam} {input.gff} \
             2> {log.htseqcount} > {params.tmp_file_threeprime}
