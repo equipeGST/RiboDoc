@@ -8,6 +8,7 @@ suppressPackageStartupMessages(library(riboWaltz))
 suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(rlang))
 
 # =========
 # Parse parameters
