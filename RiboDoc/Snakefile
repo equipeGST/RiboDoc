@@ -1505,10 +1505,9 @@ rule STAR_align:
         cat {params.out_dir}{params.prefix}Log.out 1>> {log.out} 2>> {log.err}
         cat {params.out_dir}{params.prefix}Log.final.out 1>> {log.out} 2>> {log.err}
         cat {params.out_dir}{params.prefix}Log.progress.out 1>> {log.out} 2>> {log.err}
-        rm {params.out_dir}{params.prefix}Log*out 2>> {log.err}
         samtools sort -@ {threads} {params.out_dir}{params.prefix}Aligned.out.bam -o {output.bam} 2>> {log.err} 1>> {log.out}
-        rm {params.out_dir}{params.prefix}Aligned.out.bam 2>> {log.err}
-        mv {params.out_dir}{params.prefix}_SJ.out.tab >> {log.out}
+        cat {params.out_dir}{params.prefix}*SJ.out.tab >> {log.out}
+        rm {params.out_dir}{params.prefix}*out* 2>> {log.err}
         """
 
 rule STAR_index_transcriptome:
@@ -1690,9 +1689,9 @@ rule STAR_align_transcriptome:
         cat {params.out_dir}{params.prefix}Log.out 1>> {log.out} 2>> {log.err}
         cat {params.out_dir}{params.prefix}Log.final.out 1>> {log.out} 2>> {log.err}
         cat {params.out_dir}{params.prefix}Log.progress.out 1>> {log.out} 2>> {log.err}
-        rm {params.out_dir}{params.prefix}Log*out 2>> {log.err}
         mv {params.out_dir}{params.prefix}Aligned.toTranscriptome.out.bam {output.bam} 2>> {log.err} 1>> {log.out}
-        mv {params.out_dir}{params.prefix}_SJ.out.tab >> {log.out}
+        cat {params.out_dir}{params.prefix}*SJ.out.tab >> {log.out}
+        rm {params.out_dir}{params.prefix}*out* 2>> {log.err}
         """
 
 rule index_bam:
@@ -1780,11 +1779,9 @@ rule htseqcount_cds:
         multi_threads_nbr
     shell:
         """
-        if ({params.strandedness} == "forward")
-        then
+        if [ {params.strandedness} = "forward" ]; then
             strandedness="yes"
-        elif ({params.strandedness} == "reverse")
-        then
+        elif [ {params.strandedness} = "reverse" ]; then
             strandedness="reverse"
         else
             strandedness="no"
@@ -1838,11 +1835,9 @@ rule htseqcount_utr:
         multi_threads_nbr
     shell:
         """
-        if ({params.strandedness} == "forward")
-        then
+        if [ {params.strandedness} = "forward" ]; then
             strandedness="yes"
-        elif ({params.strandedness} == "reverse")
-        then
+        elif [ {params.strandedness} = "reverse" ]; then
             strandedness="reverse"
         else
             strandedness="no"
