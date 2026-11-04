@@ -23,7 +23,7 @@ mem_mb_resources    = 10000
 utr_threshold       = "0.25"
 
 # Sets paths for inside the container
-ribodoc_tools = "/home/enora.corler/RiboDoc/RiboDoc/tools/"
+ribodoc_tools = "/stockage/EQUIPES/GST/bioinfo/RiboDoc_0.9.1.2/RiboDoc/RiboDoc/tools/"
 
 stats_path          = local_path + "stats/"
 logs_path           = local_path + "logs/"

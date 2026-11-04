@@ -1,0 +1,3 @@
+WorkflowError in file /stockage/EQUIPES/GST/bioinfo/RiboDoc_0.9.1.2/RiboDoc/RiboDoc/Snakefile, line 8:
+Workflow defines configfile config/config.yaml but it is not present or accessible (full checked path: /stockage/EQUIPES/GST/bioinfo/RiboDoc_0.9.1.2/RiboDoc/RiboDoc/config/config.yaml).
+  File "/stockage/EQUIPES/GST/bioinfo/RiboDoc_0.9.1.2/RiboDoc/RiboDoc/Snakefile", line 8, in <module>

@@ -225,7 +225,7 @@ def check_samplesheet(file_in:str, file_out:str) -> None:
                     print_error("Genes annotation entry does not have extension '.gtf', 'gff', 'gtf.gz' or '.gff.gz'!", "Line", line)
 
             ## Create sample mapping dictionary = {group: {replicate : [ barcode, input_file, genome, gtf, is_transcripts, nanopolish_fast5 ]}}
-            sample_info = [fastq1, fastq2, barcode1, barcode2, adapter1, adapter2, fasta, gtf, is_transcripts]
+            sample_info = [fastq1, fastq2, strandedness, barcode1, barcode2, adapter1, adapter2, fasta, gtf, is_transcripts]
             
             if f"{group}_{seq_type}" not in sample_info_dict:
                 sample_info_dict[f"{group}_{seq_type}"] = {}
@@ -248,7 +248,7 @@ def check_samplesheet(file_in:str, file_out:str) -> None:
         make_dir(out_dir)
         with open(file_out, "w") as fout:
             fout.write(
-                "\t".join(["sample", "fastq1", "fastq2", "barcode1", "barcode2", "adapter1", "adapter2", "fasta", "gtf", "is_transcripts"])
+                "\t".join(["sample", "fastq1", "fastq2", "strandedness", "barcode1", "barcode2", "adapter1", "adapter2", "fasta", "gtf", "is_transcripts"])
                 + "\n"
             )
             for sample in sorted(sample_info_dict.keys()):
