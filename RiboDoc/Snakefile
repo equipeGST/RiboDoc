@@ -163,8 +163,8 @@ def get_gff(wildcards):
         parts = [p.strip() for p in line.strip().split("\t")]
         sample = get_sample(wildcards)[i]
         if parts[0] == sample:
-            if len(parts[8]) > 0:
-                return parts[8]
+            if len(parts[9]) > 0:
+                return parts[9]
             else:
                 raise ValueError("Annotation file (GFF/GTF format) not found for sample {wildcards.sample}.")
         i += 1
