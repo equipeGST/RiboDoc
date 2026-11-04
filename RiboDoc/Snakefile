@@ -1507,6 +1507,8 @@ rule STAR_align:
         cat {params.out_dir}{params.prefix}Log.progress.out 1>> {log.out} 2>> {log.err}
         rm {params.out_dir}{params.prefix}Log*out 2>> {log.err}
         samtools sort -@ {threads} {params.out_dir}{params.prefix}Aligned.out.bam -o {output.bam} 2>> {log.err} 1>> {log.out}
+        rm {params.out_dir}{params.prefix}Aligned.out.bam 2>> {log.err}
+        mv {params.out_dir}{params.prefix}_SJ.out.tab >> {log.out}
         """
 
 rule STAR_index_transcriptome:
@@ -1649,9 +1651,9 @@ rule STAR_align_transcriptome:
     benchmark:
         local_path + "benchmarks/STAR/{sample}.benchmark_transcripts.txt"
     params:
-        out_dir = local_path + "RESULTS/STAR/",
+        out_dir = local_path + "RESULTS/STAR_transcripts/",
         prefix  = "{sample}_transcripts.",
-        tmp_dir = local_path + "RESULTS/STAR/{sample}_tmp/",
+        tmp_dir = local_path + "RESULTS/STAR_transcripts/{sample}_tmp/",
         index   = lambda wildcards: local_path + "RESULTS/annex_database/index/rsem/" + os.path.splitext(os.path.basename(get_fasta(wildcards)))[0] + "_transcripts/",
     threads:
         multi_threads_nbr
@@ -1690,6 +1692,7 @@ rule STAR_align_transcriptome:
         cat {params.out_dir}{params.prefix}Log.progress.out 1>> {log.out} 2>> {log.err}
         rm {params.out_dir}{params.prefix}Log*out 2>> {log.err}
         mv {params.out_dir}{params.prefix}Aligned.toTranscriptome.out.bam {output.bam} 2>> {log.err} 1>> {log.out}
+        mv {params.out_dir}{params.prefix}_SJ.out.tab >> {log.out}
         """
 
 rule index_bam:
