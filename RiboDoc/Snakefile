@@ -67,10 +67,9 @@ def get_samples_by_type(wildcards, sample_type):
     samples = []
     for line in open(checkpoint_output).read().strip().split("\n")[1:]:
         parts = [p.strip() for p in line.strip().split("\t")]
-        if len(parts) > 6 and parts[5]:
-            sample = parts[0]
-            if get_sample_type(sample) == sample_type:
-                samples.append(sample)
+        sample = parts[0]
+        if get_sample_type(sample) == sample_type:
+            samples.append(sample)
     return samples
 
 def is_paired(sample, checkpoint_output):
@@ -658,12 +657,6 @@ checkpoint check_samplesheet:
     shell:
         "python3 {ribodoc_tools}others/check_samplesheet.py {input} {output}"
 
-# NOTE: Snakemake does not allow lambda functions in output fields.
-# Strategy: all rules declare static output paths for both R1 and R2.
-# For single-end samples, R2 outputs are created as empty files via `touch`.
-# The *_outputs functions above only request R2 files for paired samples,
-# so rule all never expects real content in those touched files.
-
 rule fastqc_before_trimming:
     input:
         fastq_files = lambda wildcards: find_fastq_path(wildcards)
@@ -756,45 +749,6 @@ rule UMI_extract:
         fi
         """
 
-""" rule name_CDS:
-    input:
-        gff = lambda wildcards: get_gff(wildcards)
-    output:
-        gff_namedCDS = local_path + "RESULTS/annex_database/NamedCDS_{gff_basename}.gff3"
-    run:
-        gene_id_bool = True
-        if name_in_gff:
-            db = gffutils.create_db(input.gff, ':memory:', merge_strategy='create_unique', keep_order=True)
-            with open(output.gff_namedCDS, 'w') as fout:
-                for d in db.directives:
-                    fout.write('##{0}\n'.format(d))
-                for feature in db.all_features():
-                    if feature.featuretype in features_of_interest or feature.featuretype == 'exon':
-                        parent = list(db.parents(feature, level=1))
-                        if len(parent) > 0:
-                            parent = parent[0]
-                            if parent.attributes.get(config['gff_name_attribut']) and not feature.attributes.get(config['gff_name_attribut']):
-                                feature.attributes[config['gff_name_attribut']] = [i.replace("mRNA","cds") for i in parent.attributes.get(config['gff_name_attribut'])]
-                                feature.attributes[config['gff_name_attribut']][0] + "_name"
-                            if parent.attributes.get('ID') and not feature.attributes.get('ID'):
-                                feature.attributes["ID"] = parent.attributes["ID"]
-                                feature.attributes['ID'] = feature.attributes['ID'][0] + "_CDS"
-                            if parent.attributes.get('ID') and not parent.attributes.get(config['gff_name_attribut']):
-                                feature.attributes[config['gff_name_attribut']] = parent.attributes["ID"]
-                                feature.attributes[config['gff_name_attribut']][0] + "_name"
-                        if feature.attributes.get(config['gff_name_attribut']):
-                            fout.write(str(feature) + ';\n')
-                    else:
-                        fout.write(str(feature) + '\n')
-        else:
-            shell("cp {input.gff} {output.gff_namedCDS}")
-        if gene_id_bool:
-            print("'gene_id' attributes are present.")
-        else:
-            print("Missing at least some 'gene_id' attribute in this gff.")
-        shell("sed -i -E 's/\\s/\\t/8' {output.gff_namedCDS}")
-        shell('sed -i -E "s/\\"//g" {output.gff_namedCDS}')
- """
 rule filter_by_5UTR:
     input:
         gff_namedCDS = local_path + "RESULTS/annex_database/NamedCDS_{gff_basename}.gff3"
@@ -2011,17 +1965,19 @@ rule count_matrix_creation:
         name_in_gff = config['gff_name_attribut'] != ''
         fields = "1,3"
         for region in params.features_of_interest:
+            print(region)
+            print(samples)
             region_matrix = params.htseq_dir + "tmp_" + wildcards.sample_type + "_" + region + "_count_matrix.csv"
-            shell("cut -f 1 {input.transcript_list} 2> {log.cut} > " + region_matrix)
+            shell("cut -f 1 {input.transcript_list} 2>> {log.cut} > " + region_matrix)
             for sample in samples:
                 htseq_file = params.htseq_dir + sample + "." + region + ".tsv"
                 shell(
                     "cut -f " + fields + " " + htseq_file +
                     " | LC_COLLATE=C join --header -t $'\\t' " + region_matrix +
                     " - > {params.tmp_file} 2>> {log.cut} && " +
-                    "cat {params.tmp_file} > " + region_matrix + " 2> {log.cat_cds}"
+                    "cat {params.tmp_file} > " + region_matrix + " 2>> {log.cat_cds}"
                 )
-            shell("LC_COLLATE=C join --header -t $'\\t' {params.tmp_file} {input.transcript_list} 1> " + region_matrix + " 2> {log.join_utr}")
+            shell("LC_COLLATE=C join --header -t $'\\t' {params.tmp_file} {input.transcript_list} 1> " + region_matrix + " 2>> {log.join_utr}")
             if region == params.features_of_interest[0]:
                 shell("cp " + region_matrix + " {output.counts_matrix}")
         shell("rm -f {params.tmp_file}")
